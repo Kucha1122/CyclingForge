@@ -81,7 +81,8 @@ export const NewDashboardPage = () => {
   };
 
   const handleConnectStrava = () => {
-    window.location.href = `https://www.strava.com/oauth/authorize?client_id=172328&response_type=code&redirect_uri=http://localhost:5173/strava/callback&scope=activity:read_all`;
+    const redirectUri = `${window.location.origin}/strava/callback`;
+    window.location.href = `https://www.strava.com/oauth/authorize?client_id=172328&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=activity:read_all`;
   };
 
   if (loading) {
