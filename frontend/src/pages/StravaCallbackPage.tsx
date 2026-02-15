@@ -14,7 +14,6 @@ export const StravaCallbackPage = () => {
     if (processedRef.current) return;
 
     if (error) {
-      alert('Failed to connect with Strava: ' + error);
       navigate('/dashboard');
       return;
     }
@@ -24,9 +23,8 @@ export const StravaCallbackPage = () => {
       const connectStrava = async () => {
         try {
           await stravaApi.connect(code);
-          alert('Successfully connected with Strava!');
         } catch {
-          alert('Failed to connect with Strava. Please try again.');
+          // ignore
         } finally {
           navigate('/dashboard');
         }

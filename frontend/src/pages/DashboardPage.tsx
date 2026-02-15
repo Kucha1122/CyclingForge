@@ -49,11 +49,10 @@ export const DashboardPage = () => {
     try {
       await stravaApi.sync();
       await activitiesApi.sync();
-      alert('Synced successfully!');
       const activitiesResponse = await stravaApi.getActivities();
       setActivities(activitiesResponse.data);
     } catch {
-      alert('Failed to sync activities.');
+      // ignore
     } finally {
       setSyncing(false);
     }

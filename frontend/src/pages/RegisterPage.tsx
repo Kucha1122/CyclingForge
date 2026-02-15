@@ -11,10 +11,9 @@ export const RegisterPage = () => {
   const onSubmit = async (data: RegisterRequest) => {
     try {
       await api.post('/users/register', data);
-      alert('Registration successful! Please login.');
       navigate('/login');
     } catch {
-      alert('Registration failed. Please try again.');
+      // ignore
     }
   };
 

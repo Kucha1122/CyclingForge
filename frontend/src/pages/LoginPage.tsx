@@ -16,7 +16,7 @@ export const LoginPage = () => {
       login(response.data.token, response.data);
       navigate('/dashboard');
     } catch {
-      alert('Login failed. Please check your credentials.');
+      // ignore
     }
   };
 
