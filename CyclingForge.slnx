@@ -1,5 +1,8 @@
 <Solution>
-  <Folder Name="/Shared/" />
+  <Folder Name="/Shared/">
+    <Project Path="src/Shared/CyclingForge.Shared.Abstractions/CyclingForge.Shared.Abstractions.csproj" />
+    <Project Path="src/Shared/CyclingForge.Shared.Infrastructure/CyclingForge.Shared.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/Bootstrapper/" />
   <Folder Name="/Tests/" />
 </Solution>
