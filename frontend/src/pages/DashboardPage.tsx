@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { stravaApi } from '../services/api';
+import { stravaApi, activitiesApi } from '../services/api';
 import type { UserDto } from '../types/user';
 import type { AthleteProfileDto } from '../types/strava';
 import type { ActivityDto } from '../types/activity';
@@ -22,28 +22,15 @@ export const DashboardPage = () => {
         try {
           const profileResponse = await stravaApi.getProfile();
           setStravaProfile(profileResponse.data);
-        } catch (err) {
+        } catch {
           // Ignore error if profile not found (not connected)
-          console.log('Strava profile not found or not connected');
         }
 
         // Fetch activities
-        // #region agent log
-        const hasToken = !!localStorage.getItem('token');
-        fetch('http://127.0.0.1:7243/ingest/6e89bd8c-d5e3-4909-a86e-6a706284be5b', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.tsx:useEffect:getActivities', message: 'getActivities called', data: { hasToken }, timestamp: Date.now(), hypothesisId: 'A' }) }).catch(() => {});
-        // #endregion
         try {
           const activitiesResponse = await stravaApi.getActivities();
-          // #region agent log
-          const isArray = Array.isArray(activitiesResponse.data);
-          fetch('http://127.0.0.1:7243/ingest/6e89bd8c-d5e3-4909-a86e-6a706284be5b', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.tsx:useEffect:getActivities', message: 'getActivities response', data: { status: activitiesResponse.status, isArray, length: isArray ? activitiesResponse.data.length : undefined }, timestamp: Date.now(), hypothesisId: 'B' }) }).catch(() => {});
-          // #endregion
           setActivities(activitiesResponse.data);
         } catch (err: unknown) {
-          // #region agent log
-          const ax = err as { response?: { status?: number; data?: unknown }; message?: string };
-          fetch('http://127.0.0.1:7243/ingest/6e89bd8c-d5e3-4909-a86e-6a706284be5b', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.tsx:useEffect:getActivities:catch', message: 'getActivities failed', data: { status: ax.response?.status, responseData: ax.response?.data, message: ax.message }, timestamp: Date.now(), hypothesisId: 'A' }) }).catch(() => {});
-          // #endregion
           console.error('Failed to fetch activities', err);
         }
 
@@ -61,21 +48,11 @@ export const DashboardPage = () => {
     setSyncing(true);
     try {
       await stravaApi.sync();
+      await activitiesApi.sync();
       alert('Synced successfully!');
-      // Refresh activities
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/6e89bd8c-d5e3-4909-a86e-6a706284be5b', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.tsx:handleSync', message: 'Calling stravaApi.getActivities()', data: {}, timestamp: Date.now(), hypothesisId: 'C' }) }).catch(() => {});
-      // #endregion
       const activitiesResponse = await stravaApi.getActivities();
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/6e89bd8c-d5e3-4909-a86e-6a706284be5b', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.tsx:handleSync', message: 'stravaApi.getActivities() success', data: { count: activitiesResponse.data.length }, timestamp: Date.now(), hypothesisId: 'C' }) }).catch(() => {});
-      // #endregion
       setActivities(activitiesResponse.data);
     } catch (error: unknown) {
-      // #region agent log
-      const ax = error as { response?: { status?: number; data?: unknown }; message?: string; config?: { url?: string } };
-      fetch('http://127.0.0.1:7243/ingest/6e89bd8c-d5e3-4909-a86e-6a706284be5b', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'DashboardPage.tsx:handleSync:catch', message: 'Sync failed', data: { status: ax.response?.status, responseData: ax.response?.data, message: ax.message, url: ax.config?.url }, timestamp: Date.now(), hypothesisId: 'C' }) }).catch(() => {});
-      // #endregion
       console.error('Sync failed', error);
       alert('Failed to sync activities.');
     } finally {
