@@ -1,0 +1,21 @@
+using CyclingForge.Modules.Strava.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace CyclingForge.Modules.Strava.Infrastructure.Database;
+
+internal sealed class StravaDbContext : DbContext
+{
+    public DbSet<StravaToken> StravaTokens => Set<StravaToken>();
+    public DbSet<StravaAthlete> StravaAthletes => Set<StravaAthlete>();
+
+    public StravaDbContext(DbContextOptions<StravaDbContext> options)
+        : base(options)
+    {
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasDefaultSchema("strava");
+        modelBuilder.ApplyConfigurationsFromAssembly(GetType().Assembly);
+    }
+}

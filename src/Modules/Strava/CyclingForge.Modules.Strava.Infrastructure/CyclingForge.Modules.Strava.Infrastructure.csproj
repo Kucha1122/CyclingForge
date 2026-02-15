@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CyclingForge.Modules.Strava.Application\CyclingForge.Modules.Strava.Application.csproj" />
+    <ProjectReference Include="..\..\..\Shared\CyclingForge.Shared.Infrastructure\CyclingForge.Shared.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

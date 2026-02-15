@@ -10,5 +10,11 @@
     <Project Path="src/Modules/Users/CyclingForge.Modules.Users.Infrastructure/CyclingForge.Modules.Users.Infrastructure.csproj" />
     <Project Path="src/Modules/Users/CyclingForge.Modules.Users.Api/CyclingForge.Modules.Users.Api.csproj" />
   </Folder>
+  <Folder Name="/Modules/Strava/">
+    <Project Path="src/Modules/Strava/CyclingForge.Modules.Strava.Domain/CyclingForge.Modules.Strava.Domain.csproj" />
+    <Project Path="src/Modules/Strava/CyclingForge.Modules.Strava.Application/CyclingForge.Modules.Strava.Application.csproj" />
+    <Project Path="src/Modules/Strava/CyclingForge.Modules.Strava.Infrastructure/CyclingForge.Modules.Strava.Infrastructure.csproj" />
+    <Project Path="src/Modules/Strava/CyclingForge.Modules.Strava.Api/CyclingForge.Modules.Strava.Api.csproj" />
+  </Folder>
   <Folder Name="/Tests/" />
 </Solution>
