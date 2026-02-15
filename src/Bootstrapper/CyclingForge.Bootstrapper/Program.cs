@@ -1,8 +1,19 @@
+using System.Reflection;
 using CyclingForge.Shared.Infrastructure;
 using CyclingForge.Shared.Infrastructure.Exceptions;
 using CyclingForge.Shared.Infrastructure.Modules;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Ensure module assemblies are loaded so LoadModules() and controller discovery can find them
+var moduleAssemblyNames = new[]
+{
+    "CyclingForge.Modules.Users.Api",
+    "CyclingForge.Modules.Strava.Api",
+    "CyclingForge.Modules.Activities.Api",
+};
+foreach (var name in moduleAssemblyNames)
+    Assembly.Load(name);
 
 var modules = ModuleLoader.LoadModules(builder.Configuration);
 

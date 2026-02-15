@@ -13,7 +13,7 @@ namespace CyclingForge.Modules.Strava.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-internal sealed class StravaController : ControllerBase
+public sealed class StravaController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUser;

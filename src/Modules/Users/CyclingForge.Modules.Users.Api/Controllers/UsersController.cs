@@ -12,7 +12,7 @@ namespace CyclingForge.Modules.Users.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-internal sealed class UsersController : ControllerBase
+public sealed class UsersController : ControllerBase
 {
     private readonly IMediator _mediator;
 

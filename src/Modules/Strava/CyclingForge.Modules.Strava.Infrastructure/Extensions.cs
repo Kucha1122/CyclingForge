@@ -1,3 +1,4 @@
+using CyclingForge.Modules.Strava.Application.Contracts;
 using CyclingForge.Modules.Strava.Application.Services;
 using CyclingForge.Modules.Strava.Domain.Repositories;
 using CyclingForge.Modules.Strava.Infrastructure.Database;
@@ -23,6 +24,7 @@ public static class Extensions
 
         services.AddHttpClient<StravaHttpClient>();
         services.AddScoped<IStravaApiService, StravaApiService>();
+        services.AddScoped<IStravaModuleApi, StravaModuleApi>();
         services.AddScoped<IStravaTokenRepository, StravaTokenRepository>();
         services.AddScoped<IStravaAthleteRepository, StravaAthleteRepository>();
 

@@ -12,7 +12,7 @@ namespace CyclingForge.Modules.Activities.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-internal sealed class ActivitiesController : ControllerBase
+public sealed class ActivitiesController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUser;
