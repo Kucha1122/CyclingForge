@@ -18,16 +18,18 @@ public sealed class CurrentUserService : ICurrentUserService
     {
         get
         {
-            var sub = _httpContextAccessor.HttpContext?.User
-                .FindFirstValue(JwtRegisteredClaimNames.Sub);
+            var user = _httpContextAccessor.HttpContext?.User;
+            var sub = user?.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                ?? user?.FindFirstValue(ClaimTypes.NameIdentifier);
 
             return sub is not null ? Guid.Parse(sub) : Guid.Empty;
         }
     }
 
     public string Email =>
-        _httpContextAccessor.HttpContext?.User
-            .FindFirstValue(JwtRegisteredClaimNames.Email) ?? string.Empty;
+        _httpContextAccessor.HttpContext?.User.FindFirstValue(JwtRegisteredClaimNames.Email)
+        ?? _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Email)
+        ?? string.Empty;
 
     public bool IsAuthenticated =>
         _httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated ?? false;
