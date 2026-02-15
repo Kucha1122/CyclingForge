@@ -7,6 +7,7 @@ internal sealed class StravaDbContext : DbContext
 {
     public DbSet<StravaToken> StravaTokens => Set<StravaToken>();
     public DbSet<StravaAthlete> StravaAthletes => Set<StravaAthlete>();
+    public DbSet<StravaActivity> StravaActivities => Set<StravaActivity>();
 
     public StravaDbContext(DbContextOptions<StravaDbContext> options)
         : base(options)

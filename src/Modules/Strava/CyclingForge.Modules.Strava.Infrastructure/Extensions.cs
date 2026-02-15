@@ -27,6 +27,7 @@ public static class Extensions
         services.AddScoped<IStravaModuleApi, StravaModuleApi>();
         services.AddScoped<IStravaTokenRepository, StravaTokenRepository>();
         services.AddScoped<IStravaAthleteRepository, StravaAthleteRepository>();
+        services.AddScoped<IStravaActivityRepository, StravaActivityRepository>();
 
         return services;
     }

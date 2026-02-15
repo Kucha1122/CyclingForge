@@ -4,6 +4,7 @@ using CyclingForge.Modules.Strava.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CyclingForge.Modules.Strava.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(StravaDbContext))]
-    partial class StravaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260215180907_AddStravaActivities")]
+    partial class AddStravaActivities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
