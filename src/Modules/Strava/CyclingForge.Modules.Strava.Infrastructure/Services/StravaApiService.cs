@@ -1,6 +1,7 @@
 using CyclingForge.Modules.Strava.Application.Services;
 using CyclingForge.Modules.Strava.Domain.Exceptions;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace CyclingForge.Modules.Strava.Infrastructure.Services;
 
@@ -49,13 +50,56 @@ internal sealed class StravaApiService : IStravaApiService
         string accessToken, int page = 1, int perPage = 30, CancellationToken cancellationToken = default)
     {
         var activities = await _httpClient.GetActivitiesAsync(accessToken, page, perPage, cancellationToken);
-
+        
         return activities?.Select(a => new StravaActivityResponse(
             a.Id, a.Name, a.Type, a.StartDate, a.Distance,
             a.MovingTime, a.ElapsedTime, a.TotalElevationGain,
             a.AverageSpeed, a.MaxSpeed, a.AverageHeartRate,
             a.MaxHeartRate, a.AveragePower)).ToList()
             ?? [];
+    }
+
+    public async Task<string?> GetActivityStreamsJsonAsync(
+        string accessToken, long activityId, string[] keys, CancellationToken cancellationToken = default)
+    {
+        var streamsJson = await _httpClient.GetActivityStreamsAsync(accessToken, activityId, keys, cancellationToken);
+        
+        if (string.IsNullOrEmpty(streamsJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            // Try to parse as array first (expected format)
+            // We just validate it's an array, we don't need to deserialize fully if we just want to return the string.
+            // But to be safe and consistent, let's check.
+            using var doc = JsonDocument.Parse(streamsJson);
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                return streamsJson;
+            }
+            else if (doc.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                // Convert object format to array format
+                var streamsDict = JsonSerializer.Deserialize<Dictionary<string, StravaStreamApiResponse>>(streamsJson);
+                if (streamsDict != null)
+                {
+                    var streamsList = streamsDict.Select(kvp => {
+                        kvp.Value.Type = kvp.Key;
+                        return kvp.Value;
+                    }).ToList();
+                    return JsonSerializer.Serialize(streamsList);
+                }
+            }
+        }
+        catch (Exception)
+        {
+             // Log error if needed, but for now just return null or original json?
+             // If parsing fails, it might be better to return null to avoid saving bad data.
+        }
+
+        return null;
     }
 }
 

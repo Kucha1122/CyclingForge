@@ -59,6 +59,24 @@ internal sealed class StravaHttpClient
 
         return await response.Content.ReadFromJsonAsync<List<StravaActivityApiResponse>>(cancellationToken);
     }
+
+    public async Task<string?> GetActivityStreamsAsync(
+        string accessToken, long activityId, string[] keys, CancellationToken cancellationToken)
+    {
+        var keysString = string.Join(",", keys);
+        var request = new HttpRequestMessage(HttpMethod.Get,
+            $"activities/{activityId}/streams?keys={keysString}&key_by_type=false");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+        
+        return await response.Content.ReadAsStringAsync(cancellationToken);
+    }
 }
 
 internal sealed class StravaOAuthTokenResponse
@@ -131,4 +149,22 @@ internal sealed class StravaActivityApiResponse
 
     [JsonPropertyName("average_watts")]
     public float? AveragePower { get; set; }
+}
+
+internal sealed class StravaStreamApiResponse
+{
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = string.Empty;
+
+    [JsonPropertyName("data")]
+    public List<object> Data { get; set; } = [];
+
+    [JsonPropertyName("series_type")]
+    public string SeriesType { get; set; } = string.Empty;
+
+    [JsonPropertyName("original_size")]
+    public int OriginalSize { get; set; }
+
+    [JsonPropertyName("resolution")]
+    public string Resolution { get; set; } = string.Empty;
 }
