@@ -24,5 +24,22 @@
     <Project Path="src/Modules/Activities/CyclingForge.Modules.Activities.Infrastructure/CyclingForge.Modules.Activities.Infrastructure.csproj" />
     <Project Path="src/Modules/Activities/CyclingForge.Modules.Activities.Api/CyclingForge.Modules.Activities.Api.csproj" />
   </Folder>
-  <Folder Name="/Tests/" />
+  <Folder Name="/Tests/Users/">
+    <Project Path="tests/Modules/Users/CyclingForge.Modules.Users.Domain.Tests/CyclingForge.Modules.Users.Domain.Tests.csproj" />
+    <Project Path="tests/Modules/Users/CyclingForge.Modules.Users.Application.Tests/CyclingForge.Modules.Users.Application.Tests.csproj" />
+    <Project Path="tests/Modules/Users/CyclingForge.Modules.Users.Integration.Tests/CyclingForge.Modules.Users.Integration.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Strava/">
+    <Project Path="tests/Modules/Strava/CyclingForge.Modules.Strava.Domain.Tests/CyclingForge.Modules.Strava.Domain.Tests.csproj" />
+    <Project Path="tests/Modules/Strava/CyclingForge.Modules.Strava.Application.Tests/CyclingForge.Modules.Strava.Application.Tests.csproj" />
+    <Project Path="tests/Modules/Strava/CyclingForge.Modules.Strava.Integration.Tests/CyclingForge.Modules.Strava.Integration.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Activities/">
+    <Project Path="tests/Modules/Activities/CyclingForge.Modules.Activities.Domain.Tests/CyclingForge.Modules.Activities.Domain.Tests.csproj" />
+    <Project Path="tests/Modules/Activities/CyclingForge.Modules.Activities.Application.Tests/CyclingForge.Modules.Activities.Application.Tests.csproj" />
+    <Project Path="tests/Modules/Activities/CyclingForge.Modules.Activities.Integration.Tests/CyclingForge.Modules.Activities.Integration.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Shared/">
+    <Project Path="tests/Shared/CyclingForge.Shared.Tests/CyclingForge.Shared.Tests.csproj" />
+  </Folder>
 </Solution>
