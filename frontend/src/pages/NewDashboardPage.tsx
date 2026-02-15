@@ -71,10 +71,8 @@ export const NewDashboardPage = () => {
       setPmcData(pmc.data);
       setWeeklyData(weekly.data);
       setMonthlyData(monthly.data);
-      
-      alert('Synced successfully!');
     } catch {
-      alert('Failed to sync activities.');
+      // ignore
     } finally {
       setSyncing(false);
     }
