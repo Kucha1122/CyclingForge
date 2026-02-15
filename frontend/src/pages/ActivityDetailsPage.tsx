@@ -38,7 +38,7 @@ export default function ActivityDetailsPage() {
             processStreams(response.data.streamsJson);
           }
         })
-        .catch((error) => console.error('Failed to fetch activity details:', error))
+        .catch(() => {})
         .finally(() => setLoading(false));
     }
   }, [id]);
@@ -71,8 +71,8 @@ export default function ActivityDetailsPage() {
         });
       }
       setChartData(data);
-    } catch (e) {
-      console.error('Failed to parse streams JSON', e);
+    } catch {
+      // Failed to parse streams JSON
     }
   };
 

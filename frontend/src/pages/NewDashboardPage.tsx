@@ -42,11 +42,11 @@ export const NewDashboardPage = () => {
           setPmcData(pmc.data);
           setWeeklyData(weekly.data);
           setMonthlyData(monthly.data);
-        } catch (err) {
-          console.error('Failed to fetch metrics', err);
+        } catch {
+          // Failed to fetch metrics
         }
-      } catch (error) {
-        console.error('Error fetching dashboard data', error);
+      } catch {
+        // Error fetching dashboard data
       } finally {
         setLoading(false);
       }
@@ -73,8 +73,7 @@ export const NewDashboardPage = () => {
       setMonthlyData(monthly.data);
       
       alert('Synced successfully!');
-    } catch (error) {
-      console.error('Sync failed', error);
+    } catch {
       alert('Failed to sync activities.');
     } finally {
       setSyncing(false);

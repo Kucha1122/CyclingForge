@@ -30,12 +30,12 @@ export const DashboardPage = () => {
         try {
           const activitiesResponse = await stravaApi.getActivities();
           setActivities(activitiesResponse.data);
-        } catch (err: unknown) {
-          console.error('Failed to fetch activities', err);
+        } catch {
+          // Failed to fetch activities
         }
 
-      } catch (error) {
-        console.error('Error fetching dashboard data', error);
+      } catch {
+        // Error fetching dashboard data
       } finally {
         setLoading(false);
       }
@@ -52,8 +52,7 @@ export const DashboardPage = () => {
       alert('Synced successfully!');
       const activitiesResponse = await stravaApi.getActivities();
       setActivities(activitiesResponse.data);
-    } catch (error: unknown) {
-      console.error('Sync failed', error);
+    } catch {
       alert('Failed to sync activities.');
     } finally {
       setSyncing(false);

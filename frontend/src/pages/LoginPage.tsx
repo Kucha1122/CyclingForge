@@ -15,8 +15,7 @@ export const LoginPage = () => {
       const response = await api.post<AuthResultDto>('/users/login', data);
       login(response.data.token, response.data);
       navigate('/dashboard');
-    } catch (error) {
-      console.error('Login failed', error);
+    } catch {
       alert('Login failed. Please check your credentials.');
     }
   };

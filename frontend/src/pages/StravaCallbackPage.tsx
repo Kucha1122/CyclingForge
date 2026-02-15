@@ -14,7 +14,6 @@ export const StravaCallbackPage = () => {
     if (processedRef.current) return;
 
     if (error) {
-      console.error('Strava authorization error:', error);
       alert('Failed to connect with Strava: ' + error);
       navigate('/dashboard');
       return;
@@ -26,8 +25,7 @@ export const StravaCallbackPage = () => {
         try {
           await stravaApi.connect(code);
           alert('Successfully connected with Strava!');
-        } catch (err) {
-          console.error('Failed to exchange Strava code:', err);
+        } catch {
           alert('Failed to connect with Strava. Please try again.');
         } finally {
           navigate('/dashboard');

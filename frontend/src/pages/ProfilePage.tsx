@@ -35,8 +35,8 @@ export const ProfilePage = () => {
         } catch {
           // Ignore error if Strava not connected
         }
-      } catch (error) {
-        console.error('Failed to fetch profile', error);
+      } catch {
+        // Failed to fetch profile
       } finally {
         setLoading(false);
       }
@@ -62,8 +62,7 @@ export const ProfilePage = () => {
         const profileResponse = await usersApi.getProfile(user.userId);
         setUserProfile(profileResponse.data);
       }
-    } catch (error) {
-      console.error('Failed to update profile', error);
+    } catch {
       setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
     } finally {
       setSaving(false);

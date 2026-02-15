@@ -13,8 +13,7 @@ export const RegisterPage = () => {
       await api.post('/users/register', data);
       alert('Registration successful! Please login.');
       navigate('/login');
-    } catch (error) {
-      console.error('Registration failed', error);
+    } catch {
       alert('Registration failed. Please try again.');
     }
   };
