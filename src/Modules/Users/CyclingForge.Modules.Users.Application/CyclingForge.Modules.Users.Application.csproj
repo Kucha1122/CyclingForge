@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="MediatR" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CyclingForge.Modules.Users.Domain\CyclingForge.Modules.Users.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Shared\CyclingForge.Shared.Abstractions\CyclingForge.Shared.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

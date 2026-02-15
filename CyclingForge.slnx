@@ -4,5 +4,11 @@
     <Project Path="src/Shared/CyclingForge.Shared.Infrastructure/CyclingForge.Shared.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/Bootstrapper/" />
+  <Folder Name="/Modules/Users/">
+    <Project Path="src/Modules/Users/CyclingForge.Modules.Users.Domain/CyclingForge.Modules.Users.Domain.csproj" />
+    <Project Path="src/Modules/Users/CyclingForge.Modules.Users.Application/CyclingForge.Modules.Users.Application.csproj" />
+    <Project Path="src/Modules/Users/CyclingForge.Modules.Users.Infrastructure/CyclingForge.Modules.Users.Infrastructure.csproj" />
+    <Project Path="src/Modules/Users/CyclingForge.Modules.Users.Api/CyclingForge.Modules.Users.Api.csproj" />
+  </Folder>
   <Folder Name="/Tests/" />
 </Solution>
