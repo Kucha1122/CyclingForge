@@ -9,6 +9,7 @@
 
   <ItemGroup Label="Abstractions">
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0-preview.2.25163.2" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0-preview.2.25163.2" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0-preview.2.25163.2" />
   </ItemGroup>
 
