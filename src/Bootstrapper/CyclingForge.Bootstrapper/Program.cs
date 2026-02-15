@@ -27,6 +27,17 @@ foreach (var assembly in ModuleLoader.GetModuleAssemblies())
 }
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowedOrigins",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:5173")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        });
+});
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
@@ -72,6 +83,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseErrorHandling();
 app.UseHttpsRedirection();
+app.UseCors("AllowedOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
