@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\CyclingForge.Shared.Abstractions\CyclingForge.Shared.Abstractions.csproj" />
+  </ItemGroup>
+</Project>
