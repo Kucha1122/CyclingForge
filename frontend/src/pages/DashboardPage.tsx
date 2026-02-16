@@ -1,14 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { stravaApi, activitiesApi } from '../services/api';
-import type { UserDto } from '../types/user';
 import type { AthleteProfileDto } from '../types/strava';
 import type { ActivityDto } from '../types/activity';
 import { useNavigate, Link } from 'react-router-dom';
 
 export const DashboardPage = () => {
   const { user, logout } = useAuth();
-  const [userDetails, setUserDetails] = useState<UserDto | null>(null);
   const [stravaProfile, setStravaProfile] = useState<AthleteProfileDto | null>(null);
   const [activities, setActivities] = useState<ActivityDto[]>([]);
   const [loading, setLoading] = useState(true);

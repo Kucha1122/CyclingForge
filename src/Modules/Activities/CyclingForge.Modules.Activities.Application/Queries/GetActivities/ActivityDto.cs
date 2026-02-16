@@ -10,4 +10,9 @@ public sealed record ActivityDto(
     TimeSpan MovingTime,
     float ElevationGain,
     float? AverageSpeed,
-    float? MaxSpeed);
+    float? MaxSpeed,
+    float? AveragePower,
+    float? MaxPower,
+    float? NormalizedPower,
+    float? IntensityFactor,
+    float? TrainingStressScore);

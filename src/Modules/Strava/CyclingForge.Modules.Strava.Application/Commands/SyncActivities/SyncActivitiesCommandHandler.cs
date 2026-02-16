@@ -54,41 +54,67 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
             await _tokenRepository.UpdateAsync(token, cancellationToken);
         }
 
-        var activities = await _stravaApiService.GetActivitiesAsync(token.Token.Value, 1, 30, cancellationToken);
-
-        foreach (var activityDto in activities)
+        var latestStart = await _activityRepository.GetLatestActivityStartDateAsync(athlete.Id, cancellationToken);
+        var fullSync = command.ForceFullSync || !latestStart.HasValue;
+        long? afterUnix = null;
+        if (!fullSync)
         {
-            if (await _activityRepository.ExistsAsync(activityDto.StravaId, cancellationToken))
+            afterUnix = new DateTimeOffset(latestStart!.Value).ToUnixTimeSeconds();
+        }
+
+        const int perPage = 200;
+        var page = 1;
+        var streamKeys = new[] {
+            "time", "distance", "heartrate", "watts", "velocity_smooth",
+            "altitude", "cadence", "temp", "moving", "grade_smooth"
+        };
+
+        while (true)
+        {
+            var activities = await _stravaApiService.GetActivitiesAsync(
+                token.Token.Value, page, perPage, after: afterUnix, before: null, cancellationToken);
+            if (activities is null || activities.Count == 0)
             {
-                continue;
+                break;
             }
 
-            var streamKeys = new[] { 
-                "time", "distance", "heartrate", "watts", "velocity_smooth", 
-                "altitude", "cadence", "temp", "moving", "grade_smooth" 
-            };
-            
-            var streamsJson = await _stravaApiService.GetActivityStreamsJsonAsync(
-                token.Token.Value, activityDto.StravaId, streamKeys, cancellationToken);
+            foreach (var activityDto in activities)
+            {
+                if (await _activityRepository.ExistsAsync(activityDto.StravaId, cancellationToken))
+                {
+                    continue;
+                }
 
-            var activity = StravaActivity.Create(
-                activityDto.StravaId,
-                athlete.Id,
-                activityDto.Name,
-                activityDto.Type,
-                activityDto.StartDate,
-                activityDto.Distance,
-                activityDto.MovingTime,
-                activityDto.ElapsedTime,
-                activityDto.TotalElevationGain,
-                activityDto.AverageSpeed,
-                activityDto.MaxSpeed,
-                activityDto.AverageHeartRate,
-                activityDto.MaxHeartRate,
-                activityDto.AveragePower,
-                streamsJson);
-            
-            await _activityRepository.AddAsync(activity, cancellationToken);
+                var streamsJson = await _stravaApiService.GetActivityStreamsJsonAsync(
+                    token.Token.Value, activityDto.StravaId, streamKeys, cancellationToken);
+
+                var activity = StravaActivity.Create(
+                    activityDto.StravaId,
+                    athlete.Id,
+                    activityDto.Name,
+                    activityDto.Type,
+                    activityDto.StartDate,
+                    activityDto.Distance,
+                    activityDto.MovingTime,
+                    activityDto.ElapsedTime,
+                    activityDto.TotalElevationGain,
+                    activityDto.AverageSpeed,
+                    activityDto.MaxSpeed,
+                    activityDto.AverageHeartRate,
+                    activityDto.MaxHeartRate,
+                    activityDto.AveragePower,
+                    streamsJson);
+
+                await _activityRepository.AddAsync(activity, cancellationToken);
+            }
+
+            if (activities.Count < perPage)
+            {
+                break;
+            }
+
+            page++;
+            await Task.Delay(250, cancellationToken);
         }
     }
 }

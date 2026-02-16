@@ -1,14 +1,37 @@
-import React, { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { metricsApi, stravaApi, activitiesApi } from '../services/api';
-import type { PmcSummary, WeeklySummary, MonthlySummary } from '../services/api';
+import type { PmcSummary, WeeklySummary, MonthlySummary, DailyTssPoint } from '../services/api';
 import type { AthleteProfileDto } from '../types/strava';
 import { PMCChart } from '../components/PMCChart';
+import { DailyTssChart } from '../components/DailyTssChart';
 import { WeeklySummaryCard } from '../components/WeeklySummaryCard';
 import { MonthlySummaryCard } from '../components/MonthlySummaryCard';
 import { ReadinessCard } from '../components/ReadinessCard';
 import { TrendsCard } from '../components/TrendsCard';
 import { useNavigate } from 'react-router-dom';
+
+function getStartOfWeek(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function getWeekStartForOffset(offset: number): string {
+  const now = new Date();
+  const weekStart = getStartOfWeek(now);
+  weekStart.setDate(weekStart.getDate() + offset * 7);
+  return weekStart.toISOString().slice(0, 10);
+}
+
+function getYearMonthForOffset(offset: number): { year: number; month: number } {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  return { year: d.getFullYear(), month: d.getMonth() + 1 };
+}
 
 export const NewDashboardPage = () => {
   const { user } = useAuth();
@@ -17,8 +40,25 @@ export const NewDashboardPage = () => {
   const [syncing, setSyncing] = useState(false);
   const [stravaProfile, setStravaProfile] = useState<AthleteProfileDto | null>(null);
   const [pmcData, setPmcData] = useState<PmcSummary | null>(null);
+  const [dailyTssData, setDailyTssData] = useState<DailyTssPoint[]>([]);
   const [weeklyData, setWeeklyData] = useState<WeeklySummary | null>(null);
   const [monthlyData, setMonthlyData] = useState<MonthlySummary | null>(null);
+  const [selectedWeekOffset, setSelectedWeekOffset] = useState(0);
+  const [selectedMonthOffset, setSelectedMonthOffset] = useState(0);
+  const [pmcCtlDays, setPmcCtlDays] = useState(42);
+  const [pmcAtlDays, setPmcAtlDays] = useState(7);
+  const [pmcHistoryDays, setPmcHistoryDays] = useState(90);
+
+  const fetchSummaries = useCallback(async (weekOffset: number, monthOffset: number) => {
+    const weekStart = getWeekStartForOffset(weekOffset);
+    const { year, month } = getYearMonthForOffset(monthOffset);
+    const [weekly, monthlyResult] = await Promise.all([
+      metricsApi.getWeeklySummary(weekStart),
+      metricsApi.getMonthlySummary(year, month),
+    ]);
+    setWeeklyData(weekly.data);
+    setMonthlyData(monthlyResult.data);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,17 +71,15 @@ export const NewDashboardPage = () => {
           // Ignore error if profile not connected
         }
 
-        // Fetch metrics data
+        // Fetch metrics data (weekly/monthly are fetched by the summaries useEffect)
         try {
-          const [pmc, weekly, monthly] = await Promise.all([
-            metricsApi.getPmcSummary(),
-            metricsApi.getWeeklySummary(),
-            metricsApi.getMonthlySummary(),
+          const [pmc, dailyTss] = await Promise.all([
+            metricsApi.getPmcSummary(pmcCtlDays, pmcAtlDays, pmcHistoryDays),
+            metricsApi.getDailyTss(30),
           ]);
           
           setPmcData(pmc.data);
-          setWeeklyData(weekly.data);
-          setMonthlyData(monthly.data);
+          setDailyTssData(dailyTss.data);
         } catch {
           // Failed to fetch metrics
         }
@@ -53,7 +91,14 @@ export const NewDashboardPage = () => {
     };
 
     fetchData();
-  }, []);
+  }, [pmcCtlDays, pmcAtlDays, pmcHistoryDays]);
+
+  useEffect(() => {
+    if (!stravaProfile) return;
+    fetchSummaries(selectedWeekOffset, selectedMonthOffset).catch(() => {
+      // Ignore fetch errors when navigating
+    });
+  }, [selectedWeekOffset, selectedMonthOffset, stravaProfile, fetchSummaries]);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -62,15 +107,14 @@ export const NewDashboardPage = () => {
       await activitiesApi.sync();
       
       // Refresh metrics after sync
-      const [pmc, weekly, monthly] = await Promise.all([
-        metricsApi.getPmcSummary(),
-        metricsApi.getWeeklySummary(),
-        metricsApi.getMonthlySummary(),
+      const [pmc, dailyTss] = await Promise.all([
+        metricsApi.getPmcSummary(pmcCtlDays, pmcAtlDays, pmcHistoryDays),
+        metricsApi.getDailyTss(30),
       ]);
       
       setPmcData(pmc.data);
-      setWeeklyData(weekly.data);
-      setMonthlyData(monthly.data);
+      setDailyTssData(dailyTss.data);
+      await fetchSummaries(selectedWeekOffset, selectedMonthOffset);
     } catch {
       // ignore
     } finally {
@@ -142,12 +186,15 @@ export const NewDashboardPage = () => {
                   currentTSB={pmcData.currentTSB}
                   formStatus={pmcData.formStatus}
                   recommendation={pmcData.recommendation}
+                  rampRateCtlPerWeek={pmcData.rampRateCtlPerWeek}
                 />
                 <TrendsCard
                   currentCTL={pmcData.currentCTL}
                   currentATL={pmcData.currentATL}
-                  previousCTL={pmcData.history.length > 7 ? pmcData.history[pmcData.history.length - 8].ctl : undefined}
-                  previousATL={pmcData.history.length > 7 ? pmcData.history[pmcData.history.length - 8].atl : undefined}
+                  currentWeekAvgCtl={pmcData.currentWeekAvgCtl}
+                  currentWeekAvgAtl={pmcData.currentWeekAvgAtl}
+                  previousWeekAvgCtl={pmcData.previousWeekAvgCtl}
+                  previousWeekAvgAtl={pmcData.previousWeekAvgAtl}
                 />
               </>
             )}
@@ -155,13 +202,90 @@ export const NewDashboardPage = () => {
 
           {/* PMC Chart */}
           {pmcData && pmcData.history.length > 0 && (
-            <PMCChart data={pmcData.history} />
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Zakresy:</span>
+                    <select
+                      value={pmcHistoryDays}
+                      onChange={(e) => setPmcHistoryDays(Number(e.target.value))}
+                      className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value={7}>7 dni</option>
+                      <option value={30}>1 miesiąc</option>
+                      <option value={42}>42 dni</option>
+                      <option value={90}>3 miesiące</option>
+                      <option value={180}>6 miesięcy</option>
+                      <option value={365}>Rok</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Stałe CTL/ATL:</span>
+                    <select
+                      value={`${pmcCtlDays}/${pmcAtlDays}`}
+                      onChange={(e) => {
+                        const [ctl, atl] = e.target.value.split('/').map(Number);
+                        setPmcCtlDays(ctl);
+                        setPmcAtlDays(atl);
+                      }}
+                      className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="42/7">42/7 dni</option>
+                      <option value="42/14">42/14 dni</option>
+                      <option value="30/7">30/7 dni</option>
+                      <option value="25/7">25/7 dni</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <PMCChart data={pmcData.history} ctlDays={pmcCtlDays} atlDays={pmcAtlDays} />
+            </div>
+          )}
+
+          {/* Ramp rate */}
+          {pmcData && pmcData.rampRateCtlPerWeek != null && (
+            <div
+              className={`rounded-xl p-4 shadow-sm ring-1 ${
+                pmcData.rampRateCtlPerWeek > 7
+                  ? 'bg-amber-50 ring-amber-200'
+                  : 'bg-white ring-gray-200'
+              }`}
+            >
+              <p className="text-sm font-medium text-gray-700">
+                Ramp rate: <span className="font-semibold">{pmcData.rampRateCtlPerWeek >= 0 ? '+' : ''}{pmcData.rampRateCtlPerWeek.toFixed(1)}</span> CTL/week
+              </p>
+              {pmcData.rampRateCtlPerWeek > 7 && (
+                <p className="mt-1 text-xs text-amber-800">Load is rising quickly – pay attention to recovery.</p>
+              )}
+            </div>
+          )}
+
+          {/* Daily TSS */}
+          {dailyTssData.length > 0 && (
+            <DailyTssChart data={dailyTssData} days={30} />
           )}
 
           {/* Weekly and Monthly Summaries */}
           <div className="grid gap-6 lg:grid-cols-2">
-            {weeklyData && <WeeklySummaryCard {...weeklyData} />}
-            {monthlyData && <MonthlySummaryCard {...monthlyData} />}
+            {weeklyData && (
+              <WeeklySummaryCard
+                {...weeklyData}
+                isCurrentWeek={selectedWeekOffset === 0}
+                onPrevWeek={() => setSelectedWeekOffset((o) => o - 1)}
+                onNextWeek={() => setSelectedWeekOffset((o) => Math.min(0, o + 1))}
+                canGoNext={selectedWeekOffset < 0}
+              />
+            )}
+            {monthlyData && (
+              <MonthlySummaryCard
+                {...monthlyData}
+                isCurrentMonth={selectedMonthOffset === 0}
+                onPrevMonth={() => setSelectedMonthOffset((o) => o - 1)}
+                onNextMonth={() => setSelectedMonthOffset((o) => Math.min(0, o + 1))}
+                canGoNext={selectedMonthOffset < 0}
+              />
+            )}
           </div>
 
           {/* Quick Actions */}

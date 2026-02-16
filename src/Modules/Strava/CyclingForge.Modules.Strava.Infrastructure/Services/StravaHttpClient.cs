@@ -48,10 +48,15 @@ internal sealed class StravaHttpClient
     }
 
     public async Task<List<StravaActivityApiResponse>?> GetActivitiesAsync(
-        string accessToken, int page, int perPage, CancellationToken cancellationToken)
+        string accessToken, int page, int perPage, long? after = null, long? before = null, CancellationToken cancellationToken = default)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get,
-            $"athlete/activities?page={page}&per_page={perPage}");
+        var query = $"athlete/activities?page={page}&per_page={perPage}";
+        if (after.HasValue)
+            query += $"&after={after.Value}";
+        if (before.HasValue)
+            query += $"&before={before.Value}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, query);
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
         var response = await _httpClient.SendAsync(request, cancellationToken);

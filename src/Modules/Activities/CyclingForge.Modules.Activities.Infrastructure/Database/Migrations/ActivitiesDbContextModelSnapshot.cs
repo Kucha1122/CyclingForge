@@ -43,7 +43,13 @@ namespace CyclingForge.Modules.Activities.Infrastructure.Database.Migrations
                     b.Property<int>("ElapsedTime")
                         .HasColumnType("int");
 
+                    b.Property<float?>("IntensityFactor")
+                        .HasColumnType("real");
+
                     b.Property<float?>("MaxHeartRate")
+                        .HasColumnType("real");
+
+                    b.Property<float?>("MaxPower")
                         .HasColumnType("real");
 
                     b.Property<float?>("MaxSpeed")
@@ -57,6 +63,9 @@ namespace CyclingForge.Modules.Activities.Infrastructure.Database.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
 
+                    b.Property<float?>("NormalizedPower")
+                        .HasColumnType("real");
+
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
@@ -67,6 +76,9 @@ namespace CyclingForge.Modules.Activities.Infrastructure.Database.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<float>("TotalElevationGain")
+                        .HasColumnType("real");
+
+                    b.Property<float?>("TrainingStressScore")
                         .HasColumnType("real");
 
                     b.Property<string>("Type")

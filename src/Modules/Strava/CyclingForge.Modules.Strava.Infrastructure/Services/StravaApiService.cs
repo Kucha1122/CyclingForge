@@ -47,9 +47,9 @@ internal sealed class StravaApiService : IStravaApiService
     }
 
     public async Task<IReadOnlyList<StravaActivityResponse>> GetActivitiesAsync(
-        string accessToken, int page = 1, int perPage = 30, CancellationToken cancellationToken = default)
+        string accessToken, int page = 1, int perPage = 30, long? after = null, long? before = null, CancellationToken cancellationToken = default)
     {
-        var activities = await _httpClient.GetActivitiesAsync(accessToken, page, perPage, cancellationToken);
+        var activities = await _httpClient.GetActivitiesAsync(accessToken, page, perPage, after, before, cancellationToken);
         
         return activities?.Select(a => new StravaActivityResponse(
             a.Id, a.Name, a.Type, a.StartDate, a.Distance,

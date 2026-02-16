@@ -25,6 +25,9 @@ internal sealed class GetUserQueryHandler : IRequestHandler<GetUserQuery, UserDt
             user.FirstName,
             user.LastName,
             user.CreatedAt,
-            user.IsActive);
+            user.IsActive,
+            user.FunctionalThresholdPower,
+            user.WeightKg,
+            user.LactateThresholdHeartRate);
     }
 }

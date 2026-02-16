@@ -1,20 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { stravaApi } from '../services/api';
+import { stravaApi, type ActivityCountsDto } from '../services/api';
 import type { ActivityDto } from '../types/activity';
 
+const PER_PAGE = 30;
+
 export const ActivitiesPage = () => {
-  const { user } = useAuth();
+  useAuth();
   const [activities, setActivities] = useState<ActivityDto[]>([]);
+  const [counts, setCounts] = useState<ActivityCountsDto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'ride' | 'run'>('all');
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'ride' | 'run' | 'walk'>('all');
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchActivities = async () => {
+    const fetchInitial = async () => {
       try {
-        const response = await stravaApi.getActivities(1, 100);
-        setActivities(response.data);
+        const [activitiesRes, countsRes] = await Promise.all([
+          stravaApi.getActivities(1, PER_PAGE),
+          stravaApi.getActivityCounts().catch(() => ({ data: null })),
+        ]);
+        const data = activitiesRes.data;
+        setActivities(data);
+        setPage(1);
+        setHasMore(data.length === PER_PAGE);
+        if (countsRes.data) setCounts(countsRes.data);
       } catch {
         // Failed to fetch activities
       } finally {
@@ -22,19 +36,52 @@ export const ActivitiesPage = () => {
       }
     };
 
-    fetchActivities();
+    fetchInitial();
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const response = await stravaApi.getActivities(nextPage, PER_PAGE);
+      const data = response.data;
+      setActivities(prev => [...prev, ...data]);
+      setPage(nextPage);
+      setHasMore(data.length === PER_PAGE);
+    } catch {
+      // Failed to load more
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, page]);
+
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMore();
+      },
+      { rootMargin: '200px', threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore, hasMore, loading, loadingMore]);
 
   const filteredActivities = activities.filter(activity => {
     if (filter === 'all') return true;
     if (filter === 'ride') return activity.type.toLowerCase().includes('ride');
     if (filter === 'run') return activity.type.toLowerCase().includes('run');
+    if (filter === 'walk') return activity.type.toLowerCase().includes('walk');
     return true;
   });
 
   const getActivityIcon = (type: string) => {
     if (type.toLowerCase().includes('ride')) return '🚴';
     if (type.toLowerCase().includes('run')) return '🏃';
+    if (type.toLowerCase().includes('walk')) return '🚶';
     return '⚡';
   };
 
@@ -53,7 +100,7 @@ export const ActivitiesPage = () => {
         <p className="text-gray-600">Your complete training history</p>
       </header>
 
-      {/* Filters */}
+      {/* Filters – counts from API (all activities), fallback to loaded when counts not available */}
       <div className="mb-6 flex gap-2">
         <button
           onClick={() => setFilter('all')}
@@ -63,7 +110,7 @@ export const ActivitiesPage = () => {
               : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
           }`}
         >
-          All ({activities.length})
+          All ({counts?.total ?? activities.length})
         </button>
         <button
           onClick={() => setFilter('ride')}
@@ -73,7 +120,7 @@ export const ActivitiesPage = () => {
               : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
           }`}
         >
-          Rides ({activities.filter(a => a.type.toLowerCase().includes('ride')).length})
+          Rides ({counts?.ride ?? activities.filter(a => a.type.toLowerCase().includes('ride')).length})
         </button>
         <button
           onClick={() => setFilter('run')}
@@ -83,7 +130,17 @@ export const ActivitiesPage = () => {
               : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
           }`}
         >
-          Runs ({activities.filter(a => a.type.toLowerCase().includes('run')).length})
+          Runs ({counts?.run ?? activities.filter(a => a.type.toLowerCase().includes('run')).length})
+        </button>
+        <button
+          onClick={() => setFilter('walk')}
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            filter === 'walk'
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          Walks ({counts?.walk ?? activities.filter(a => a.type.toLowerCase().includes('walk')).length})
         </button>
       </div>
 
@@ -172,6 +229,10 @@ export const ActivitiesPage = () => {
               </div>
             </Link>
           ))}
+          <div ref={sentinelRef} className="h-4" aria-hidden />
+          {loadingMore && (
+            <p className="py-4 text-center text-sm text-gray-500">Loading more...</p>
+          )}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center rounded-xl bg-white p-12 text-center">
