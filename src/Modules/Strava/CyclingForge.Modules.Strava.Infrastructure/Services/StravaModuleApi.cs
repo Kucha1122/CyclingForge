@@ -9,15 +9,21 @@ namespace CyclingForge.Modules.Strava.Infrastructure.Services;
 internal sealed class StravaModuleApi : IStravaModuleApi
 {
     private readonly IStravaTokenRepository _tokenRepository;
+    private readonly IStravaAthleteRepository _athleteRepository;
+    private readonly IStravaActivityRepository _activityRepository;
     private readonly IMediator _mediator;
     private readonly IClock _clock;
 
     public StravaModuleApi(
         IStravaTokenRepository tokenRepository,
+        IStravaAthleteRepository athleteRepository,
+        IStravaActivityRepository activityRepository,
         IMediator mediator,
         IClock clock)
     {
         _tokenRepository = tokenRepository;
+        _athleteRepository = athleteRepository;
+        _activityRepository = activityRepository;
         _mediator = mediator;
         _clock = clock;
     }
@@ -41,5 +47,31 @@ internal sealed class StravaModuleApi : IStravaModuleApi
     {
         var token = await _tokenRepository.GetByUserIdAsync(userId, cancellationToken);
         return token is not null;
+    }
+
+    public async Task<IReadOnlyList<StravaActivityWithStreamsDto>?> GetActivitiesWithStreamsForUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var athlete = await _athleteRepository.GetByUserIdAsync(userId, cancellationToken);
+        if (athlete is null)
+            return null;
+
+        var activities = await _activityRepository.GetByAthleteIdAsync(athlete.Id, 1, 10000, cancellationToken);
+        return activities
+            .Select(a => new StravaActivityWithStreamsDto(
+                a.ExternalId,
+                a.Name,
+                a.Type,
+                a.StartDate,
+                a.Distance,
+                a.MovingTime,
+                a.ElapsedTime,
+                a.TotalElevationGain,
+                a.AverageSpeed,
+                a.MaxSpeed,
+                a.AverageHeartRate,
+                a.MaxHeartRate,
+                a.AveragePower,
+                a.StreamsJson))
+            .ToList();
     }
 }

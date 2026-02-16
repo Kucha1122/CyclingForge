@@ -3,6 +3,7 @@ using CyclingForge.Modules.Strava.Application.Commands.Authorize;
 using CyclingForge.Modules.Strava.Application.Commands.RefreshToken;
 using CyclingForge.Modules.Strava.Application.Commands.SyncActivities;
 using CyclingForge.Modules.Strava.Application.Queries.GetActivities;
+using CyclingForge.Modules.Strava.Application.Queries.GetActivityCounts;
 using CyclingForge.Modules.Strava.Application.Queries.GetActivityDetails;
 using CyclingForge.Modules.Strava.Application.Queries.GetAthleteProfile;
 using CyclingForge.Shared.Abstractions.Auth;
@@ -50,9 +51,11 @@ public sealed class StravaController : ControllerBase
 
     [HttpPost("sync")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> SyncActivities(CancellationToken cancellationToken)
+    public async Task<IActionResult> SyncActivities(
+        [FromQuery] bool fullSync = false,
+        CancellationToken cancellationToken = default)
     {
-        var command = new SyncActivitiesCommand(_currentUser.UserId);
+        var command = new SyncActivitiesCommand(_currentUser.UserId, fullSync);
         await _mediator.Send(command, cancellationToken);
         return Ok();
     }
@@ -66,6 +69,20 @@ public sealed class StravaController : ControllerBase
     {
         var query = new GetActivitiesQuery(_currentUser.UserId, page, perPage);
         var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("activities/counts")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ActivityCountsDto>> GetActivityCounts(CancellationToken cancellationToken = default)
+    {
+        var query = new GetActivityCountsQuery(_currentUser.UserId);
+        var result = await _mediator.Send(query, cancellationToken);
+        if (result is null)
+        {
+            return NotFound();
+        }
         return Ok(result);
     }
 

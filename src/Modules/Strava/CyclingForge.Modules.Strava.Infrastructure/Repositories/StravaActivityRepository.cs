@@ -39,4 +39,19 @@ internal sealed class StravaActivityRepository : IStravaActivityRepository
 
     public async Task<bool> ExistsAsync(long externalId, CancellationToken cancellationToken = default)
         => await _dbContext.StravaActivities.AnyAsync(a => a.ExternalId == externalId, cancellationToken);
+
+    public async Task<DateTime?> GetLatestActivityStartDateAsync(Guid athleteId, CancellationToken cancellationToken = default)
+        => await _dbContext.StravaActivities
+            .Where(a => a.AthleteId == athleteId)
+            .MaxAsync(a => (DateTime?)a.StartDate, cancellationToken);
+
+    public async Task<(int Total, int Ride, int Run, int Walk)> GetCountsByAthleteIdAsync(Guid athleteId, CancellationToken cancellationToken = default)
+    {
+        var baseQuery = _dbContext.StravaActivities.Where(a => a.AthleteId == athleteId);
+        var total = await baseQuery.CountAsync(cancellationToken);
+        var ride = await baseQuery.CountAsync(a => a.Type.ToLower().Contains("ride"), cancellationToken);
+        var run = await baseQuery.CountAsync(a => a.Type.ToLower().Contains("run"), cancellationToken);
+        var walk = await baseQuery.CountAsync(a => a.Type.ToLower().Contains("walk"), cancellationToken);
+        return (total, ride, run, walk);
+    }
 }

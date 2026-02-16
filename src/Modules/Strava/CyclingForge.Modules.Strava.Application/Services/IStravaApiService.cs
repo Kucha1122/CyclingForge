@@ -4,7 +4,7 @@ public interface IStravaApiService
 {
     Task<StravaTokenResponse> ExchangeAuthorizationCodeAsync(string code, CancellationToken cancellationToken = default);
     Task<StravaRefreshTokenResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<StravaActivityResponse>> GetActivitiesAsync(string accessToken, int page = 1, int perPage = 30, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StravaActivityResponse>> GetActivitiesAsync(string accessToken, int page = 1, int perPage = 30, long? after = null, long? before = null, CancellationToken cancellationToken = default);
     Task<string?> GetActivityStreamsJsonAsync(string accessToken, long activityId, string[] keys, CancellationToken cancellationToken = default);
 }
 
