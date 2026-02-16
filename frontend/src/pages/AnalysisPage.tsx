@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { metricsApi, type PmcSummary } from '../services/api';
 import { PMCChart } from '../components/PMCChart';
 
@@ -108,6 +108,17 @@ export const AnalysisPage = () => {
             </div>
           )}
 
+          {pmcData.rampRateCtlPerWeek != null && (
+            <div className={`rounded-xl p-4 shadow-sm ring-1 ${pmcData.rampRateCtlPerWeek > 7 ? 'bg-amber-50 ring-amber-200' : 'bg-white ring-gray-200'}`}>
+              <p className="text-sm font-medium text-gray-700">
+                Ramp rate: <span className="font-semibold">{pmcData.rampRateCtlPerWeek >= 0 ? '+' : ''}{pmcData.rampRateCtlPerWeek.toFixed(1)}</span> CTL/week
+              </p>
+              {pmcData.rampRateCtlPerWeek > 7 && (
+                <p className="mt-1 text-xs text-amber-800">Load is rising quickly – pay attention to recovery.</p>
+              )}
+            </div>
+          )}
+
           {/* PMC Chart */}
           <PMCChart data={getFilteredHistory()} />
 
@@ -168,12 +179,14 @@ export const AnalysisPage = () => {
                     <span className="text-sm text-gray-600">Form (TSB)</span>
                     <span
                       className={`font-semibold ${
-                        pmcData.currentTSB < -20
+                        pmcData.currentTSB < -35
                           ? 'text-red-600'
-                          : pmcData.currentTSB < 0
-                          ? 'text-orange-600'
-                          : pmcData.currentTSB < 15
+                          : pmcData.currentTSB < -10
                           ? 'text-green-600'
+                          : pmcData.currentTSB < 5
+                          ? 'text-slate-600'
+                          : pmcData.currentTSB < 25
+                          ? 'text-blue-600'
                           : 'text-purple-600'
                       }`}
                     >
@@ -183,15 +196,17 @@ export const AnalysisPage = () => {
                   <div className="h-2 overflow-hidden rounded-full bg-gray-200">
                     <div
                       className={`h-full rounded-full ${
-                        pmcData.currentTSB < -20
+                        pmcData.currentTSB < -35
                           ? 'bg-red-600'
-                          : pmcData.currentTSB < 0
-                          ? 'bg-orange-600'
-                          : pmcData.currentTSB < 15
+                          : pmcData.currentTSB < -10
                           ? 'bg-green-600'
+                          : pmcData.currentTSB < 5
+                          ? 'bg-slate-500'
+                          : pmcData.currentTSB < 25
+                          ? 'bg-blue-500'
                           : 'bg-purple-600'
                       }`}
-                      style={{ width: `${Math.min(Math.abs(pmcData.currentTSB / 30) * 100, 100)}%` }}
+                      style={{ width: `${Math.min(Math.abs(pmcData.currentTSB / 35) * 100, 100)}%` }}
                     />
                   </div>
                   <p className="mt-1 text-xs text-gray-500">{pmcData.formStatus}</p>
@@ -214,13 +229,15 @@ export const AnalysisPage = () => {
                   <div>
                     <p className="font-medium text-gray-900">Training Balance</p>
                     <p className="text-gray-600">
-                      {pmcData.currentTSB < -20
-                        ? 'High fatigue detected. Consider reducing training load or adding recovery days.'
-                        : pmcData.currentTSB < 0
-                        ? 'Good training stimulus. Your body is adapting to the load.'
-                        : pmcData.currentTSB < 15
-                        ? 'Optimal freshness for high-quality training or racing.'
-                        : 'Very fresh. Consider increasing training load to maintain fitness.'}
+                      {pmcData.currentTSB < -35
+                        ? 'Ryzyko przetrenowania. Rozważ odpoczynek lub lekki trening.'
+                        : pmcData.currentTSB < -10
+                        ? 'Optymalna strefa treningowa – budujesz formę.'
+                        : pmcData.currentTSB < 5
+                        ? 'Strefa przejściowa. Organizm adaptuje się do obciążenia.'
+                        : pmcData.currentTSB < 25
+                        ? 'Świeżość optymalna na intensywne jednostki lub start.'
+                        : 'Bardzo świeży – rozważ zwiększenie obciążenia.'}
                     </p>
                   </div>
                 </div>
@@ -245,10 +262,10 @@ export const AnalysisPage = () => {
                     <p className="font-medium text-gray-900">Performance Outlook</p>
                     <p className="text-gray-600">
                       {pmcData.currentTSB > 5 && pmcData.currentCTL > 70
-                        ? 'Peak form! Great time for a goal event or hard effort.'
-                        : pmcData.currentTSB < -20
-                        ? 'Recovery needed. Focus on easy aerobic training.'
-                        : 'Building towards peak form. Keep training consistently.'}
+                        ? 'Szczyt formy – dobry moment na start lub mocny wysiłek.'
+                        : pmcData.currentTSB < -35
+                        ? 'Potrzebna regeneracja. Skup się na lekkim treningu tlenowym.'
+                        : 'Budujesz formę. Trenuj konsekwentnie.'}
                     </p>
                   </div>
                 </div>
@@ -275,7 +292,7 @@ export const AnalysisPage = () => {
               <div>
                 <h3 className="mb-2 font-semibold text-green-700">Form (TSB)</h3>
                 <p className="text-sm text-gray-700">
-                  Training Stress Balance (CTL - ATL) indicates your readiness. Positive = fresh, negative = fatigued.
+                  Training Stress Balance (CTL - ATL) wskazuje gotowość. Strefa optymalna treningu: TSB -10 do -35 (budowanie formy).
                 </p>
               </div>
             </div>
