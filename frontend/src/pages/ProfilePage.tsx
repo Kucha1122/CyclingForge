@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usersApi, stravaApi, type UserProfile } from '../services/api';
 import type { AthleteProfileDto } from '../types/strava';
@@ -11,6 +11,7 @@ export const ProfilePage = () => {
   const [stravaProfile, setStravaProfile] = useState<AthleteProfileDto | null>(null);
   const [ftp, setFtp] = useState<string>('');
   const [weight, setWeight] = useState<string>('');
+  const [lthr, setLthr] = useState<string>('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
@@ -26,6 +27,9 @@ export const ProfilePage = () => {
           
           if (profileResponse.data.weightKg) {
             setWeight(profileResponse.data.weightKg.toString());
+          }
+          if (profileResponse.data.lactateThresholdHeartRate != null) {
+            setLthr(profileResponse.data.lactateThresholdHeartRate.toString());
           }
         }
 
@@ -53,9 +57,10 @@ export const ProfilePage = () => {
     try {
       const ftpValue = ftp ? parseInt(ftp) : null;
       const weightValue = weight ? parseFloat(weight) : null;
+      const lthrValue = lthr ? parseInt(lthr) : null;
 
       if (user?.userId) {
-        await usersApi.updateProfile(user.userId, ftpValue, weightValue);
+        await usersApi.updateProfile(user.userId, ftpValue, weightValue, lthrValue);
         setMessage({ type: 'success', text: 'Profile updated successfully!' });
         
         // Refresh profile data
@@ -214,6 +219,30 @@ export const ProfilePage = () => {
                     step="0.1"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">kg</span>
+                </div>
+              </div>
+
+              {/* LTHR Input */}
+              <div>
+                <label htmlFor="lthr" className="mb-1 block text-sm font-medium text-gray-900">
+                  Lactate Threshold Heart Rate (LTHR)
+                </label>
+                <p className="mb-2 text-xs text-gray-600">
+                  Used to estimate TSS for activities without power data (e.g. heart rate only). Leave blank if you only use power.
+                </p>
+                <div className="relative">
+                  <input
+                    type="number"
+                    id="lthr"
+                    value={lthr}
+                    onChange={(e) => setLthr(e.target.value)}
+                    placeholder="e.g. 165"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    min="0"
+                    max="250"
+                    step="1"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">bpm</span>
                 </div>
               </div>
 
