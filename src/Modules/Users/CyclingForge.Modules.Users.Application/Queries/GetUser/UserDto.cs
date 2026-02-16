@@ -6,4 +6,7 @@ public sealed record UserDto(
     string FirstName,
     string LastName,
     DateTime CreatedAt,
-    bool IsActive);
+    bool IsActive,
+    int? FunctionalThresholdPower,
+    float? WeightKg,
+    int? LactateThresholdHeartRate);

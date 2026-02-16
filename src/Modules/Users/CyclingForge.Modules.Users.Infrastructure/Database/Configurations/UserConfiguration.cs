@@ -42,6 +42,13 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.CreatedAt).IsRequired();
         builder.Property(u => u.IsActive).IsRequired();
 
+        builder.Property(u => u.FunctionalThresholdPower)
+            .IsRequired(false);
+
+        builder.Property(u => u.WeightKg)
+            .HasColumnType("decimal(5,2)")
+            .IsRequired(false);
+
         builder.Ignore(u => u.DomainEvents);
     }
 }

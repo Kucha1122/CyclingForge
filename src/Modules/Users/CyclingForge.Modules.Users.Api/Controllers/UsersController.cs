@@ -1,5 +1,6 @@
 using CyclingForge.Modules.Users.Application.Commands.Login;
 using CyclingForge.Modules.Users.Application.Commands.Register;
+using CyclingForge.Modules.Users.Application.Commands.UpdateProfile;
 using CyclingForge.Modules.Users.Application.DTOs;
 using CyclingForge.Modules.Users.Application.Queries.GetUser;
 using CyclingForge.Modules.Users.Api.Requests;
@@ -56,5 +57,19 @@ public sealed class UsersController : ControllerBase
         var query = new GetUserQuery(userId);
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
+    }
+
+    [Authorize]
+    [HttpPut("{userId:guid}/profile")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateProfile(
+        [FromRoute] Guid userId,
+        [FromBody] UpdateProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new UpdateProfileCommand(userId, request.Ftp, request.WeightKg, request.Lthr);
+        await _mediator.Send(command, cancellationToken);
+        return NoContent();
     }
 }
