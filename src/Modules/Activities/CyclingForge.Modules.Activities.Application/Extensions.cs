@@ -1,3 +1,4 @@
+using CyclingForge.Modules.Activities.Application.Services;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,6 +12,11 @@ public static class Extensions
             cfg.RegisterServicesFromAssembly(typeof(Extensions).Assembly));
 
         services.AddValidatorsFromAssembly(typeof(Extensions).Assembly);
+
+        // Register training metrics services
+        services.AddScoped<ITrainingMetricsCalculator, TrainingMetricsCalculator>();
+        services.AddScoped<IPowerProfileAnalyzer, PowerProfileAnalyzer>();
+        services.AddScoped<IPerformanceManagementService, PerformanceManagementService>();
 
         return services;
     }

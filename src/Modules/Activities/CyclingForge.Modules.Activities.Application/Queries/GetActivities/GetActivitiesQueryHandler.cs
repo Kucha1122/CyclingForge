@@ -27,6 +27,11 @@ internal sealed class GetActivitiesQueryHandler : IRequestHandler<GetActivitiesQ
             a.MovingTime.ToTimeSpan(),
             a.TotalElevationGain,
             a.AverageSpeed,
-            a.MaxSpeed)).ToList();
+            a.MaxSpeed,
+            a.AveragePower,
+            a.MaxPower,
+            a.NormalizedPower,
+            a.IntensityFactor,
+            a.TrainingStressScore)).ToList();
     }
 }

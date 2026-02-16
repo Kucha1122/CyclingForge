@@ -20,6 +20,10 @@ public sealed class Activity : AggregateRoot<ActivityId>
     public float? AverageHeartRate { get; private set; }
     public float? MaxHeartRate { get; private set; }
     public float? AveragePower { get; private set; }
+    public float? MaxPower { get; private set; }
+    public float? NormalizedPower { get; private set; }
+    public float? IntensityFactor { get; private set; }
+    public float? TrainingStressScore { get; private set; }
     public DateTime SyncedAt { get; private set; }
 
     private Activity() { }
@@ -89,5 +93,17 @@ public sealed class Activity : AggregateRoot<ActivityId>
         MaxHeartRate = maxHeartRate;
         AveragePower = averagePower;
         SyncedAt = syncedAt;
+    }
+
+    public void UpdateMetrics(
+        float? maxPower,
+        float? normalizedPower,
+        float? intensityFactor,
+        float? trainingStressScore)
+    {
+        MaxPower = maxPower;
+        NormalizedPower = normalizedPower;
+        IntensityFactor = intensityFactor;
+        TrainingStressScore = trainingStressScore;
     }
 }

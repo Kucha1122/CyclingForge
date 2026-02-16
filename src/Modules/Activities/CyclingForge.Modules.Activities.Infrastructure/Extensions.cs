@@ -4,6 +4,8 @@ using CyclingForge.Modules.Activities.Infrastructure.Database;
 using CyclingForge.Modules.Activities.Infrastructure.Repositories;
 using CyclingForge.Modules.Activities.Infrastructure.Services;
 using CyclingForge.Shared.Infrastructure.Database;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,5 +24,16 @@ public static class Extensions
         services.AddScoped<IStravaActivitiesService, StravaActivitiesService>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Applies pending EF Core migrations for the Activities database at startup.
+    /// </summary>
+    public static IApplicationBuilder UseActivitiesMigrations(this IApplicationBuilder app)
+    {
+        using var scope = app.ApplicationServices.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ActivitiesDbContext>();
+        context.Database.Migrate();
+        return app;
     }
 }
