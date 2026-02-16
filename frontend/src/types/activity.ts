@@ -13,6 +13,9 @@ export interface ActivityDto {
   averageHeartRate?: number;
   maxHeartRate?: number;
   averagePower?: number;
+  normalizedPower?: number;
+  intensityFactor?: number;
+  trainingStressScore?: number;
 }
 
 export interface ActivityDetailsDto extends ActivityDto {
