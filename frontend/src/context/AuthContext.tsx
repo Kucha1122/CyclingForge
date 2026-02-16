@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { AuthResultDto } from '../types/auth';
 
 interface AuthContextType {
@@ -11,17 +11,20 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthResultDto | null>(null);
+function getInitialUser(): AuthResultDto | null {
+  const token = localStorage.getItem('token');
+  const userData = localStorage.getItem('user');
+  if (token && userData) return JSON.parse(userData) as AuthResultDto;
+  return null;
+}
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<AuthResultDto | null>(getInitialUser);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    if (token && userData) {
-      setUser(JSON.parse(userData));
-    }
-    setLoading(false);
+    const t = setTimeout(() => setLoading(false), 0);
+    return () => clearTimeout(t);
   }, []);
 
   const login = (token: string, userData: AuthResultDto) => {
@@ -43,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook is intentionally exported from same file as provider
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
