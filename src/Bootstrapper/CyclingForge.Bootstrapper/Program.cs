@@ -1,9 +1,11 @@
 using System.Reflection;
 using CyclingForge.Modules.Activities.Infrastructure;
+using CyclingForge.Modules.Strava.Infrastructure;
 using CyclingForge.Modules.Users.Infrastructure;
 using CyclingForge.Shared.Infrastructure;
 using CyclingForge.Shared.Infrastructure.Exceptions;
 using CyclingForge.Shared.Infrastructure.Modules;
+using CyclingForge.Bootstrapper.Composition;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +23,11 @@ var modules = ModuleLoader.LoadModules(builder.Configuration);
 
 builder.Services.AddSharedInfrastructure(builder.Configuration);
 builder.Services.RegisterModules(modules, builder.Configuration);
+
+builder.Services.AddMemoryCache();
+
+// Configure eFTP estimation thresholds (can be overridden via configuration section "FtpEstimation").
+builder.Services.Configure<FtpEstimationOptions>(builder.Configuration.GetSection("FtpEstimation"));
 
 // Composition: provide user FTP and LTHR to Activities module for TSS calculation
 builder.Services.AddScoped<CyclingForge.Modules.Activities.Application.Services.IUserFtpProvider, CyclingForge.Bootstrapper.Composition.UserFtpProvider>();
@@ -81,8 +88,9 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// Apply pending EF migrations so new columns (e.g. FunctionalThresholdPower, WeightKg, Activity metrics) exist
+// Apply pending EF migrations so new columns (e.g. FunctionalThresholdPower, WeightKg, Activity metrics, DeviceWatts) exist
 app.UseUsersMigrations();
+app.UseStravaMigrations();
 app.UseActivitiesMigrations();
 
 if (app.Environment.IsDevelopment())
