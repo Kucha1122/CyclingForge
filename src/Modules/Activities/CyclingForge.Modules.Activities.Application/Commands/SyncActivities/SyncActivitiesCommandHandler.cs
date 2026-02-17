@@ -10,11 +10,16 @@ namespace CyclingForge.Modules.Activities.Application.Commands.SyncActivities;
 
 internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivitiesCommand, int>
 {
+    private const int TwentyMinutesSeconds = 1200;
+
     private readonly IActivityRepository _activityRepository;
     private readonly IStravaActivitiesService _stravaService;
     private readonly IUserFtpProvider _ftpProvider;
     private readonly IUserLthrProvider _lthrProvider;
     private readonly ITrainingMetricsCalculator _metricsCalculator;
+    private readonly IActivityLoadCalculator _loadCalculator;
+    private readonly IPowerProfileAnalyzer _powerProfileAnalyzer;
+    private readonly IEftpEstimator _eftpEstimator;
     private readonly IClock _clock;
 
     public SyncActivitiesCommandHandler(
@@ -23,6 +28,9 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
         IUserFtpProvider ftpProvider,
         IUserLthrProvider lthrProvider,
         ITrainingMetricsCalculator metricsCalculator,
+        IActivityLoadCalculator loadCalculator,
+        IPowerProfileAnalyzer powerProfileAnalyzer,
+        IEftpEstimator eftpEstimator,
         IClock clock)
     {
         _activityRepository = activityRepository;
@@ -30,13 +38,28 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
         _ftpProvider = ftpProvider;
         _lthrProvider = lthrProvider;
         _metricsCalculator = metricsCalculator;
+        _loadCalculator = loadCalculator;
+        _powerProfileAnalyzer = powerProfileAnalyzer;
+        _eftpEstimator = eftpEstimator;
         _clock = clock;
     }
 
     public async Task<int> Handle(SyncActivitiesCommand request, CancellationToken cancellationToken)
     {
-        var stravaActivities = await _stravaService.FetchActivitiesAsync(request.UserId, cancellationToken);
-        var userFtp = await _ftpProvider.GetFtpAsync(request.UserId, cancellationToken);
+        DateTime? afterUtc = null;
+        DateTime? beforeUtc = null;
+        if (request.QuickSync)
+        {
+            var latestStart = await _activityRepository.GetLatestActivityStartDateAsync(request.UserId, cancellationToken);
+            if (latestStart.HasValue)
+            {
+                var todayEnd = _clock.CurrentDate().Date.AddDays(1);
+                afterUtc = latestStart.Value;
+                beforeUtc = todayEnd;
+            }
+        }
+
+        var stravaActivities = await _stravaService.FetchActivitiesAsync(request.UserId, afterUtc, beforeUtc, cancellationToken);
         var userLthr = await _lthrProvider.GetLthrAsync(request.UserId, cancellationToken);
         var syncedCount = 0;
         var now = _clock.CurrentDate();
@@ -45,6 +68,11 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
         {
             var existingActivity = await _activityRepository
                 .GetByStravaIdAsync(stravaActivity.StravaId, request.UserId, cancellationToken);
+
+            // When API doesn't return device_watts but we have power, assume estimated (false) so PMC uses HRSS
+            var deviceWatts = stravaActivity.DeviceWatts
+                ?? (stravaActivity.AveragePower.HasValue ? false : (bool?)null)
+                ?? (existingActivity is { } ex && (ex.NormalizedPower.HasValue || ex.AveragePower.HasValue) ? false : (bool?)null);
 
             if (existingActivity is not null)
             {
@@ -59,9 +87,10 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
                     stravaActivity.AverageHeartRate,
                     stravaActivity.MaxHeartRate,
                     stravaActivity.AveragePower,
-                    now);
+                    now,
+                    deviceWatts);
 
-                ApplyTssIfPossible(existingActivity, stravaActivity, userFtp, userLthr);
+                await ApplyTssIfPossibleAsync(request.UserId, existingActivity, stravaActivity, userLthr, cancellationToken);
                 await _activityRepository.UpdateAsync(existingActivity, cancellationToken);
             }
             else
@@ -81,9 +110,10 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
                     stravaActivity.AverageHeartRate,
                     stravaActivity.MaxHeartRate,
                     stravaActivity.AveragePower,
-                    now);
+                    now,
+                    deviceWatts);
 
-                ApplyTssIfPossible(activity, stravaActivity, userFtp, userLthr);
+                await ApplyTssIfPossibleAsync(request.UserId, activity, stravaActivity, userLthr, cancellationToken);
                 await _activityRepository.AddAsync(activity, cancellationToken);
                 syncedCount++;
             }
@@ -92,41 +122,86 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
         return syncedCount;
     }
 
-    private void ApplyTssIfPossible(Activity activity, StravaActivityDto dto, int? userFtp, int? userLthr)
+    private async Task ApplyTssIfPossibleAsync(Guid userId, Activity activity, StravaActivityDto dto, int? userLthr, CancellationToken cancellationToken)
     {
-        if (userFtp.HasValue && userFtp.Value > 0)
+        List<float>? powerData = null;
+        if (!string.IsNullOrEmpty(dto.StreamsJson) && TryParseWattsFromStreams(dto.StreamsJson, out var parsed))
+            powerData = parsed;
+
+        float? best20Min = null;
+        float? best5Min = null;
+        float? best60Min = null;
+        int? estimatedFtpFromActivity = null;
+        if (powerData != null && powerData.Count >= 300)
+        {
+            var profile = _powerProfileAnalyzer.AnalyzePowerProfile(powerData, null);
+            best20Min = profile.TwentyMinutePower;
+            best5Min = profile.FiveMinutePower;
+            best60Min = profile.OneHourPower;
+            var minDuration = await _ftpProvider.GetEftpMinDurationSecondsAsync(userId, cancellationToken);
+            var eftp = _eftpEstimator.EstimateFtpFromPowerProfile(profile, minDuration);
+            if (eftp.HasValue && eftp.Value > 0)
+                estimatedFtpFromActivity = (int)Math.Round(eftp.Value);
+        }
+
+        var ftpForDate = await _ftpProvider.GetFtpForDateAsync(userId, dto.StartDate, cancellationToken);
+        var manualFtp = await _ftpProvider.GetFtpAsync(userId, cancellationToken);
+        // Use at least manual FTP for TSS so CTL/ATL match intervals.icu (they use athlete's set FTP); our timeline can start at lower eFTP and would otherwise inflate TSS).
+        var ftpForTss = ftpForDate.HasValue && manualFtp.HasValue && manualFtp.Value > 0
+            ? Math.Max(ftpForDate.Value, manualFtp.Value)
+            : ftpForDate ?? manualFtp;
+
+        if (ftpForTss.HasValue && ftpForTss.Value > 0)
         {
             float? np = null;
-            if (!string.IsNullOrEmpty(dto.StreamsJson) && TryParseWattsFromStreams(dto.StreamsJson, out var powerData) && powerData.Count > 0)
+            if (powerData != null && powerData.Count > 0)
                 np = _metricsCalculator.CalculateNormalizedPower(powerData);
             if (!np.HasValue && dto.AveragePower.HasValue && dto.AveragePower.Value > 0)
                 np = (float)dto.AveragePower.Value;
 
             if (np.HasValue)
             {
-                var if_ = _metricsCalculator.CalculateIntensityFactor(np, userFtp);
+                var if_ = _metricsCalculator.CalculateIntensityFactor(np, ftpForTss);
                 if (if_.HasValue)
                 {
-                    var tss = _metricsCalculator.CalculateTrainingStressScore(np, if_, dto.MovingTime, userFtp);
+                    var tss = _metricsCalculator.CalculateTrainingStressScore(np, if_, dto.MovingTime, ftpForTss);
                     if (tss.HasValue)
                     {
                         activity.UpdateMetrics(
                             maxPower: dto.AveragePower,
                             normalizedPower: np.Value,
                             intensityFactor: if_.Value,
-                            trainingStressScore: tss);
+                            trainingStressScore: tss,
+                            ftpUsed: ftpForTss,
+                            best20MinPower: best20Min,
+                            best5MinPower: best5Min,
+                            best60MinPower: best60Min,
+                            estimatedFtpFromActivity: estimatedFtpFromActivity);
                         return;
                     }
                 }
             }
         }
 
+        // Use HR-based TSS for activities without power; apply sport factor so stored value matches Intervals.icu Load
         if (dto.AverageHeartRate.HasValue && userLthr.HasValue && userLthr.Value > 0)
         {
-            var hrTss = _metricsCalculator.CalculateHeartRateBasedTss(
-                dto.AverageHeartRate, (float)userLthr.Value, dto.MovingTime);
-            if (hrTss.HasValue)
-                activity.UpdateMetrics(maxPower: null, normalizedPower: null, intensityFactor: null, trainingStressScore: hrTss);
+            var durationMinutes = dto.MovingTime / 60.0;
+            var hrRatio = dto.AverageHeartRate.Value / (float)userLthr.Value;
+            var rawTss = (float)(durationMinutes * hrRatio * hrRatio * 100 / 60);
+            var sportFactor = _loadCalculator.GetSportFactorMultiplier(dto.Type);
+            var storedTss = rawTss * sportFactor;
+
+            activity.UpdateMetrics(
+                maxPower: null,
+                normalizedPower: null,
+                intensityFactor: null,
+                trainingStressScore: storedTss,
+                ftpUsed: null,
+                best20MinPower: best20Min,
+                best5MinPower: best5Min,
+                best60MinPower: best60Min,
+                estimatedFtpFromActivity: estimatedFtpFromActivity);
         }
     }
 
@@ -160,7 +235,7 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
 
 public interface IStravaActivitiesService
 {
-    Task<IReadOnlyList<StravaActivityDto>> FetchActivitiesAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StravaActivityDto>> FetchActivitiesAsync(Guid userId, DateTime? afterUtc = null, DateTime? beforeUtc = null, CancellationToken cancellationToken = default);
 }
 
 public sealed record StravaActivityDto(
@@ -177,4 +252,5 @@ public sealed record StravaActivityDto(
     float? AverageHeartRate,
     float? MaxHeartRate,
     float? AveragePower,
+    bool? DeviceWatts,
     string? StreamsJson = null);

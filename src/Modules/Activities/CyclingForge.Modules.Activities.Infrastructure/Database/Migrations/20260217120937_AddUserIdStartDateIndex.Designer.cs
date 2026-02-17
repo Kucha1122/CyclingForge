@@ -4,6 +4,7 @@ using CyclingForge.Modules.Activities.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CyclingForge.Modules.Activities.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(ActivitiesDbContext))]
-    partial class ActivitiesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260217120937_AddUserIdStartDateIndex")]
+    partial class AddUserIdStartDateIndex
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

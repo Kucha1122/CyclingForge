@@ -22,12 +22,27 @@ internal sealed class ActivityRepository : IActivityRepository
         => await _dbContext.Activities
             .FirstOrDefaultAsync(a => a.StravaActivityId == stravaActivityId && a.UserId == userId, cancellationToken);
 
+    public async Task<DateTime?> GetLatestActivityStartDateAsync(Guid userId, CancellationToken cancellationToken = default)
+        => await _dbContext.Activities
+            .Where(a => a.UserId == userId)
+            .MaxAsync(a => (DateTime?)a.StartDate, cancellationToken);
+
     public async Task<IReadOnlyList<Activity>> GetByUserIdAsync(Guid userId, int page, int pageSize, CancellationToken cancellationToken = default)
         => await _dbContext.Activities
             .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.StartDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Activity>> GetByUserIdAndDateRangeAsync(
+        Guid userId,
+        DateTime startDate,
+        DateTime endDate,
+        CancellationToken cancellationToken = default)
+        => await _dbContext.Activities
+            .Where(a => a.UserId == userId && a.StartDate >= startDate && a.StartDate <= endDate)
+            .OrderBy(a => a.StartDate)
             .ToListAsync(cancellationToken);
 
     public async Task AddAsync(Activity activity, CancellationToken cancellationToken = default)

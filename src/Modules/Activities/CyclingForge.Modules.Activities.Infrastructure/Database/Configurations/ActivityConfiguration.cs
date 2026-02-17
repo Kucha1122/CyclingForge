@@ -48,7 +48,17 @@ internal sealed class ActivityConfiguration : IEntityTypeConfiguration<Activity>
         builder.Property(a => a.StravaActivityId).IsRequired();
         builder.Property(a => a.TotalElevationGain).IsRequired();
 
+        builder.Property(a => a.FtpUsed)
+            .IsRequired(false);
+
+        builder.Property(a => a.Best5MinPower).IsRequired(false);
+        builder.Property(a => a.Best20MinPower).IsRequired(false);
+        builder.Property(a => a.Best60MinPower).IsRequired(false);
+        builder.Property(a => a.EstimatedFtpFromActivity).IsRequired(false);
+        builder.Property(a => a.DeviceWatts).IsRequired(false);
+
         builder.HasIndex(a => a.UserId);
+        builder.HasIndex(a => new { a.UserId, a.StartDate });
         builder.HasIndex(a => new { a.StravaActivityId, a.UserId }).IsUnique();
 
         builder.Ignore(a => a.DomainEvents);
