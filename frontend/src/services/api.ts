@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { AthleteProfileDto } from '../types/strava';
+import type { AthleteProfileDto, AthleteZonesDto } from '../types/strava';
 import type { ActivityDto } from '../types/activity';
 
 const api = axios.create({
@@ -26,15 +26,33 @@ export interface ActivityCountsDto {
 export const stravaApi = {
   connect: (code: string) => api.post('/strava/authorize', { code }),
   getProfile: () => api.get<AthleteProfileDto>('/strava/athlete'),
-  sync: () => api.post('/strava/sync'),
+  getZones: () => api.get<AthleteZonesDto>('/strava/athlete/zones'),
+  sync: (fullSync?: boolean) =>
+    api.post('/strava/sync', null, { params: fullSync ? { fullSync: true } : {} }),
   getActivities: (page = 1, perPage = 30) => api.get<ActivityDto[]>('/strava/activities', { params: { page, perPage } }),
   getActivityCounts: () => api.get<ActivityCountsDto>('/strava/activities/counts'),
   getActivityDetails: (id: string) => api.get<ActivityDetailsDto>(`/strava/activities/${id}`),
 };
 
 export const activitiesApi = {
-  sync: () => api.post<{ syncedCount: number }>('/activities/sync'),
+  sync: (quickSync?: boolean) =>
+    api.post<{ syncedCount: number }>('/activities/sync', null, { params: quickSync ? { quickSync: true } : {} }),
 };
+
+export interface FtpChangeDto {
+  date: string;
+  fromFtp: number;
+  toFtp: number;
+  source: string; // 'Manual' | 'EstimatedFromActivity'
+}
+
+export interface PmcActivitySummaryDto {
+  activityId: string;
+  name: string;
+  sportType: string;
+  trainingStressScore: number | null;
+  movingTimeSeconds: number;
+}
 
 export interface PmcSummary {
   currentCTL: number;
@@ -47,7 +65,9 @@ export interface PmcSummary {
     ctl: number;
     atl: number;
     tsb: number;
+    activities?: PmcActivitySummaryDto[];
   }>;
+  ftpChanges?: FtpChangeDto[];
   previousWeekAvgCtl?: number;
   previousWeekAvgAtl?: number;
   currentWeekAvgCtl?: number;
@@ -96,6 +116,10 @@ export interface UserProfile {
   functionalThresholdPower: number | null;
   weightKg: number | null;
   lactateThresholdHeartRate: number | null;
+  maxHeartRate: number | null;
+  restingHeartRate: number | null;
+  gender: string | null;
+  eftpMinDurationSeconds: number | null;
 }
 
 export const metricsApi = {
@@ -110,8 +134,18 @@ export const metricsApi = {
 
 export const usersApi = {
   getProfile: (userId: string) => api.get<UserProfile>(`/users/${userId}`),
-  updateProfile: (userId: string, ftp: number | null, weightKg: number | null, lthr?: number | null) =>
-    api.put(`/users/${userId}/profile`, { ftp, weightKg, lthr }),
+  updateProfile: (
+    userId: string,
+    profile: {
+      ftp: number | null;
+      weightKg: number | null;
+      lthr?: number | null;
+      maxHeartRate?: number | null;
+      restingHeartRate?: number | null;
+      gender?: string | null;
+      eftpMinDurationSeconds?: number | null;
+    }
+  ) => api.put(`/users/${userId}/profile`, profile),
 };
 
 export default api;

@@ -18,6 +18,8 @@ public sealed class StravaActivity : AggregateRoot<Guid>
     public float? AverageHeartRate { get; private set; }
     public float? MaxHeartRate { get; private set; }
     public float? AveragePower { get; private set; }
+    /// <summary>True = power from real meter (Strava device_watts); false = estimated; null = unknown/not set.</summary>
+    public bool? DeviceWatts { get; private set; }
     public string? StreamsJson { get; private set; }
 
     private StravaActivity() { }
@@ -37,6 +39,7 @@ public sealed class StravaActivity : AggregateRoot<Guid>
         float? averageHeartRate,
         float? maxHeartRate,
         float? averagePower,
+        bool? deviceWatts,
         string? streamsJson)
     {
         return new StravaActivity
@@ -56,8 +59,14 @@ public sealed class StravaActivity : AggregateRoot<Guid>
             AverageHeartRate = averageHeartRate,
             MaxHeartRate = maxHeartRate,
             AveragePower = averagePower,
+            DeviceWatts = deviceWatts,
             StreamsJson = streamsJson
         };
+    }
+
+    public void UpdateDeviceWatts(bool? deviceWatts)
+    {
+        DeviceWatts = deviceWatts;
     }
 
     public void UpdateStreams(string streamsJson)

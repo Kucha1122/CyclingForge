@@ -37,10 +37,28 @@ namespace CyclingForge.Modules.Activities.Infrastructure.Database.Migrations
                     b.Property<float?>("AverageSpeed")
                         .HasColumnType("real");
 
+                    b.Property<float?>("Best20MinPower")
+                        .HasColumnType("real");
+
+                    b.Property<float?>("Best5MinPower")
+                        .HasColumnType("real");
+
+                    b.Property<float?>("Best60MinPower")
+                        .HasColumnType("real");
+
+                    b.Property<bool?>("DeviceWatts")
+                        .HasColumnType("bit");
+
                     b.Property<float>("Distance")
                         .HasColumnType("real");
 
                     b.Property<int>("ElapsedTime")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("EstimatedFtpFromActivity")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FtpUsed")
                         .HasColumnType("int");
 
                     b.Property<float?>("IntensityFactor")
@@ -98,6 +116,8 @@ namespace CyclingForge.Modules.Activities.Infrastructure.Database.Migrations
 
                     b.HasIndex("StravaActivityId", "UserId")
                         .IsUnique();
+
+                    b.HasIndex("UserId", "StartDate");
 
                     b.ToTable("Activities", "activities");
                 });

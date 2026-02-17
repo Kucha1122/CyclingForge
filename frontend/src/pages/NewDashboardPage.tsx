@@ -9,7 +9,7 @@ import { WeeklySummaryCard } from '../components/WeeklySummaryCard';
 import { MonthlySummaryCard } from '../components/MonthlySummaryCard';
 import { ReadinessCard } from '../components/ReadinessCard';
 import { TrendsCard } from '../components/TrendsCard';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 function getStartOfWeek(date: Date): Date {
   const d = new Date(date);
@@ -36,6 +36,7 @@ function getYearMonthForOffset(offset: number): { year: number; month: number } 
 export const NewDashboardPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [stravaProfile, setStravaProfile] = useState<AthleteProfileDto | null>(null);
@@ -47,7 +48,10 @@ export const NewDashboardPage = () => {
   const [selectedMonthOffset, setSelectedMonthOffset] = useState(0);
   const [pmcCtlDays, setPmcCtlDays] = useState(42);
   const [pmcAtlDays, setPmcAtlDays] = useState(7);
-  const [pmcHistoryDays, setPmcHistoryDays] = useState(90);
+  const [pmcHistoryDays, setPmcHistoryDays] = useState(() => {
+    const stored = localStorage.getItem('pmcHistoryDays');
+    return stored ? Number(stored) : 365;
+  });
 
   const fetchSummaries = useCallback(async (weekOffset: number, monthOffset: number) => {
     const weekStart = getWeekStartForOffset(weekOffset);
@@ -60,8 +64,22 @@ export const NewDashboardPage = () => {
     setMonthlyData(monthlyResult.data);
   }, []);
 
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const [pmc, dailyTss] = await Promise.all([
+        metricsApi.getPmcSummary(pmcCtlDays, pmcAtlDays, pmcHistoryDays),
+        metricsApi.getDailyTss(30),
+      ]);
+      setPmcData(pmc.data);
+      setDailyTssData(dailyTss.data);
+    } catch {
+      // Failed to fetch metrics
+    }
+  }, [pmcCtlDays, pmcAtlDays, pmcHistoryDays]);
+
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
         // Fetch Strava profile
         try {
@@ -71,18 +89,7 @@ export const NewDashboardPage = () => {
           // Ignore error if profile not connected
         }
 
-        // Fetch metrics data (weekly/monthly are fetched by the summaries useEffect)
-        try {
-          const [pmc, dailyTss] = await Promise.all([
-            metricsApi.getPmcSummary(pmcCtlDays, pmcAtlDays, pmcHistoryDays),
-            metricsApi.getDailyTss(30),
-          ]);
-          
-          setPmcData(pmc.data);
-          setDailyTssData(dailyTss.data);
-        } catch {
-          // Failed to fetch metrics
-        }
+        await fetchMetrics();
       } catch {
         // Error fetching dashboard data
       } finally {
@@ -91,7 +98,21 @@ export const NewDashboardPage = () => {
     };
 
     fetchData();
-  }, [pmcCtlDays, pmcAtlDays, pmcHistoryDays]);
+  }, [location.pathname, pmcCtlDays, pmcAtlDays, pmcHistoryDays, fetchMetrics]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && location.pathname === '/dashboard') {
+        fetchMetrics();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [location.pathname, fetchMetrics]);
+
+  useEffect(() => {
+    localStorage.setItem('pmcHistoryDays', String(pmcHistoryDays));
+  }, [pmcHistoryDays]);
 
   useEffect(() => {
     if (!stravaProfile) return;
@@ -103,17 +124,9 @@ export const NewDashboardPage = () => {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      await stravaApi.sync();
-      await activitiesApi.sync();
-      
-      // Refresh metrics after sync
-      const [pmc, dailyTss] = await Promise.all([
-        metricsApi.getPmcSummary(pmcCtlDays, pmcAtlDays, pmcHistoryDays),
-        metricsApi.getDailyTss(30),
-      ]);
-      
-      setPmcData(pmc.data);
-      setDailyTssData(dailyTss.data);
+      await stravaApi.sync(false);
+      await activitiesApi.sync(true);
+      await fetchMetrics();
       await fetchSummaries(selectedWeekOffset, selectedMonthOffset);
     } catch {
       // ignore
@@ -124,7 +137,9 @@ export const NewDashboardPage = () => {
 
   const handleConnectStrava = () => {
     const redirectUri = `${window.location.origin}/strava/callback`;
-    window.location.href = `https://www.strava.com/oauth/authorize?client_id=172328&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=activity:read_all`;
+    window.location.href = `https://www.strava.com/oauth/authorize?client_id=172328&response_type=code&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&scope=read,activity:read_all,profile:read_all`;
   };
 
   if (loading) {
@@ -239,7 +254,7 @@ export const NewDashboardPage = () => {
                   </div>
                 </div>
               </div>
-              <PMCChart data={pmcData.history} ctlDays={pmcCtlDays} atlDays={pmcAtlDays} />
+              <PMCChart chartId="dashboard" data={pmcData.history} ftpChanges={pmcData.ftpChanges} ctlDays={pmcCtlDays} atlDays={pmcAtlDays} />
             </div>
           )}
 

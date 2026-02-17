@@ -16,7 +16,9 @@ public static class Extensions
         // Register training metrics services
         services.AddScoped<ITrainingMetricsCalculator, TrainingMetricsCalculator>();
         services.AddScoped<IPowerProfileAnalyzer, PowerProfileAnalyzer>();
+        services.AddScoped<IEftpEstimator, EftpEstimator>();
         services.AddScoped<IPerformanceManagementService, PerformanceManagementService>();
+        services.AddScoped<IActivityLoadCalculator, ActivityLoadCalculator>();
 
         return services;
     }

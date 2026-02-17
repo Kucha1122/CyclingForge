@@ -24,6 +24,20 @@ public sealed class PerformanceManagementChart
     /// Date for this PMC data point
     /// </summary>
     public DateTime Date { get; init; }
+
+    /// <summary>
+    /// Summary of activities contributing to this day's load (for tooltips).
+    /// </summary>
+    public IReadOnlyList<PmcActivitySummaryDto> Activities { get; init; } = Array.Empty<PmcActivitySummaryDto>();
+}
+
+public sealed class PmcActivitySummaryDto
+{
+    public Guid ActivityId { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string SportType { get; init; } = string.Empty;
+    public float? TrainingStressScore { get; init; }
+    public int MovingTimeSeconds { get; init; }
 }
 
 public sealed class PmcSummary
@@ -49,6 +63,17 @@ public sealed class PmcSummary
 
     /// <summary>Change in CTL per week (current 7-day avg minus previous 7-day avg).</summary>
     public float RampRateCtlPerWeek { get; init; }
+
+    /// <summary>FTP change events in the history range (manual and eFTP from activities) for chart markers.</summary>
+    public List<FtpChangeDto> FtpChanges { get; init; } = new();
+}
+
+public sealed class FtpChangeDto
+{
+    public DateTime Date { get; init; }
+    public int FromFtp { get; init; }
+    public int ToFtp { get; init; }
+    public string Source { get; init; } = string.Empty; // "Manual" | "EstimatedFromActivity"
 }
 
 public interface IPerformanceManagementService

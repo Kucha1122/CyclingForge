@@ -24,6 +24,21 @@ public sealed class Activity : AggregateRoot<ActivityId>
     public float? NormalizedPower { get; private set; }
     public float? IntensityFactor { get; private set; }
     public float? TrainingStressScore { get; private set; }
+    /// <summary>FTP value used to compute TSS for this activity (effective FTP on activity date).</summary>
+    public int? FtpUsed { get; private set; }
+    /// <summary>Best 5-minute average power (W) from power stream. Used to recompute eFTP when user changes min duration.</summary>
+    public float? Best5MinPower { get; private set; }
+    /// <summary>Best 20-minute average power (W) from power stream. Used for eFTP = Best20MinPower * 0.95.</summary>
+    public float? Best20MinPower { get; private set; }
+    /// <summary>Best 60-minute average power (W) from power stream. Used to recompute eFTP when user changes min duration.</summary>
+    public float? Best60MinPower { get; private set; }
+    /// <summary>Estimated FTP (W) from this activity's power profile (multi-duration, Intervals.icu-style). Used for eFTP change detection.</summary>
+    public int? EstimatedFtpFromActivity { get; private set; }
+    /// <summary>
+    /// Source of power data for PMC: true = real power meter (Strava device_watts); false = estimated power (e.g. from speed); null = no power.
+    /// Only when true we use power-based TSS for PMC; when false or null we use HRSS for Ride/VirtualRide (intervals.icu behaviour).
+    /// </summary>
+    public bool? DeviceWatts { get; private set; }
     public DateTime SyncedAt { get; private set; }
 
     private Activity() { }
@@ -43,7 +58,8 @@ public sealed class Activity : AggregateRoot<ActivityId>
         float? averageHeartRate,
         float? maxHeartRate,
         float? averagePower,
-        DateTime syncedAt)
+        DateTime syncedAt,
+        bool? deviceWatts = null)
     {
         var activity = new Activity
         {
@@ -62,6 +78,7 @@ public sealed class Activity : AggregateRoot<ActivityId>
             AverageHeartRate = averageHeartRate,
             MaxHeartRate = maxHeartRate,
             AveragePower = averagePower,
+            DeviceWatts = deviceWatts,
             SyncedAt = syncedAt
         };
 
@@ -80,7 +97,8 @@ public sealed class Activity : AggregateRoot<ActivityId>
         float? averageHeartRate,
         float? maxHeartRate,
         float? averagePower,
-        DateTime syncedAt)
+        DateTime syncedAt,
+        bool? deviceWatts = null)
     {
         Name = name;
         Distance = distance;
@@ -92,6 +110,7 @@ public sealed class Activity : AggregateRoot<ActivityId>
         AverageHeartRate = averageHeartRate;
         MaxHeartRate = maxHeartRate;
         AveragePower = averagePower;
+        DeviceWatts = deviceWatts;
         SyncedAt = syncedAt;
     }
 
@@ -99,11 +118,21 @@ public sealed class Activity : AggregateRoot<ActivityId>
         float? maxPower,
         float? normalizedPower,
         float? intensityFactor,
-        float? trainingStressScore)
+        float? trainingStressScore,
+        int? ftpUsed = null,
+        float? best20MinPower = null,
+        float? best5MinPower = null,
+        float? best60MinPower = null,
+        int? estimatedFtpFromActivity = null)
     {
         MaxPower = maxPower;
         NormalizedPower = normalizedPower;
         IntensityFactor = intensityFactor;
         TrainingStressScore = trainingStressScore;
+        FtpUsed = ftpUsed;
+        Best20MinPower = best20MinPower;
+        Best5MinPower = best5MinPower;
+        Best60MinPower = best60MinPower;
+        EstimatedFtpFromActivity = estimatedFtpFromActivity;
     }
 }

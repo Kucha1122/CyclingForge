@@ -68,7 +68,7 @@ public sealed class UsersController : ControllerBase
         [FromBody] UpdateProfileRequest request,
         CancellationToken cancellationToken)
     {
-        var command = new UpdateProfileCommand(userId, request.Ftp, request.WeightKg, request.Lthr);
+        var command = new UpdateProfileCommand(userId, request.Ftp, request.WeightKg, request.Lthr, request.MaxHeartRate, request.RestingHeartRate, request.Gender, request.EftpMinDurationSeconds);
         await _mediator.Send(command, cancellationToken);
         return NoContent();
     }

@@ -49,6 +49,22 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasColumnType("decimal(5,2)")
             .IsRequired(false);
 
+        builder.Property(u => u.LactateThresholdHeartRate)
+            .IsRequired(false);
+
+        builder.Property(u => u.EftpMinDurationSeconds)
+            .IsRequired(false);
+
+        builder.Property(u => u.MaxHeartRate)
+            .IsRequired(false);
+
+        builder.Property(u => u.RestingHeartRate)
+            .IsRequired(false);
+
+        builder.Property(u => u.Gender)
+            .HasMaxLength(16)
+            .IsRequired(false);
+
         builder.Ignore(u => u.DomainEvents);
     }
 }

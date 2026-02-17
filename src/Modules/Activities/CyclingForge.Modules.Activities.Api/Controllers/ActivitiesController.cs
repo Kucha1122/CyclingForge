@@ -25,9 +25,11 @@ public sealed class ActivitiesController : ControllerBase
 
     [HttpPost("sync")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<int>> SyncActivities(CancellationToken cancellationToken)
+    public async Task<ActionResult<int>> SyncActivities(
+        [FromQuery] bool quickSync = false,
+        CancellationToken cancellationToken = default)
     {
-        var command = new SyncActivitiesCommand(_currentUser.UserId);
+        var command = new SyncActivitiesCommand(_currentUser.UserId, quickSync);
         var syncedCount = await _mediator.Send(command, cancellationToken);
         return Ok(new { syncedCount });
     }

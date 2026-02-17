@@ -25,6 +25,12 @@ internal sealed class StravaActivityRepository : IStravaActivityRepository
             .Take(perPage)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<StravaActivity>> GetByAthleteIdAndDateRangeAsync(Guid athleteId, DateTime afterUtc, DateTime beforeUtc, CancellationToken cancellationToken = default)
+        => await _dbContext.StravaActivities
+            .Where(a => a.AthleteId == athleteId && a.StartDate > afterUtc && a.StartDate < beforeUtc)
+            .OrderBy(a => a.StartDate)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(StravaActivity activity, CancellationToken cancellationToken = default)
     {
         await _dbContext.StravaActivities.AddAsync(activity, cancellationToken);

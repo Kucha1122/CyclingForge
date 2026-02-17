@@ -23,6 +23,7 @@ public static class Extensions
             configuration.GetConnectionString("UsersDb")!);
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserFtpChangeRepository, UserFtpChangeRepository>();
         services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<ITokenProvider, JwtTokenProvider>();
 

@@ -41,11 +41,18 @@ namespace CyclingForge.Modules.Users.Infrastructure.Database.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<int?>("EftpMinDurationSeconds")
+                        .HasColumnType("int");
+
                     b.Property<int?>("FunctionalThresholdPower")
                         .HasColumnType("int");
 
                     b.Property<int?>("LactateThresholdHeartRate")
                         .HasColumnType("int");
+
+                    b.Property<string>("Gender")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -58,10 +65,16 @@ namespace CyclingForge.Modules.Users.Infrastructure.Database.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<int?>("MaxHeartRate")
+                        .HasColumnType("int");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
+
+                    b.Property<int?>("RestingHeartRate")
+                        .HasColumnType("int");
 
                     b.Property<int>("Version")
                         .HasColumnType("int");
@@ -75,6 +88,32 @@ namespace CyclingForge.Modules.Users.Infrastructure.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("Users", "users");
+                });
+
+            modelBuilder.Entity("CyclingForge.Modules.Users.Domain.Entities.UserFtpChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FtpValue")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "EffectiveDate");
+
+                    b.ToTable("UserFtpChanges", "users");
                 });
 #pragma warning restore 612, 618
         }

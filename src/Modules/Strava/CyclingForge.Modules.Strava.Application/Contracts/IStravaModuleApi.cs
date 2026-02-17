@@ -7,8 +7,9 @@ public interface IStravaModuleApi
 
     /// <summary>
     /// Returns activities for the user from Strava DB (including StreamsJson when available). Returns null if user has no Strava athlete.
+    /// When afterUtc and beforeUtc are provided, only activities with StartDate in [afterUtc, beforeUtc) are returned.
     /// </summary>
-    Task<IReadOnlyList<StravaActivityWithStreamsDto>?> GetActivitiesWithStreamsForUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StravaActivityWithStreamsDto>?> GetActivitiesWithStreamsForUserAsync(Guid userId, DateTime? afterUtc = null, DateTime? beforeUtc = null, CancellationToken cancellationToken = default);
 }
 
 public sealed record StravaActivityWithStreamsDto(
@@ -25,4 +26,5 @@ public sealed record StravaActivityWithStreamsDto(
     float? AverageHeartRate,
     float? MaxHeartRate,
     float? AveragePower,
+    bool? DeviceWatts,
     string? StreamsJson);

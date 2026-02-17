@@ -19,16 +19,16 @@ internal sealed class StravaActivitiesService : IStravaActivitiesService
     }
 
     public async Task<IReadOnlyList<StravaActivityDto>> FetchActivitiesAsync(
-        Guid userId, CancellationToken cancellationToken = default)
+        Guid userId, DateTime? afterUtc = null, DateTime? beforeUtc = null, CancellationToken cancellationToken = default)
     {
-        var fromDb = await _stravaModuleApi.GetActivitiesWithStreamsForUserAsync(userId, cancellationToken);
+        var fromDb = await _stravaModuleApi.GetActivitiesWithStreamsForUserAsync(userId, afterUtc, beforeUtc, cancellationToken);
         if (fromDb is { Count: > 0 })
         {
             return fromDb.Select(a => new StravaActivityDto(
                 a.StravaId, a.Name, a.Type, a.StartDate, a.Distance,
                 a.MovingTime, a.ElapsedTime, a.TotalElevationGain,
                 a.AverageSpeed, a.MaxSpeed, a.AverageHeartRate,
-                a.MaxHeartRate, a.AveragePower, a.StreamsJson)).ToList();
+                a.MaxHeartRate, a.AveragePower, a.DeviceWatts, a.StreamsJson)).ToList();
         }
 
         var accessToken = await _stravaModuleApi.GetAccessTokenAsync(userId, cancellationToken)
@@ -48,7 +48,7 @@ internal sealed class StravaActivitiesService : IStravaActivitiesService
                     a.StravaId, a.Name, a.Type, a.StartDate, a.Distance,
                     a.MovingTime, a.ElapsedTime, a.TotalElevationGain,
                     a.AverageSpeed, a.MaxSpeed, a.AverageHeartRate,
-                    a.MaxHeartRate, a.AveragePower, StreamsJson: null));
+                    a.MaxHeartRate, a.AveragePower, a.DeviceWatts, StreamsJson: null));
             if (pageActivities.Count < perPage)
                 break;
             page++;

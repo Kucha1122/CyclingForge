@@ -13,6 +13,7 @@
     <ProjectReference Include="..\..\Modules\Strava\CyclingForge.Modules.Strava.Api\CyclingForge.Modules.Strava.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Activities\CyclingForge.Modules.Activities.Api\CyclingForge.Modules.Activities.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Activities\CyclingForge.Modules.Activities.Application\CyclingForge.Modules.Activities.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Activities\CyclingForge.Modules.Activities.Domain\CyclingForge.Modules.Activities.Domain.csproj" />
   </ItemGroup>
 
 </Project>
