@@ -16,20 +16,25 @@ export const DashboardPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        let connected = false;
+
         // Fetch Strava profile
         try {
           const profileResponse = await stravaApi.getProfile();
           setStravaProfile(profileResponse.data);
+          connected = true;
         } catch {
           // Ignore error if profile not found (not connected)
         }
 
-        // Fetch activities
-        try {
-          const activitiesResponse = await stravaApi.getActivities();
-          setActivities(activitiesResponse.data);
-        } catch {
-          // Failed to fetch activities
+        // Fetch activities only if connected to Strava
+        if (connected) {
+          try {
+            const activitiesResponse = await stravaApi.getActivities();
+            setActivities(activitiesResponse.data);
+          } catch {
+            // Failed to fetch activities
+          }
         }
 
       } catch {
@@ -63,7 +68,9 @@ export const DashboardPage = () => {
 
   const handleConnectStrava = () => {
     const redirectUri = `${window.location.origin}/strava/callback`;
-    window.location.href = `https://www.strava.com/oauth/authorize?client_id=172328&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=activity:read_all`;
+    window.location.href = `https://www.strava.com/oauth/authorize?client_id=172328&response_type=code&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&scope=read,activity:read_all,profile:read_all`;
   };
 
   if (loading) {

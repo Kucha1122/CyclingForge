@@ -1,17 +1,36 @@
 import { type FC, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from 'recharts';
+import type { FtpChangeDto, PmcActivitySummaryDto } from '../services/api';
 
 interface PMCData {
   date: string;
   ctl: number;
   atl: number;
   tsb: number;
+  activities?: PmcActivitySummaryDto[];
 }
 
 interface PMCChartProps {
   data: PMCData[];
+  ftpChanges?: FtpChangeDto[];
   ctlDays?: number;
   atlDays?: number;
+  /** Optional id for debug logs (e.g. 'dashboard' | 'analysis'). */
+  chartId?: string;
+}
+
+function formatFtpChangeLabel(fc: FtpChangeDto): string {
+  const sourceLabel = fc.source === 'Manual' ? 'zmiana ręczna' : 'eFTP z aktywności';
+  const delta = fc.toFtp - fc.fromFtp;
+  const sign = delta > 0 ? '+' : '';
+  return `FTP: ${fc.fromFtp} → ${fc.toFtp} W (Δ ${sign}${delta} W, ${sourceLabel})`;
+}
+
+/** Normalize to YYYY-MM-DD from ISO-like string to avoid timezone shifts when comparing. */
+function toDateOnly(s: string): string {
+  if (typeof s !== 'string') return '';
+  const match = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : '';
 }
 
 // Strefy zgodne z interval.icu: Optymalna = -10 do -30 (budowanie formy), Ryzykowna = głęboka fatyga < -35
@@ -37,7 +56,14 @@ const TSB_ZONES = [
 
 const TSB_Y_DOMAIN: [number, number] = [-55, 55];
 
-export const PMCChart: FC<PMCChartProps> = ({ data, ctlDays = 42, atlDays = 7 }) => {
+export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 42, atlDays = 7, chartId = '' }) => {
+  const loadDomain = useMemo((): [number, number] => {
+    const maxLoad = data.reduce((max, p) => Math.max(max, Number(p.ctl) || 0, Number(p.atl) || 0), 0);
+    const padded = Math.ceil((maxLoad * 1.1) / 10) * 10; // +10% headroom, round to tens
+    const upper = Math.max(80, Number.isFinite(padded) && padded > 0 ? padded : 80);
+    return [0, upper];
+  }, [data, chartId]);
+
   const segments = useMemo(() => {
     const segs: { start: number; end: number; isPrzejściowa: boolean }[] = [];
     for (let i = 0; i < data.length; i++) {
@@ -52,100 +78,198 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ctlDays = 42, atlDays = 7 })
     return segs;
   }, [data]);
 
-  const formattedData = useMemo(() => data.map((item, i) => {
-    const tsb = item.tsb;
-    const segmentValues: Record<string, number | null> = {};
-    segments.forEach((seg, segIdx) => {
-      const segEnd = segIdx < segments.length - 1 ? segments[segIdx + 1].start : seg.end;
-      const inSegment = i >= seg.start && i <= segEnd && typeof tsb === 'number';
-      segmentValues[`tsbSeg${segIdx}`] = inSegment ? tsb : null;
+  const ftpChangesByDate = useMemo(() => {
+    const map = new Map<string, FtpChangeDto[]>();
+    ftpChanges.forEach((fc) => {
+      const key = toDateOnly(fc.date);
+      if (!key) return;
+      const list = map.get(key) ?? [];
+      list.push(fc);
+      map.set(key, list);
     });
-    return {
-      ...item,
-      date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      dateFull: item.date,
-      ...segmentValues,
-    };
-  }), [data, segments]);
+    return map;
+  }, [ftpChanges]);
 
-  const tooltipContent = (props: { active?: boolean; payload?: ReadonlyArray<{ name: string; value: number; color: string; payload?: Record<string, unknown> }>; label?: string | number }) => {
+  const formattedData = useMemo(
+    () =>
+      data.map((item, i) => {
+        const tsb = item.tsb;
+        const segmentValues: Record<string, number | null> = {};
+        segments.forEach((seg, segIdx) => {
+          const segEnd = segIdx < segments.length - 1 ? segments[segIdx + 1].start : seg.end;
+          const inSegment = i >= seg.start && i <= segEnd && typeof tsb === 'number';
+          segmentValues[`tsbSeg${segIdx}`] = inSegment ? tsb : null;
+        });
+        const dateOnly = toDateOnly(item.date);
+        const dayFtpChanges = dateOnly ? ftpChangesByDate.get(dateOnly) ?? [] : [];
+        return {
+          ...item,
+          date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          dateFull: item.date,
+          dateLabelFull: new Date(item.date).toLocaleDateString(undefined, {
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          }),
+          ftpChangesForDay: dayFtpChanges,
+          activitiesForDay: item.activities ?? [],
+          ...segmentValues,
+        };
+      }),
+    [data, segments, ftpChangesByDate],
+  );
+
+  const unifiedTooltipContent = (props: {
+    active?: boolean;
+    payload?: ReadonlyArray<{ name: string; value: number; color: string; payload?: Record<string, unknown> }>;
+    label?: string | number;
+  }) => {
     const { active, payload, label } = props;
     if (!active || !payload?.length) return null;
-    const point = payload[0]?.payload as { dateFull?: string; tsb?: number } | undefined;
-    const tsb = point?.tsb ?? payload.find((p) => p.name === 'Form (TSB)')?.value;
-    const dateStr = point?.dateFull
-      ? new Date(point.dateFull).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
-      : String(label ?? '');
+
+    const point = payload[0]?.payload as {
+      dateLabelFull?: string;
+      date?: string;
+      ctl?: number;
+      atl?: number;
+      tsb?: number;
+      ftpChangesForDay?: FtpChangeDto[];
+      activitiesForDay?: PmcActivitySummaryDto[];
+    } | null;
+
+    if (!point) return null;
+
+    const tsb = typeof point.tsb === 'number' ? point.tsb : null;
+    const ftpChangesForDay = point.ftpChangesForDay ?? [];
+    const activitiesForDay = point.activitiesForDay ?? [];
+    const dateStr = point.dateLabelFull ?? String(label ?? point.date ?? '');
+
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-md">
-        <p className="mb-2 font-medium text-gray-900">{dateStr}</p>
+      <div className="max-w-md rounded-lg border border-gray-200 bg-white p-3 text-xs shadow-md">
+        <p className="mb-2 text-sm font-medium text-gray-900">{dateStr}</p>
+
         <ul className="space-y-1 text-sm">
-          {payload.map((entry) => (
-            <li key={entry.name} style={{ color: entry.color }}>
-              {entry.name}: {typeof entry.value === 'number' ? entry.value.toFixed(1) : String(entry.value)}
-            </li>
-          ))}
+          <li className="flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
+              <span>Wytrenowanie (CTL)</span>
+            </span>
+            <span className="font-medium text-gray-900">
+              {typeof point.ctl === 'number' ? point.ctl.toFixed(1) : '–'}
+            </span>
+          </li>
+          <li className="flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+              <span>Zmęczenie (ATL)</span>
+            </span>
+            <span className="font-medium text-gray-900">
+              {typeof point.atl === 'number' ? point.atl.toFixed(1) : '–'}
+            </span>
+          </li>
+          <li className="flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+              <span>Forma (TSB)</span>
+            </span>
+            <span className="font-medium text-gray-900">
+              {typeof tsb === 'number' ? tsb.toFixed(1) : '–'}
+            </span>
+          </li>
         </ul>
+
         {typeof tsb === 'number' && (
-          <p className="mt-2 border-t border-gray-100 pt-2 text-xs text-gray-600">
-            TSB zone: {getTsbZoneLabel(tsb)}
+          <p className="mt-2 border-t border-gray-100 pt-2 text-[11px] text-gray-600">
+            Strefa TSB: {getTsbZoneLabel(tsb)}
           </p>
         )}
-      </div>
-    );
-  };
 
-  const formTooltipContent = (props: { active?: boolean; payload?: ReadonlyArray<{ name: string; value: number; color: string; payload?: Record<string, unknown> }>; label?: string | number }) => {
-    const { active, payload, label } = props;
-    if (!active || !payload?.length) return null;
-    const point = payload[0]?.payload as { dateFull?: string; tsb?: number } | undefined;
-    const tsb = point?.tsb ?? payload[0]?.value;
-    const dateStr = point?.dateFull
-      ? new Date(point.dateFull).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
-      : String(label ?? '');
-    return (
-      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-md">
-        <p className="mb-2 font-medium text-gray-900">{dateStr}</p>
-        <p className="text-sm">
-          <span style={{ color: '#10b981' }}>Forma (TSB):</span>{' '}
-          {typeof tsb === 'number' ? tsb.toFixed(1) : '-'}
-        </p>
-        {typeof tsb === 'number' && (
-          <p className="mt-1 text-xs text-gray-600">{getTsbZoneLabel(tsb)}</p>
+        {ftpChangesForDay.length > 0 && (
+          <div className="mt-2 border-t border-gray-100 pt-2">
+            <p className="mb-1 text-[11px] font-semibold text-gray-700">Zmiany FTP</p>
+            <ul className="space-y-0.5 text-[11px] text-gray-700">
+              {ftpChangesForDay.map((fc, idx) => (
+                <li key={idx}>{formatFtpChangeLabel(fc)}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {activitiesForDay.length > 0 && (
+          <div className="mt-2 border-t border-gray-100 pt-2">
+            <p className="mb-1 text-[11px] font-semibold text-gray-700">
+              Aktywności ({activitiesForDay.length})
+            </p>
+            <ul className="max-h-32 space-y-0.5 overflow-y-auto text-[11px] text-gray-700">
+              {activitiesForDay.slice(0, 5).map((act) => (
+                <li key={act.activityId}>
+                  <span className="font-medium">{act.name}</span>{' '}
+                  <span className="text-[11px] text-gray-500">
+                    ({act.sportType}, {Math.round(act.movingTimeSeconds / 60)} min, TSS:{' '}
+                    {act.trainingStressScore != null ? act.trainingStressScore.toFixed(0) : '–'})
+                  </span>
+                </li>
+              ))}
+              {activitiesForDay.length > 5 && (
+                <li className="text-[11px] text-gray-500">
+                  +{activitiesForDay.length - 5} więcej
+                </li>
+              )}
+            </ul>
+          </div>
         )}
       </div>
     );
   };
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+    <div className="relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
       <h2 className="mb-4 text-xl font-semibold text-gray-900">Performance Management Chart</h2>
 
       {/* Obciążenie treningowe (CTL + ATL) */}
-      <div className="mb-6">
+      <div className="mb-4">
         <h3 className="mb-2 text-sm font-medium text-gray-700">Obciążenie treningowe (Wytrenowanie / Zmęczenie)</h3>
         <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={formattedData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }} syncId="pmc">
+          <LineChart
+            data={formattedData}
+            margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
+            syncId="pmc-sync"
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="date" stroke="#9ca3af" style={{ fontSize: '12px' }} />
-            <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
-            <Tooltip content={tooltipContent} />
+            <XAxis
+              dataKey="date"
+              stroke="#9ca3af"
+              style={{ fontSize: '12px' }}
+              tick={false}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              stroke="#9ca3af"
+              style={{ fontSize: '12px' }}
+              domain={loadDomain}
+              allowDataOverflow
+            />
+            <Tooltip content={unifiedTooltipContent} wrapperStyle={{ zIndex: 10 }} />
             <Legend />
             <Line
-              type="monotone"
+              type="linear"
               dataKey="ctl"
               stroke="#3b82f6"
               strokeWidth={2}
               name="Wytrenowanie (CTL)"
               dot={false}
+              isAnimationActive={false}
             />
             <Line
-              type="monotone"
+              type="linear"
               dataKey="atl"
               stroke="#f59e0b"
               strokeWidth={2}
               name="Zmęczenie (ATL)"
               dot={false}
+              isAnimationActive={false}
             />
           </LineChart>
         </ResponsiveContainer>
@@ -158,17 +282,25 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ctlDays = 42, atlDays = 7 })
           <LineChart
             data={formattedData}
             margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
-            syncId="pmc"
+            syncId="pmc-sync"
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="date" stroke="#9ca3af" style={{ fontSize: '12px' }} />
+            <XAxis
+              dataKey="date"
+              stroke="#9ca3af"
+              style={{ fontSize: '12px' }}
+              tick={false}
+              axisLine={false}
+              tickLine={false}
+            />
             <YAxis
               stroke="#9ca3af"
               style={{ fontSize: '12px' }}
               domain={TSB_Y_DOMAIN}
               allowDataOverflow
             />
-            <Tooltip content={formTooltipContent} />
+            {/* Niewidoczny tooltip tylko po to, żeby ruch myszy na dolnym wykresie synchronizował indeks z górnym tooltipem */}
+            <Tooltip content={() => null} />
             {TSB_ZONES.map((zone, i) => (
               <ReferenceArea
                 key={i}
@@ -186,11 +318,33 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ctlDays = 42, atlDays = 7 })
                 dataKey={`tsbSeg${i}`}
                 stroke={seg.isPrzejściowa ? '#64748b' : '#10b981'}
                 strokeWidth={2}
-                dot={false}
+                dot={(props) => {
+                  const payload = props.payload as { ftpChangesForDay?: FtpChangeDto[]; tsb?: number };
+                  const list = payload.ftpChangesForDay ?? [];
+                  if (!list.length || typeof props.cx !== 'number' || typeof props.cy !== 'number') {
+                    return null;
+                  }
+                  const fc = list[0];
+                  return (
+                    <circle cx={props.cx} cy={props.cy} r={4} fill="#ef4444" stroke="#b91c1c" strokeWidth={1.5}>
+                      <title>{formatFtpChangeLabel(fc)}</title>
+                    </circle>
+                  );
+                }}
                 connectNulls={false}
                 legendType="none"
+                isAnimationActive={false}
               />
             ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Wspólna oś X dla obu wykresów */}
+      <div className="mt-2 h-10">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={formattedData} margin={{ top: 0, right: 8, left: 8, bottom: 0 }}>
+            <XAxis dataKey="date" stroke="#9ca3af" style={{ fontSize: '12px' }} />
           </LineChart>
         </ResponsiveContainer>
       </div>

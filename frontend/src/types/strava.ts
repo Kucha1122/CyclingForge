@@ -10,3 +10,13 @@ export interface AthleteProfileDto {
   city?: string;
   country?: string;
 }
+
+export interface ZoneRangeDto {
+  min: number;
+  max: number;
+}
+
+export interface AthleteZonesDto {
+  heartRateZones: ZoneRangeDto[];
+  powerZones: ZoneRangeDto[];
+}

@@ -1,36 +1,54 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { metricsApi, type PmcSummary } from '../services/api';
 import { PMCChart } from '../components/PMCChart';
 
 export const AnalysisPage = () => {
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [pmcData, setPmcData] = useState<PmcSummary | null>(null);
-  const [selectedTimeRange, setSelectedTimeRange] = useState<'30' | '90' | '180'>('90');
+  const [selectedTimeRange, setSelectedTimeRange] = useState<'7' | '30' | '42' | '90' | '180' | '365'>(() => {
+    const stored = localStorage.getItem('analysisPmcHistoryDays');
+    if (stored === '7' || stored === '30' || stored === '42' || stored === '90' || stored === '180' || stored === '365') {
+      return stored;
+    }
+    return '365';
+  });
+
+  const fetchPmc = useCallback(async () => {
+    try {
+      const days = parseInt(selectedTimeRange);
+      const pmc = await metricsApi.getPmcSummary(undefined, undefined, days);
+      setPmcData(pmc.data);
+    } catch {
+      // Failed to fetch analysis data
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedTimeRange]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const pmc = await metricsApi.getPmcSummary();
-        setPmcData(pmc.data);
-      } catch {
-        // Failed to fetch analysis data
-      } finally {
-        setLoading(false);
+    setLoading(true);
+    fetchPmc();
+  }, [location.pathname, selectedTimeRange, fetchPmc]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && location.pathname === '/analysis') {
+        setLoading(true);
+        fetchPmc();
       }
     };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [location.pathname, fetchPmc]);
 
-    fetchData();
-  }, []);
-
-  const getFilteredHistory = () => {
-    if (!pmcData?.history) return [];
-    
-    const days = parseInt(selectedTimeRange);
-    return pmcData.history.slice(-days);
-  };
+  useEffect(() => {
+    localStorage.setItem('analysisPmcHistoryDays', selectedTimeRange);
+  }, [selectedTimeRange]);
 
   const calculateStats = () => {
-    const history = getFilteredHistory();
+    const history = pmcData?.history ?? [];
     if (history.length === 0) return null;
 
     const avgCTL = history.reduce((sum, d) => sum + d.ctl, 0) / history.length;
@@ -65,9 +83,9 @@ export const AnalysisPage = () => {
         <div className="space-y-6">
           {/* Time Range Selector */}
           <div className="flex items-center gap-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-            <span className="text-sm font-medium text-gray-700">Time Range:</span>
+            <span className="text-sm font-medium text-gray-700">Zakres:</span>
             <div className="flex gap-2">
-              {(['30', '90', '180'] as const).map((range) => (
+              {(['7', '30', '42', '90', '180', '365'] as const).map((range) => (
                 <button
                   key={range}
                   onClick={() => setSelectedTimeRange(range)}
@@ -77,7 +95,17 @@ export const AnalysisPage = () => {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {range} days
+                  {range === '7'
+                    ? '7 dni'
+                    : range === '30'
+                    ? '1 miesiąc'
+                    : range === '42'
+                    ? '42 dni'
+                    : range === '90'
+                    ? '3 miesiące'
+                    : range === '180'
+                    ? '6 miesięcy'
+                    : 'Rok'}
                 </button>
               ))}
             </div>
@@ -120,7 +148,7 @@ export const AnalysisPage = () => {
           )}
 
           {/* PMC Chart */}
-          <PMCChart data={getFilteredHistory()} />
+          <PMCChart chartId="analysis" data={pmcData.history} ftpChanges={pmcData.ftpChanges} />
 
           {/* Insights */}
           <div className="grid gap-6 lg:grid-cols-2">
