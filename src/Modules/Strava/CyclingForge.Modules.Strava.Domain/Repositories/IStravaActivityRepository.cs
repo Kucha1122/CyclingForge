@@ -6,6 +6,7 @@ public interface IStravaActivityRepository
 {
     Task<StravaActivity?> GetByExternalIdAsync(long externalId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StravaActivity>> GetByAthleteIdAsync(Guid athleteId, int page, int perPage, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StravaActivity>> GetByAthleteIdAndDateRangeAsync(Guid athleteId, DateTime afterUtc, DateTime beforeUtc, CancellationToken cancellationToken = default);
     Task AddAsync(StravaActivity activity, CancellationToken cancellationToken = default);
     Task UpdateAsync(StravaActivity activity, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(long externalId, CancellationToken cancellationToken = default);

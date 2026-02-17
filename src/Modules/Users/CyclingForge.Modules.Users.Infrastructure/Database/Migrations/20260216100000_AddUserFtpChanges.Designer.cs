@@ -4,6 +4,7 @@ using CyclingForge.Modules.Users.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CyclingForge.Modules.Users.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(UsersDbContext))]
-    partial class UsersDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260216100000_AddUserFtpChanges")]
+    partial class AddUserFtpChanges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,18 +44,11 @@ namespace CyclingForge.Modules.Users.Infrastructure.Database.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<int?>("EftpMinDurationSeconds")
-                        .HasColumnType("int");
-
                     b.Property<int?>("FunctionalThresholdPower")
                         .HasColumnType("int");
 
                     b.Property<int?>("LactateThresholdHeartRate")
                         .HasColumnType("int");
-
-                    b.Property<string>("Gender")
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -65,16 +61,10 @@ namespace CyclingForge.Modules.Users.Infrastructure.Database.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<int?>("MaxHeartRate")
-                        .HasColumnType("int");
-
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
-
-                    b.Property<int?>("RestingHeartRate")
-                        .HasColumnType("int");
 
                     b.Property<int>("Version")
                         .HasColumnType("int");

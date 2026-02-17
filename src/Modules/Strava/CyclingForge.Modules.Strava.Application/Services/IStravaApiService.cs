@@ -6,6 +6,7 @@ public interface IStravaApiService
     Task<StravaRefreshTokenResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StravaActivityResponse>> GetActivitiesAsync(string accessToken, int page = 1, int perPage = 30, long? after = null, long? before = null, CancellationToken cancellationToken = default);
     Task<string?> GetActivityStreamsJsonAsync(string accessToken, long activityId, string[] keys, CancellationToken cancellationToken = default);
+    Task<StravaZonesResponse?> GetZonesAsync(string accessToken, CancellationToken cancellationToken = default);
 }
 
 public sealed record StravaTokenResponse(
@@ -35,4 +36,13 @@ public sealed record StravaActivityResponse(
     float? MaxSpeed,
     float? AverageHeartRate,
     float? MaxHeartRate,
-    float? AveragePower);
+    float? AveragePower,
+    bool? DeviceWatts);
+
+public sealed record StravaZonesResponse(
+    IReadOnlyList<StravaZoneRange> HeartRateZones,
+    IReadOnlyList<StravaZoneRange> PowerZones);
+
+public sealed record StravaZoneRange(
+    int Min,
+    int Max);

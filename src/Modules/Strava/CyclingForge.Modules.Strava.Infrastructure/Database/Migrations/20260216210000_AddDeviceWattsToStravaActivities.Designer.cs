@@ -4,6 +4,7 @@ using CyclingForge.Modules.Strava.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CyclingForge.Modules.Strava.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(StravaDbContext))]
-    partial class StravaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260216210000_AddDeviceWattsToStravaActivities")]
+    partial class AddDeviceWattsToStravaActivities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -146,41 +149,6 @@ namespace CyclingForge.Modules.Strava.Infrastructure.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("Athletes", "strava");
-                });
-
-            modelBuilder.Entity("CyclingForge.Modules.Strava.Domain.Entities.StravaAthleteZones", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<long>("AthleteId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("HeartRateZonesJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PowerZonesJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("AthleteZones", "strava");
                 });
 
             modelBuilder.Entity("CyclingForge.Modules.Strava.Domain.Entities.StravaToken", b =>

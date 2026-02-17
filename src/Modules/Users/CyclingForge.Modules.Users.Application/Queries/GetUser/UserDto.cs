@@ -9,4 +9,8 @@ public sealed record UserDto(
     bool IsActive,
     int? FunctionalThresholdPower,
     float? WeightKg,
-    int? LactateThresholdHeartRate);
+    int? LactateThresholdHeartRate,
+    int? MaxHeartRate,
+    int? RestingHeartRate,
+    string? Gender,
+    int? EftpMinDurationSeconds);

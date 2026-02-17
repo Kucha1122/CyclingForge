@@ -55,11 +55,23 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
         }
 
         var latestStart = await _activityRepository.GetLatestActivityStartDateAsync(athlete.Id, cancellationToken);
-        var fullSync = command.ForceFullSync || !latestStart.HasValue;
         long? afterUnix = null;
-        if (!fullSync)
+        long? beforeUnix = null;
+
+        if (command.ForceFullSync)
         {
-            afterUnix = new DateTimeOffset(latestStart!.Value).ToUnixTimeSeconds();
+            // Full sync: wszystko, bez ograniczeń
+        }
+        else
+        {
+            // Quick sync: ZAWSZE tylko te dni – nowsze niż ostatnia, nie później niż dziś
+            // Brak aktywności → sync tylko z dzisiaj
+            var todayStart = _clock.CurrentDate().Date;
+            var todayEnd = todayStart.AddDays(1);
+            afterUnix = latestStart.HasValue
+                ? new DateTimeOffset(latestStart.Value, TimeSpan.Zero).ToUnixTimeSeconds()
+                : new DateTimeOffset(todayStart, TimeSpan.Zero).ToUnixTimeSeconds();
+            beforeUnix = new DateTimeOffset(todayEnd, TimeSpan.Zero).ToUnixTimeSeconds();
         }
 
         const int perPage = 200;
@@ -72,7 +84,7 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
         while (true)
         {
             var activities = await _stravaApiService.GetActivitiesAsync(
-                token.Token.Value, page, perPage, after: afterUnix, before: null, cancellationToken);
+                token.Token.Value, page, perPage, after: afterUnix, before: beforeUnix, cancellationToken);
             if (activities is null || activities.Count == 0)
             {
                 break;
@@ -80,8 +92,14 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
 
             foreach (var activityDto in activities)
             {
-                if (await _activityRepository.ExistsAsync(activityDto.StravaId, cancellationToken))
+                var existing = await _activityRepository.GetByExternalIdAsync(activityDto.StravaId, cancellationToken);
+                if (existing is not null)
                 {
+                    if (activityDto.DeviceWatts.HasValue)
+                    {
+                        existing.UpdateDeviceWatts(activityDto.DeviceWatts);
+                        await _activityRepository.UpdateAsync(existing, cancellationToken);
+                    }
                     continue;
                 }
 
@@ -103,6 +121,7 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
                     activityDto.AverageHeartRate,
                     activityDto.MaxHeartRate,
                     activityDto.AveragePower,
+                    activityDto.DeviceWatts,
                     streamsJson);
 
                 await _activityRepository.AddAsync(activity, cancellationToken);

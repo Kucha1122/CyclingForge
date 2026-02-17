@@ -17,7 +17,7 @@ internal sealed class StravaActivityConfiguration : IEntityTypeConfiguration<Str
         builder.Property(a => a.Name).HasMaxLength(256).IsRequired();
         builder.Property(a => a.Type).HasMaxLength(64).IsRequired();
         builder.Property(a => a.StartDate).IsRequired();
-        
+        builder.Property(a => a.DeviceWatts).IsRequired(false);
         builder.Property(a => a.StreamsJson).HasColumnType("nvarchar(max)");
 
         builder.HasIndex(a => a.ExternalId).IsUnique();

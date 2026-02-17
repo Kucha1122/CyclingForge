@@ -6,6 +6,7 @@ namespace CyclingForge.Modules.Users.Infrastructure.Database;
 internal sealed class UsersDbContext : DbContext
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserFtpChange> UserFtpChanges => Set<UserFtpChange>();
 
     public UsersDbContext(DbContextOptions<UsersDbContext> options)
         : base(options)

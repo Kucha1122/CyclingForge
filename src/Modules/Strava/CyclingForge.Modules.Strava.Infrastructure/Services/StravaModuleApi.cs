@@ -49,13 +49,15 @@ internal sealed class StravaModuleApi : IStravaModuleApi
         return token is not null;
     }
 
-    public async Task<IReadOnlyList<StravaActivityWithStreamsDto>?> GetActivitiesWithStreamsForUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<StravaActivityWithStreamsDto>?> GetActivitiesWithStreamsForUserAsync(Guid userId, DateTime? afterUtc = null, DateTime? beforeUtc = null, CancellationToken cancellationToken = default)
     {
         var athlete = await _athleteRepository.GetByUserIdAsync(userId, cancellationToken);
         if (athlete is null)
             return null;
 
-        var activities = await _activityRepository.GetByAthleteIdAsync(athlete.Id, 1, 10000, cancellationToken);
+        var activities = afterUtc.HasValue && beforeUtc.HasValue
+            ? await _activityRepository.GetByAthleteIdAndDateRangeAsync(athlete.Id, afterUtc.Value, beforeUtc.Value, cancellationToken)
+            : await _activityRepository.GetByAthleteIdAsync(athlete.Id, 1, 10000, cancellationToken);
         return activities
             .Select(a => new StravaActivityWithStreamsDto(
                 a.ExternalId,
@@ -71,6 +73,7 @@ internal sealed class StravaModuleApi : IStravaModuleApi
                 a.AverageHeartRate,
                 a.MaxHeartRate,
                 a.AveragePower,
+                a.DeviceWatts,
                 a.StreamsJson))
             .ToList();
     }

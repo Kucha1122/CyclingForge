@@ -16,6 +16,11 @@ public sealed class User : AggregateRoot<UserId>
     public int? FunctionalThresholdPower { get; private set; }
     public float? WeightKg { get; private set; }
     public int? LactateThresholdHeartRate { get; private set; }
+    public int? MaxHeartRate { get; private set; }
+    public int? RestingHeartRate { get; private set; }
+    public string Gender { get; private set; } = "male";
+    /// <summary>Minimum effort duration (seconds) used for eFTP estimation; null = default 300 (5 min). Valid range 180–1800 (intervals.icu).</summary>
+    public int? EftpMinDurationSeconds { get; private set; }
 
     private User() { }
 
@@ -57,7 +62,7 @@ public sealed class User : AggregateRoot<UserId>
         WeightKg = weightKg;
     }
 
-    public void UpdateProfile(int? ftp, float? weightKg, int? lthr = null)
+    public void UpdateProfile(int? ftp, float? weightKg, int? lthr = null, int? eftpMinDurationSeconds = null, int? maxHr = null, int? restingHr = null, string? gender = null)
     {
         if (ftp.HasValue)
         {
@@ -78,6 +83,35 @@ public sealed class User : AggregateRoot<UserId>
             if (lthr.Value <= 0)
                 throw new ArgumentException("LTHR must be greater than 0", nameof(lthr));
             LactateThresholdHeartRate = lthr.Value;
+        }
+
+        if (maxHr.HasValue)
+        {
+            if (maxHr.Value <= 0)
+                throw new ArgumentException("Max HR must be greater than 0", nameof(maxHr));
+            MaxHeartRate = maxHr.Value;
+        }
+
+        if (restingHr.HasValue)
+        {
+            if (restingHr.Value <= 0)
+                throw new ArgumentException("Resting HR must be greater than 0", nameof(restingHr));
+            RestingHeartRate = restingHr.Value;
+        }
+
+        if (!string.IsNullOrEmpty(gender))
+        {
+            Gender = gender.ToLowerInvariant();
+        }
+
+        if (eftpMinDurationSeconds.HasValue)
+        {
+            if (eftpMinDurationSeconds.Value == 0)
+                EftpMinDurationSeconds = null;
+            else if (eftpMinDurationSeconds.Value < 180 || eftpMinDurationSeconds.Value > 1800)
+                throw new ArgumentException("EftpMinDurationSeconds must be null, 0, or between 180 and 1800 (3–30 min).", nameof(eftpMinDurationSeconds));
+            else
+                EftpMinDurationSeconds = eftpMinDurationSeconds.Value;
         }
     }
 }

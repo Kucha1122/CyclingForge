@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace CyclingForge.Modules.Strava.Infrastructure.Services;
@@ -63,6 +64,47 @@ internal sealed class StravaHttpClient
         response.EnsureSuccessStatusCode();
 
         return await response.Content.ReadFromJsonAsync<List<StravaActivityApiResponse>>(cancellationToken);
+    }
+
+    public async Task<StravaZonesApiResponse?> GetZonesAsync(
+        string accessToken,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "athlete/zones");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+        // #region agent log
+        try
+        {
+            var logEntry = JsonSerializer.Serialize(new
+            {
+                id = $"log_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_zones_http",
+                timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                location = "StravaHttpClient.cs:GetZonesAsync",
+                message = "Strava zones HTTP response",
+                data = new
+                {
+                    statusCode = (int)response.StatusCode,
+                    reasonPhrase = response.ReasonPhrase
+                },
+                runId = "pre-fix",
+                hypothesisId = "H2"
+            });
+            System.IO.File.AppendAllText(@"c:\Users\Kucha\source\repos\CyclingForge\.cursor\debug.log", logEntry + Environment.NewLine);
+        }
+        catch
+        {
+            // ignore logging failures
+        }
+        // #endregion
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<StravaZonesApiResponse>(cancellationToken);
     }
 
     public async Task<string?> GetActivityStreamsAsync(
@@ -154,6 +196,42 @@ internal sealed class StravaActivityApiResponse
 
     [JsonPropertyName("average_watts")]
     public float? AveragePower { get; set; }
+
+    [JsonPropertyName("device_watts")]
+    public bool? DeviceWatts { get; set; }
+}
+
+internal sealed class StravaZonesApiResponse
+{
+    [JsonPropertyName("heart_rate")]
+    public StravaHeartRateZonesApiResponse? HeartRate { get; set; }
+
+    [JsonPropertyName("power")]
+    public StravaPowerZonesApiResponse? Power { get; set; }
+}
+
+internal sealed class StravaHeartRateZonesApiResponse
+{
+    [JsonPropertyName("custom_zones")]
+    public bool CustomZones { get; set; }
+
+    [JsonPropertyName("zones")]
+    public List<StravaZoneRangeApiResponse> Zones { get; set; } = [];
+}
+
+internal sealed class StravaPowerZonesApiResponse
+{
+    [JsonPropertyName("zones")]
+    public List<StravaZoneRangeApiResponse> Zones { get; set; } = [];
+}
+
+internal sealed class StravaZoneRangeApiResponse
+{
+    [JsonPropertyName("min")]
+    public int Min { get; set; }
+
+    [JsonPropertyName("max")]
+    public int Max { get; set; }
 }
 
 internal sealed class StravaStreamApiResponse

@@ -6,6 +6,7 @@ using CyclingForge.Modules.Strava.Application.Queries.GetActivities;
 using CyclingForge.Modules.Strava.Application.Queries.GetActivityCounts;
 using CyclingForge.Modules.Strava.Application.Queries.GetActivityDetails;
 using CyclingForge.Modules.Strava.Application.Queries.GetAthleteProfile;
+using CyclingForge.Modules.Strava.Application.Queries.GetAthleteZones;
 using CyclingForge.Shared.Abstractions.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -109,6 +110,21 @@ public sealed class StravaController : ControllerBase
     {
         var query = new GetAthleteProfileQuery(_currentUser.UserId);
         var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("athlete/zones")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AthleteZonesDto>> GetAthleteZones(CancellationToken cancellationToken)
+    {
+        var query = new GetAthleteZonesQuery(_currentUser.UserId);
+        var result = await _mediator.Send(query, cancellationToken);
+        if (result is null)
+        {
+            return NotFound();
+        }
+
         return Ok(result);
     }
 }

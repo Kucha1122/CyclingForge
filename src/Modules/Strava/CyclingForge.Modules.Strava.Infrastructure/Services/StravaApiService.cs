@@ -55,8 +55,29 @@ internal sealed class StravaApiService : IStravaApiService
             a.Id, a.Name, a.Type, a.StartDate, a.Distance,
             a.MovingTime, a.ElapsedTime, a.TotalElevationGain,
             a.AverageSpeed, a.MaxSpeed, a.AverageHeartRate,
-            a.MaxHeartRate, a.AveragePower)).ToList()
+            a.MaxHeartRate, a.AveragePower, a.DeviceWatts)).ToList()
             ?? [];
+    }
+
+    public async Task<StravaZonesResponse?> GetZonesAsync(
+        string accessToken,
+        CancellationToken cancellationToken = default)
+    {
+        var zones = await _httpClient.GetZonesAsync(accessToken, cancellationToken);
+        if (zones is null)
+        {
+            return null;
+        }
+
+        var heartRateZones = zones.HeartRate?.Zones?
+            .Select(z => new StravaZoneRange(z.Min, z.Max))
+            .ToList() ?? [];
+
+        var powerZones = zones.Power?.Zones?
+            .Select(z => new StravaZoneRange(z.Min, z.Max))
+            .ToList() ?? [];
+
+        return new StravaZonesResponse(heartRateZones, powerZones);
     }
 
     public async Task<string?> GetActivityStreamsJsonAsync(

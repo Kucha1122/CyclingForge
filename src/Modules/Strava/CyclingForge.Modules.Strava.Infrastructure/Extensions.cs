@@ -5,6 +5,8 @@ using CyclingForge.Modules.Strava.Infrastructure.Database;
 using CyclingForge.Modules.Strava.Infrastructure.Repositories;
 using CyclingForge.Modules.Strava.Infrastructure.Services;
 using CyclingForge.Shared.Infrastructure.Database;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -28,7 +30,19 @@ public static class Extensions
         services.AddScoped<IStravaTokenRepository, StravaTokenRepository>();
         services.AddScoped<IStravaAthleteRepository, StravaAthleteRepository>();
         services.AddScoped<IStravaActivityRepository, StravaActivityRepository>();
+        services.AddScoped<IStravaAthleteZonesRepository, StravaAthleteZonesRepository>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Applies pending EF Core migrations for the Strava database at startup.
+    /// </summary>
+    public static IApplicationBuilder UseStravaMigrations(this IApplicationBuilder app)
+    {
+        using var scope = app.ApplicationServices.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<StravaDbContext>();
+        context.Database.Migrate();
+        return app;
     }
 }
