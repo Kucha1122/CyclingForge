@@ -173,17 +173,18 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
                             intensityFactor: if_.Value,
                             trainingStressScore: tss,
                             ftpUsed: ftpForTss,
-                            best20MinPower: best20Min,
-                            best5MinPower: best5Min,
-                            best60MinPower: best60Min,
-                            estimatedFtpFromActivity: estimatedFtpFromActivity);
+                            best20MinPower: best20Min ?? activity.Best20MinPower,
+                            best5MinPower: best5Min ?? activity.Best5MinPower,
+                            best60MinPower: best60Min ?? activity.Best60MinPower,
+                            estimatedFtpFromActivity: estimatedFtpFromActivity ?? activity.EstimatedFtpFromActivity);
                         return;
                     }
                 }
             }
         }
 
-        // Use HR-based TSS for activities without power; apply sport factor so stored value matches Intervals.icu Load
+        // Use HR-based TSS for activities without power; apply sport factor so stored value matches Intervals.icu Load.
+        // Preserve existing power profile when dto has no streams (do not overwrite with null and lose eFTP dots).
         if (dto.AverageHeartRate.HasValue && userLthr.HasValue && userLthr.Value > 0)
         {
             var durationMinutes = dto.MovingTime / 60.0;
@@ -198,10 +199,10 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
                 intensityFactor: null,
                 trainingStressScore: storedTss,
                 ftpUsed: null,
-                best20MinPower: best20Min,
-                best5MinPower: best5Min,
-                best60MinPower: best60Min,
-                estimatedFtpFromActivity: estimatedFtpFromActivity);
+                best20MinPower: best20Min ?? activity.Best20MinPower,
+                best5MinPower: best5Min ?? activity.Best5MinPower,
+                best60MinPower: best60Min ?? activity.Best60MinPower,
+                estimatedFtpFromActivity: estimatedFtpFromActivity ?? activity.EstimatedFtpFromActivity);
         }
     }
 

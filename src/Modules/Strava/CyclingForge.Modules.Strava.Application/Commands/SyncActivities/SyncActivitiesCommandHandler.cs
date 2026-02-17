@@ -75,7 +75,9 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
         }
 
         const int perPage = 200;
+        const int maxStreamBackfillsPerSync = 50;
         var page = 1;
+        var streamBackfillCount = 0;
         var streamKeys = new[] {
             "time", "distance", "heartrate", "watts", "velocity_smooth",
             "altitude", "cadence", "temp", "moving", "grade_smooth"
@@ -98,8 +100,23 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
                     if (activityDto.DeviceWatts.HasValue)
                     {
                         existing.UpdateDeviceWatts(activityDto.DeviceWatts);
-                        await _activityRepository.UpdateAsync(existing, cancellationToken);
                     }
+                    // Backfill streams for activities that have power but no StreamsJson (so Activities module can compute Best5/20/60 and eFTP dots).
+                    var needsStreams = streamBackfillCount < maxStreamBackfillsPerSync
+                        && string.IsNullOrEmpty(existing.StreamsJson)
+                        && (activityDto.AveragePower.HasValue || activityDto.DeviceWatts == true);
+                    if (needsStreams)
+                    {
+                        var backfillStreams = await _stravaApiService.GetActivityStreamsJsonAsync(
+                            token.Token.Value, activityDto.StravaId, streamKeys, cancellationToken);
+                        if (!string.IsNullOrEmpty(backfillStreams))
+                        {
+                            existing.UpdateStreams(backfillStreams);
+                            streamBackfillCount++;
+                        }
+                        await Task.Delay(100, cancellationToken);
+                    }
+                    await _activityRepository.UpdateAsync(existing, cancellationToken);
                     continue;
                 }
 

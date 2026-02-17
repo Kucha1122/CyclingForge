@@ -74,30 +74,6 @@ internal sealed class StravaHttpClient
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
         var response = await _httpClient.SendAsync(request, cancellationToken);
-        // #region agent log
-        try
-        {
-            var logEntry = JsonSerializer.Serialize(new
-            {
-                id = $"log_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_zones_http",
-                timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                location = "StravaHttpClient.cs:GetZonesAsync",
-                message = "Strava zones HTTP response",
-                data = new
-                {
-                    statusCode = (int)response.StatusCode,
-                    reasonPhrase = response.ReasonPhrase
-                },
-                runId = "pre-fix",
-                hypothesisId = "H2"
-            });
-            System.IO.File.AppendAllText(@"c:\Users\Kucha\source\repos\CyclingForge\.cursor\debug.log", logEntry + Environment.NewLine);
-        }
-        catch
-        {
-            // ignore logging failures
-        }
-        // #endregion
 
         if (!response.IsSuccessStatusCode)
         {

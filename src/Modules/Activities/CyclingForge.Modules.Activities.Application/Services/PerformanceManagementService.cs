@@ -38,15 +38,31 @@ internal sealed class PerformanceManagementService : IPerformanceManagementServi
     public async Task<PmcSummary> GetPmcSummaryAsync(Guid userId, int ctlDays = 42, int atlDays = 7, int historyDays = 90)
     {
         var cacheKey = BuildCacheKey(userId, ctlDays, atlDays, historyDays);
+        var today = DateTime.UtcNow.Date;
+        var historyStartDate = today.AddDays(-historyDays);
+
         if (_cache.TryGetValue<PmcSummary?>(cacheKey, out var cached) && cached is not null)
         {
-            return cached;
+            var freshFtpChanges = await _ftpProvider.GetFtpChangesForRangeAsync(userId, historyStartDate, today, CancellationToken.None);
+            return new PmcSummary
+            {
+                CurrentCTL = cached.CurrentCTL,
+                CurrentATL = cached.CurrentATL,
+                CurrentTSB = cached.CurrentTSB,
+                FormStatus = cached.FormStatus,
+                Recommendation = cached.Recommendation,
+                History = cached.History,
+                FtpChanges = freshFtpChanges.ToList(),
+                PreviousWeekAvgCtl = cached.PreviousWeekAvgCtl,
+                PreviousWeekAvgAtl = cached.PreviousWeekAvgAtl,
+                CurrentWeekAvgCtl = cached.CurrentWeekAvgCtl,
+                CurrentWeekAvgAtl = cached.CurrentWeekAvgAtl,
+                RampRateCtlPerWeek = cached.RampRateCtlPerWeek
+            };
         }
 
         var utcNow = DateTime.UtcNow;
         var localNow = DateTime.Now;
-        var today = utcNow.Date;
-        var historyStartDate = today.AddDays(-historyDays);
 
         // We need enough warm-up *before* the start of the requested history range,
         // otherwise CTL/ATL will stay at zero for the early part of the chart instead
@@ -79,149 +95,6 @@ internal sealed class PerformanceManagementService : IPerformanceManagementServi
         var ftpChanges = await _ftpProvider.GetFtpChangesForRangeAsync(userId, historyStartDate, today, CancellationToken.None);
 
         var formStatus = DetermineFormStatus(tsb);
-
-        // #region agent log - daily metrics snapshot for 4–10 Feb 2026
-        try
-        {
-            var rangeStart = new DateTime(2026, 2, 4);
-            var rangeEnd = new DateTime(2026, 2, 10);
-
-            // TSS per day (po uwzględnieniu ActivityLoadCalculator / eFTP)
-            var tssByDate = activitiesWithTss
-                .GroupBy(x => x.date.Date)
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.tss));
-
-            // Liczba aktywności na dzień
-            var activitiesByDate = activities
-                .GroupBy(a => a.StartDate.Date)
-                .ToDictionary(g => g.Key, g => g.Count());
-
-            // CTL / ATL / TSB z historii PMC
-            var pmcByDate = history
-                .GroupBy(h => h.Date.Date)
-                .ToDictionary(g => g.Key, g => g.Last());
-
-            var days = new List<object>();
-            for (var d = rangeStart.Date; d <= rangeEnd.Date; d = d.AddDays(1))
-            {
-                tssByDate.TryGetValue(d, out var tssDay);
-                activitiesByDate.TryGetValue(d, out var actCount);
-                pmcByDate.TryGetValue(d, out var pmc);
-
-                days.Add(new
-                {
-                    date = d.ToString("yyyy-MM-dd"),
-                    tss = tssDay,
-                    ctl = pmc?.CTL ?? 0f,
-                    atl = pmc?.ATL ?? 0f,
-                    tsb = pmc?.TSB ?? 0f,
-                    activityCount = actCount
-                });
-            }
-
-            var payload = new
-            {
-                hypothesisId = "H_daily_2026_02_04_10",
-                location = "PerformanceManagementService.GetPmcSummaryAsync",
-                message = "Daily TSS + PMC metrics snapshot for 2026-02-04..2026-02-10",
-                data = new
-                {
-                    userId,
-                    from = rangeStart.ToString("yyyy-MM-dd"),
-                    to = rangeEnd.ToString("yyyy-MM-dd"),
-                    days
-                }
-            };
-
-            var json = JsonSerializer.Serialize(payload);
-            System.IO.File.AppendAllText(@"c:\Users\Kucha\source\repos\CyclingForge\.cursor\metrics-daily-2026-02-04-10.json", json + "\n");
-        }
-        catch { }
-        // #endregion
-
-        // #region agent log - verify "today" / timezone assumptions
-        try
-        {
-            var j = System.Text.Json.JsonSerializer.Serialize(new
-            {
-                hypothesisId = "H_today",
-                location = "PerformanceManagementService.GetPmcSummaryAsync",
-                message = "server time + today date selection",
-                data = new
-                {
-                    utcNow,
-                    localNow,
-                    todayUsed = today,
-                    localToday = localNow.Date,
-                    tz = TimeZoneInfo.Local.Id
-                }
-            });
-            System.IO.File.AppendAllText(@"c:\Users\Kucha\source\repos\CyclingForge\.cursor\debug.log", j + "\n");
-        }
-        catch { }
-        // #endregion
-
-        // #region agent log - backend PMC range stats (for chart domain debugging)
-        try
-        {
-            var maxCtl = history.Count > 0 ? history.Max(x => x.CTL) : 0f;
-            var maxAtl = history.Count > 0 ? history.Max(x => x.ATL) : 0f;
-            var maxTsb = history.Count > 0 ? history.Max(x => x.TSB) : 0f;
-            var minTsb = history.Count > 0 ? history.Min(x => x.TSB) : 0f;
-            var j = System.Text.Json.JsonSerializer.Serialize(new
-            {
-                hypothesisId = "H_UI1",
-                location = "PerformanceManagementService.GetPmcSummaryAsync",
-                message = "PMC stats",
-                data = new
-                {
-                    ctlDays,
-                    atlDays,
-                    historyDays,
-                    current = new { ctl, atl, tsb },
-                    max = new { ctl = maxCtl, atl = maxAtl, tsb = maxTsb },
-                    min = new { tsb = minTsb }
-                }
-            });
-            System.IO.File.AppendAllText(@"c:\Users\Kucha\source\repos\CyclingForge\.cursor\debug.log", j + "\n");
-        }
-        catch { }
-        // #endregion
-
-        // #region agent log - detect perceived "flat" charts (deltas + endpoints)
-        try
-        {
-            float maxAtlDelta = 0, maxCtlDelta = 0;
-            string? maxAtlDeltaDate = null, maxCtlDeltaDate = null;
-            for (var i = 1; i < history.Count; i++)
-            {
-                var dAtl = MathF.Abs(history[i].ATL - history[i - 1].ATL);
-                if (dAtl > maxAtlDelta) { maxAtlDelta = dAtl; maxAtlDeltaDate = history[i].Date.ToString("yyyy-MM-dd"); }
-                var dCtl = MathF.Abs(history[i].CTL - history[i - 1].CTL);
-                if (dCtl > maxCtlDelta) { maxCtlDelta = dCtl; maxCtlDeltaDate = history[i].Date.ToString("yyyy-MM-dd"); }
-            }
-            var first = history.Count > 0 ? history[0] : null;
-            var last = history.Count > 0 ? history[^1] : null;
-            var j = System.Text.Json.JsonSerializer.Serialize(new
-            {
-                hypothesisId = "H_UI2",
-                location = "PerformanceManagementService.GetPmcSummaryAsync",
-                message = "PMC deltas+endpoints",
-                data = new
-                {
-                    count = history.Count,
-                    first = first is null ? null : new { first.Date, first.CTL, first.ATL, first.TSB },
-                    last = last is null ? null : new { last.Date, last.CTL, last.ATL, last.TSB },
-                    maxAtlDelta,
-                    maxAtlDeltaDate,
-                    maxCtlDelta,
-                    maxCtlDeltaDate
-                }
-            });
-            System.IO.File.AppendAllText(@"c:\Users\Kucha\source\repos\CyclingForge\.cursor\debug.log", j + "\n");
-        }
-        catch { }
-        // #endregion
 
         float previousWeekAvgCtl = 0, previousWeekAvgAtl = 0, currentWeekAvgCtl = 0, currentWeekAvgAtl = 0;
         if (history.Count >= 14)
@@ -361,10 +234,6 @@ internal sealed class PerformanceManagementService : IPerformanceManagementServi
                 hrZones,
                 CancellationToken.None);
 
-            // #region agent log
-            try { var typeVal = activity.Type?.Value ?? "?"; var j = System.Text.Json.JsonSerializer.Serialize(new { hypothesisId = "H4", location = "BuildActivitiesWithTssAsync", message = "activity load", data = new { type = typeVal, load = load.HasValue ? (float?)load.Value : null, storedTss = activity.TrainingStressScore, usedFallback = !load.HasValue && activity.TrainingStressScore.HasValue } }); System.IO.File.AppendAllText(@"c:\Users\Kucha\source\repos\CyclingForge\.cursor\debug.log", j + "\n"); } catch { }
-            // #endregion
-
             if (load.HasValue)
             {
                 result.Add((activity.StartDate.Date, load.Value));
@@ -375,132 +244,6 @@ internal sealed class PerformanceManagementService : IPerformanceManagementServi
                 result.Add((activity.StartDate.Date, activity.TrainingStressScore.Value));
             }
         }
-
-        // #region agent log - last 7 days attribution + endDate cutoff detection
-        try
-        {
-            var end = endDate.Date;
-            var start = end.AddDays(-6);
-            var perDay = new List<object>();
-
-            // activities that are on endDate (by Date) but excluded due to endDate being midnight
-            var cutoffExcludedCount = activities.Count(a => a.StartDate.Date == end && a.StartDate > endDate);
-            var cutoffIncludedCount = activities.Count(a => a.StartDate.Date == end && a.StartDate <= endDate);
-            var cutoffDayTotal = activities.Count(a => a.StartDate.Date == end);
-
-            // Build a quick lookup of which Strava IDs made it into result
-            var resultSet = new HashSet<long>();
-            // We don't have activityId in result, so approximate by (date,tss) isn't stable; instead compute stats directly from inRange below.
-
-            for (var d = start; d <= end; d = d.AddDays(1))
-            {
-                var dayActs = inRange.Where(a => a.StartDate.Date == d).ToList();
-                var dayEntries = result.Where(x => x.date.Date == d).ToList();
-
-                var excludedNoLoadOrStored = dayActs.Count(a =>
-                {
-                    // Excluded means: activity date == d but it didn't contribute any entry in result.
-                    // We can detect it by re-running the same decision heuristics cheaply:
-                    // if TrainingStressScore is null and we cannot compute load (unknown here) it will be excluded.
-                    // We'll approximate exclusion as TrainingStressScore == null AND NormalizedPower == null (no power) AND AverageHeartRate == null.
-                    return a.TrainingStressScore is null && a.NormalizedPower is null && a.AverageHeartRate is null;
-                });
-
-                var top = dayActs
-                    .Select(a => new
-                    {
-                        stravaId = a.StravaActivityId,
-                        type = a.Type?.Value,
-                        startDate = a.StartDate,
-                        deviceWatts = a.DeviceWatts,
-                        np = a.NormalizedPower,
-                        avgPower = a.AveragePower,
-                        avgHr = a.AverageHeartRate,
-                        storedTss = a.TrainingStressScore
-                    })
-                    .OrderByDescending(x => x.storedTss ?? 0)
-                    .Take(3)
-                    .ToList();
-
-                perDay.Add(new
-                {
-                    date = d.ToString("yyyy-MM-dd"),
-                    activityCount = dayActs.Count,
-                    contributedEntries = dayEntries.Count,
-                    totalLoadUsed = dayEntries.Sum(x => x.tss),
-                    excludedNoLoadOrStoredApprox = excludedNoLoadOrStored,
-                    top
-                });
-            }
-
-            var j = System.Text.Json.JsonSerializer.Serialize(new
-            {
-                hypothesisId = "H_last7",
-                location = "BuildActivitiesWithTssAsync",
-                message = "last 7 days totals + endDate cutoff",
-                data = new
-                {
-                    endDate,
-                    endDateDate = end,
-                    cutoff = new { cutoffDayTotal, cutoffIncludedCount, cutoffExcludedCount },
-                    perDay
-                }
-            });
-            System.IO.File.AppendAllText(@"c:\Users\Kucha\source\repos\CyclingForge\.cursor\debug.log", j + "\n");
-        }
-        catch { }
-        // #endregion
-
-        // #region agent log - confirm multiple activities per day are summed
-        try
-        {
-            var byDay = result.GroupBy(x => x.date).Select(g => new { date = g.Key.ToString("yyyy-MM-dd"), count = g.Count(), total = g.Sum(x => x.tss) }).OrderByDescending(x => x.total).Take(5).ToList();
-            var j = System.Text.Json.JsonSerializer.Serialize(new { hypothesisId = "H_multi", location = "BuildActivitiesWithTssAsync", message = "per-day activity count and sum", data = new { totalActivityEntries = result.Count, sampleDays = byDay } });
-            System.IO.File.AppendAllText(@"c:\Users\Kucha\source\repos\CyclingForge\.cursor\debug.log", j + "\n");
-        }
-        catch { }
-        // #endregion
-
-        // #region agent log - investigate \"flat\" perception (recent daily totals + suspicious power flags)
-        try
-        {
-            var lastDate = result.Count > 0 ? result.Max(x => x.date) : (DateTime?)null;
-            var recent = new List<object>();
-            if (lastDate.HasValue)
-            {
-                var start = lastDate.Value.AddDays(-13);
-                var grouped = result.GroupBy(x => x.date).ToDictionary(g => g.Key, g => new { count = g.Count(), total = g.Sum(x => x.tss) });
-                for (var d = start.Date; d <= lastDate.Value.Date; d = d.AddDays(1))
-                {
-                    if (grouped.TryGetValue(d, out var v))
-                        recent.Add(new { date = d.ToString("yyyy-MM-dd"), v.count, v.total });
-                    else
-                        recent.Add(new { date = d.ToString("yyyy-MM-dd"), count = 0, total = 0f });
-                }
-            }
-
-            var suspiciousPower = activities
-                .Where(a => a.StartDate >= lookbackDate && a.StartDate <= endDate)
-                .Count(a =>
-                    (a.Type.Value.Contains("Ride", StringComparison.OrdinalIgnoreCase)) &&
-                    a.NormalizedPower.HasValue &&
-                    a.DeviceWatts != true);
-
-            var j = System.Text.Json.JsonSerializer.Serialize(new
-            {
-                hypothesisId = "H_shape",
-                location = "BuildActivitiesWithTssAsync",
-                message = "recent daily totals + suspicious power flags",
-                data = new
-                {
-                    recentDays = recent,
-                    suspiciousRideWithNPButNotDeviceWattsTrue = suspiciousPower
-                }
-            });
-            System.IO.File.AppendAllText(@"c:\Users\Kucha\source\repos\CyclingForge\.cursor\debug.log", j + "\n");
-        }
-        catch { }
-        // #endregion
 
         return result;
     }
