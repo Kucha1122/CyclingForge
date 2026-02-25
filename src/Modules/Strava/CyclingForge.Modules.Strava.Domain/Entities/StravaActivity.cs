@@ -69,6 +69,12 @@ public sealed class StravaActivity : AggregateRoot<Guid>
         DeviceWatts = deviceWatts;
     }
 
+    public void UpdateSpeed(float? averageSpeed, float? maxSpeed)
+    {
+        AverageSpeed = averageSpeed;
+        MaxSpeed = maxSpeed;
+    }
+
     public void UpdateStreams(string streamsJson)
     {
         StreamsJson = streamsJson;

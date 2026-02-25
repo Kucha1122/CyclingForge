@@ -50,11 +50,14 @@ internal sealed class StravaApiService : IStravaApiService
         string accessToken, int page = 1, int perPage = 30, long? after = null, long? before = null, CancellationToken cancellationToken = default)
     {
         var activities = await _httpClient.GetActivitiesAsync(accessToken, page, perPage, after, before, cancellationToken);
-        
+        // Strava API returns speed in m/s; convert to km/h for storage and display.
+        const float MetersPerSecondToKmh = 3.6f;
         return activities?.Select(a => new StravaActivityResponse(
             a.Id, a.Name, a.Type, a.StartDate, a.Distance,
             a.MovingTime, a.ElapsedTime, a.TotalElevationGain,
-            a.AverageSpeed, a.MaxSpeed, a.AverageHeartRate,
+            a.AverageSpeed.HasValue ? a.AverageSpeed.Value * MetersPerSecondToKmh : null,
+            a.MaxSpeed.HasValue ? a.MaxSpeed.Value * MetersPerSecondToKmh : null,
+            a.AverageHeartRate,
             a.MaxHeartRate, a.AveragePower, a.DeviceWatts)).ToList()
             ?? [];
     }

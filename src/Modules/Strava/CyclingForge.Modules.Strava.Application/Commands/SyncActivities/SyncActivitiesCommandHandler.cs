@@ -101,6 +101,8 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
                     {
                         existing.UpdateDeviceWatts(activityDto.DeviceWatts);
                     }
+                    // Refresh speed from API (already in km/h from StravaApiService conversion)
+                    existing.UpdateSpeed(activityDto.AverageSpeed, activityDto.MaxSpeed);
                     // Backfill streams for activities that have power but no StreamsJson (so Activities module can compute Best5/20/60 and eFTP dots).
                     var needsStreams = streamBackfillCount < maxStreamBackfillsPerSync
                         && string.IsNullOrEmpty(existing.StreamsJson)
