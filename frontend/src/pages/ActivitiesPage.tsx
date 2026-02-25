@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { activitiesApi } from '../services/api';
+import { activitiesApi, metricsApi, type FtpChangeDto } from '../services/api';
 import type { ActivityDto } from '../types/activity';
 
 const PER_PAGE = 30;
@@ -14,16 +14,29 @@ export const ActivitiesPage = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [filter, setFilter] = useState<'all' | 'ride' | 'run' | 'walk'>('all');
+  const [ftpChanges, setFtpChanges] = useState<FtpChangeDto[] | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchInitial = async () => {
       try {
-        const response = await activitiesApi.getActivities(1, PER_PAGE);
-        const data = response.data;
+        const [activitiesResponse, pmcResponse] = await Promise.all([
+          activitiesApi.getActivities(1, PER_PAGE),
+          // Pobierz zmiany FTP z ostatniego roku, żeby móc opisać źródło FTP przy aktywnościach.
+          metricsApi.getPmcSummary(undefined, undefined, 365),
+        ]);
+
+        const data = activitiesResponse.data;
         setActivities(data);
         setPage(1);
         setHasMore(data.length === PER_PAGE);
+
+        if (pmcResponse.data.ftpChanges && pmcResponse.data.ftpChanges.length > 0) {
+          // ftpChanges są już posortowane rosnąco po dacie po stronie backendu.
+          setFtpChanges(pmcResponse.data.ftpChanges);
+        } else {
+          setFtpChanges(null);
+        }
       } catch {
         // Failed to fetch activities
       } finally {
@@ -69,6 +82,36 @@ export const ActivitiesPage = () => {
     if (activity.trainingStressScore == null) return null;
     const isPowerBased = activity.normalizedPower != null || activity.deviceWatts === true;
     return isPowerBased ? 'TSS' : 'HRSS';
+  };
+
+  const getFtpSourceLabel = (activity: ActivityDto): string | null => {
+    if (activity.ftpUsed == null || !ftpChanges || ftpChanges.length === 0) {
+      return null;
+    }
+
+    const activityDate = new Date(activity.startDate);
+    let lastChange: FtpChangeDto | null = null;
+
+    for (const change of ftpChanges) {
+      const changeDate = new Date(change.date);
+      if (changeDate <= activityDate && (!lastChange || changeDate > new Date(lastChange.date))) {
+        lastChange = change;
+      }
+    }
+
+    if (!lastChange) {
+      return null;
+    }
+
+    if (lastChange.source === 'Manual') {
+      return 'FTP z profilu (ręcznie ustawione)';
+    }
+
+    if (lastChange.source === 'EstimatedFromActivity') {
+      return 'eFTP wyliczone z aktywności';
+    }
+
+    return null;
   };
 
   const filteredActivities = activities.filter(activity => {
@@ -221,6 +264,12 @@ export const ActivitiesPage = () => {
                         <div className="flex items-center gap-1">
                           <span className="text-gray-600">FTP:</span>
                           <span className="font-medium text-gray-900">{activity.ftpUsed} W</span>
+                          {(() => {
+                            const src = getFtpSourceLabel(activity);
+                            return src ? (
+                              <span className="text-[11px] text-gray-500">({src})</span>
+                            ) : null;
+                          })()}
                         </div>
                       )}
 
