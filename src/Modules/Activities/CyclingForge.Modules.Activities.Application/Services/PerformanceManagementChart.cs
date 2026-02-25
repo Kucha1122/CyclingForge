@@ -92,4 +92,10 @@ public interface IPerformanceManagementService
     /// Calculate CTL, ATL, TSB for a specific date
     /// </summary>
     (float ctl, float atl, float tsb) CalculatePmcForDate(List<(DateTime date, float tss)> historicalTss, DateTime targetDate, int ctlDays = 42, int atlDays = 7);
+
+    /// <summary>
+    /// Returns daily training load (TSS/HRSS with sport factors) for a given date range.
+    /// Used for Daily TSS chart so it matches PMC logic.
+    /// </summary>
+    Task<List<(DateTime date, float tss)>> GetDailyLoadAsync(Guid userId, DateTime startDate, DateTime endDate);
 }

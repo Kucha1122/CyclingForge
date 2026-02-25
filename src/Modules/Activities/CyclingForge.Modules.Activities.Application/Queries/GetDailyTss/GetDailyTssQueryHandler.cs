@@ -1,15 +1,15 @@
-using CyclingForge.Modules.Activities.Domain.Repositories;
+using CyclingForge.Modules.Activities.Application.Services;
 using MediatR;
 
 namespace CyclingForge.Modules.Activities.Application.Queries.GetDailyTss;
 
 internal sealed class GetDailyTssQueryHandler : IRequestHandler<GetDailyTssQuery, IReadOnlyList<DailyTssPointDto>>
 {
-    private readonly IActivityRepository _activityRepository;
+    private readonly IPerformanceManagementService _performanceManagementService;
 
-    public GetDailyTssQueryHandler(IActivityRepository activityRepository)
+    public GetDailyTssQueryHandler(IPerformanceManagementService performanceManagementService)
     {
-        _activityRepository = activityRepository;
+        _performanceManagementService = performanceManagementService;
     }
 
     public async Task<IReadOnlyList<DailyTssPointDto>> Handle(GetDailyTssQuery request, CancellationToken cancellationToken)
@@ -17,12 +17,10 @@ internal sealed class GetDailyTssQueryHandler : IRequestHandler<GetDailyTssQuery
         var endDate = DateTime.UtcNow.Date;
         var startDate = endDate.AddDays(-request.Days);
 
-        var activities = await _activityRepository.GetByUserIdAsync(request.UserId, 1, 10000, cancellationToken);
-
-        var tssByDate = activities
-            .Where(a => a.TrainingStressScore.HasValue && a.StartDate >= startDate && a.StartDate <= endDate)
-            .GroupBy(a => a.StartDate.Date)
-            .ToDictionary(g => g.Key, g => g.Sum(a => a.TrainingStressScore!.Value));
+        var loads = await _performanceManagementService.GetDailyLoadAsync(request.UserId, startDate, endDate);
+        var tssByDate = loads
+            .GroupBy(x => x.date)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.tss));
 
         var dailyTss = new List<DailyTssPointDto>();
         for (var d = startDate; d <= endDate; d = d.AddDays(1))
