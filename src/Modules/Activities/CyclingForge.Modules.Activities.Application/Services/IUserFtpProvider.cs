@@ -23,4 +23,11 @@ public interface IUserFtpProvider
     /// Returns the minimum effort duration (seconds) used for eFTP estimation; default 300 (5 min) when not set.
     /// </summary>
     Task<int> GetEftpMinDurationSecondsAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Registers an automatic eFTP change on the FTP timeline when appropriate.
+    /// Used during activity sync to persist significant eFTP updates (Source = "EstimatedFromActivity")
+    /// so that calendar FTP and activity FTP use only the UserFtpChanges table.
+    /// </summary>
+    Task RegisterEftpChangeIfNeededAsync(Guid userId, DateTime activityDate, int estimatedFtp, CancellationToken cancellationToken = default);
 }

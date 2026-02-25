@@ -2,6 +2,7 @@ using CyclingForge.Modules.Activities.Application.Services;
 using CyclingForge.Modules.Activities.Domain.Entities;
 using CyclingForge.Modules.Activities.Domain.Repositories;
 using CyclingForge.Modules.Users.Domain.Repositories;
+using CyclingForge.Modules.Users.Domain.Entities;
 using CyclingForge.Modules.Users.Domain.ValueObjects;
 using Microsoft.Extensions.Options;
 
@@ -58,66 +59,24 @@ internal sealed class UserFtpProvider : IUserFtpProvider
     {
         var targetDate = date.Date;
 
-        var user = await _userRepository.GetByIdAsync(new UserId(userId), cancellationToken);
-        var userEftpMinSec = user?.EftpMinDurationSeconds ?? DefaultEftpMinDurationSeconds;
-        int? currentFtp = user?.FunctionalThresholdPower;
-        var initialManualFtp = currentFtp;
+        // Calendar FTP is driven solely by persisted changes in UserFtpChanges (manual and eFTP).
+        // Manual changes always have priority over eFTP: for any date on or after the first manual FTP,
+        // we use the latest manual value; before that we use the latest eFTP (if any).
+        var changes = await _ftpChangeRepository.GetByUserIdOnOrBeforeAsync(userId, targetDate, cancellationToken);
+        if (changes == null || changes.Count == 0)
+            return null;
 
-        var manualChanges = await _ftpChangeRepository.GetByUserIdOnOrBeforeAsync(userId, targetDate, cancellationToken);
-        var activities = await _activityRepository.GetByUserIdAsync(userId, 1, 10000, cancellationToken);
+        var lastManual = changes
+            .Where(c => c.Source == SourceManual)
+            .OrderBy(c => c.EffectiveDate)
+            .LastOrDefault();
+        if (lastManual is not null)
+            return lastManual.FtpValue;
 
-        // Process all potential events (manual + eFTP candidates) in chronological order. eFTP recomputed with current min duration.
-        var eftpCandidates = activities
-            .Where(a => a.StartDate.Date <= targetDate && GetActivityEftp(a, userEftpMinSec).HasValue)
-            .Select(a => new
-            {
-                Date = a.StartDate.Date,
-                Ftp = GetActivityEftp(a, userEftpMinSec)!.Value,
-                IsManual = false
-            });
-
-        var manualEvents = manualChanges
-            .Select(c => new
-            {
-                Date = c.EffectiveDate.Date,
-                Ftp = c.FtpValue,
-                IsManual = true
-            });
-
-        var orderedEvents = manualEvents
-            .Concat(eftpCandidates)
-            .Where(e => e.Ftp > 0 && e.Date <= targetDate)
-            .OrderBy(e => e.Date)
-            .ThenByDescending(e => e.IsManual) // manual overrides eFTP on same day
-            .ToList();
-
-        foreach (var e in orderedEvents)
-        {
-            if (e.IsManual)
-            {
-                // Manual FTP change always overrides.
-                currentFtp = e.Ftp;
-            }
-            else
-            {
-                // eFTP candidate: accept if meaningful increase, or establish baseline (first activity eFTP when current is still manual).
-                if (!currentFtp.HasValue)
-                {
-                    currentFtp = e.Ftp;
-                }
-                else if (ShouldAcceptAutomaticChange(currentFtp.Value, e.Ftp))
-                {
-                    currentFtp = e.Ftp;
-                }
-                else if (initialManualFtp.HasValue && currentFtp == initialManualFtp.Value && e.Ftp < currentFtp)
-                {
-                    // Baseline: no prior eFTP accepted yet; accept first activity's eFTP so timeline and chart can show progression.
-                    currentFtp = e.Ftp;
-                }
-            }
-        }
-
-        return currentFtp;
+        var lastAny = changes
+            .OrderBy(c => c.EffectiveDate)
+            .LastOrDefault();
+        return lastAny?.FtpValue;
     }
 
     public async Task<IReadOnlyList<FtpChangeDto>> GetFtpChangesForRangeAsync(Guid userId, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
@@ -126,52 +85,103 @@ internal sealed class UserFtpProvider : IUserFtpProvider
         var end = endDate.Date;
         var result = new List<FtpChangeDto>();
 
-        var user = await _userRepository.GetByIdAsync(new UserId(userId), cancellationToken);
-        var currentFtp = user?.FunctionalThresholdPower ?? 0;
-        var userEftpMinSec = user?.EftpMinDurationSeconds ?? DefaultEftpMinDurationSeconds;
+        var changesInRange = await _ftpChangeRepository.GetByUserIdInRangeAsync(userId, start, end, cancellationToken);
 
-        var manualInRange = await _ftpChangeRepository.GetByUserIdInRangeAsync(userId, start, end, cancellationToken);
-        foreach (var c in manualInRange)
+        // Track last known eFTP value before each EstimatedFromActivity change so that
+        // chart deltas for eFTP are computed vs previous eFTP, not vs manual FTP.
+        foreach (var c in changesInRange.OrderBy(x => x.EffectiveDate))
         {
-            var dayBefore = c.EffectiveDate.Date.AddDays(-1);
-            var fromFtp = await GetFtpForDateAsync(userId, dayBefore, cancellationToken) ?? currentFtp;
-            result.Add(new FtpChangeDto
+            if (c.Source == SourceEstimatedFromActivity)
             {
-                Date = c.EffectiveDate.Date,
-                FromFtp = fromFtp,
-                ToFtp = c.FtpValue,
-                Source = SourceManual
-            });
-        }
+                var dayBefore = c.EffectiveDate.Date.AddDays(-1);
+                var changesUpToDay = await _ftpChangeRepository.GetByUserIdOnOrBeforeAsync(userId, dayBefore, cancellationToken);
+                var lastEftpChange = changesUpToDay
+                    .Where(x => x.Source == SourceEstimatedFromActivity)
+                    .OrderBy(x => x.EffectiveDate)
+                    .LastOrDefault();
 
-        var activities = await _activityRepository.GetByUserIdAsync(userId, 1, 10000, cancellationToken);
-        var eFtpActivities = activities
-            .Where(a => GetActivityEftp(a, userEftpMinSec).HasValue && a.StartDate.Date >= start && a.StartDate.Date <= end)
-            .OrderBy(a => a.StartDate)
-            .ToList();
+                var fromEftp = lastEftpChange?.FtpValue ?? 0;
 
-        foreach (var a in eFtpActivities)
-        {
-            var toFtp = GetActivityEftp(a, userEftpMinSec)!.Value;
-            if (toFtp <= 0) continue;
-            var dayBefore = a.StartDate.Date.AddDays(-1);
-            var fromFtp = await GetFtpForDateAsync(userId, dayBefore, cancellationToken);
-            var fromFtpValue = fromFtp ?? currentFtp;
-            var isBaselineDrop = fromFtpValue == currentFtp && currentFtp > 0 && toFtp < fromFtpValue;
-            var wouldAccept = fromFtpValue > 0 && fromFtpValue != toFtp && (ShouldAcceptAutomaticChange(fromFtpValue, toFtp) || isBaselineDrop);
-            if (wouldAccept)
-            {
+                // Only show eFTP points that are improvements vs previous eFTP (if any),
+                // but do not compare against manual FTP so that eFTP dots are still visible
+                // even when manual FTP is higher.
+                if (lastEftpChange is not null && c.FtpValue <= fromEftp)
+                {
+                    continue;
+                }
+
                 result.Add(new FtpChangeDto
                 {
-                    Date = a.StartDate.Date,
-                    FromFtp = fromFtpValue,
-                    ToFtp = toFtp,
-                    Source = SourceEstimatedFromActivity
+                    Date = c.EffectiveDate.Date,
+                    FromFtp = fromEftp,
+                    ToFtp = c.FtpValue,
+                    Source = c.Source
+                });
+            }
+            else
+            {
+                var dayBefore = c.EffectiveDate.Date.AddDays(-1);
+                var fromFtp = await GetFtpForDateAsync(userId, dayBefore, cancellationToken) ?? 0;
+
+                result.Add(new FtpChangeDto
+                {
+                    Date = c.EffectiveDate.Date,
+                    FromFtp = fromFtp,
+                    ToFtp = c.FtpValue,
+                    Source = c.Source
                 });
             }
         }
 
-        return result.OrderBy(x => x.Date).ToList();
+        return result;
+    }
+
+    public async Task RegisterEftpChangeIfNeededAsync(Guid userId, DateTime activityDate, int estimatedFtp, CancellationToken cancellationToken = default)
+    {
+        if (estimatedFtp <= 0)
+            return;
+
+        var date = activityDate.Date;
+
+        // Avoid duplicate eFTP changes for the same day and value.
+        var existingOnDay = await _ftpChangeRepository.GetByUserIdInRangeAsync(userId, date, date, cancellationToken);
+        if (existingOnDay.Any(c => c.FtpValue == estimatedFtp && c.Source == SourceEstimatedFromActivity))
+            return;
+
+        var changesUpToDay = await _ftpChangeRepository.GetByUserIdOnOrBeforeAsync(userId, date, cancellationToken);
+
+        // Bierzemy pod uwagę WYŁĄCZNIE poprzednie wpisy EstimatedFromActivity (manual idzie swoją ścieżką).
+        var lastEftpChange = changesUpToDay
+            .Where(c => c.Source == SourceEstimatedFromActivity)
+            .OrderBy(c => c.EffectiveDate)
+            .LastOrDefault();
+        int? lastEftp = lastEftpChange?.FtpValue;
+
+        var shouldAdd = false;
+
+        if (!lastEftp.HasValue)
+        {
+            // Pierwszy punkt eFTP – zawsze zapisujemy.
+            shouldAdd = true;
+        }
+        else
+        {
+            // TWARDY ZAKAZ: EstimatedFromActivity nigdy nie może wprowadzić FtpValue <= ostatniego eFTP.
+            // eFTP może tylko rosnąć względem poprzedniego eFTP; spadki są możliwe wyłącznie z wpisów manualnych.
+            if (estimatedFtp <= lastEftp.Value)
+            {
+                return;
+            }
+
+            // Dla prawdziwych wzrostów korzystamy z istniejących progów (MinIncreaseWatts / MinIncreasePercent).
+            shouldAdd = ShouldAcceptAutomaticChange(lastEftp.Value, estimatedFtp);
+        }
+
+        if (!shouldAdd)
+            return;
+
+        var change = UserFtpChange.Create(userId, date, estimatedFtp, SourceEstimatedFromActivity);
+        await _ftpChangeRepository.AddAsync(change, cancellationToken);
     }
 
     private bool ShouldAcceptAutomaticChange(int fromFtp, int toFtp)
@@ -213,9 +223,22 @@ internal sealed class UserFtpProvider : IUserFtpProvider
         return meetsDecreaseWatts || meetsDecreasePercent;
     }
 
-    /// <summary>Gets eFTP for the activity using current min duration: recomputes from stored 5/20/60 min power when available, else fallback to stored or Best20Min*0.95.</summary>
+    /// <summary>
+    /// Gets eFTP for the activity using current min duration for cycling rides only (Ride/VirtualRide):
+    /// recomputes from stored 5/20/60 min power when available, else fallback to stored or Best20Min*0.95.
+    /// Non-cycling activities never contribute eFTP to the FTP timeline.
+    /// </summary>
     private int? GetActivityEftp(Activity a, int minDurationSeconds)
     {
+        // Limit eFTP candidates strictly to cycling activities so that FTP timeline and PMC markers
+        // are driven only by rides, matching the intended \"calendar FTP\" behaviour.
+        var sport = a.Type?.Value;
+        if (!string.Equals(sport, "Ride", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(sport, "VirtualRide", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
         var profile = new PowerProfile
         {
             FiveMinutePower = a.Best5MinPower,
