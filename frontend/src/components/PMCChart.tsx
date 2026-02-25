@@ -324,10 +324,10 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
                   if (!list.length || typeof props.cx !== 'number' || typeof props.cy !== 'number') {
                     return null;
                   }
-                  const fc = list[0];
+                  const title = list.map((fc) => formatFtpChangeLabel(fc)).join('\n');
                   return (
                     <circle cx={props.cx} cy={props.cy} r={4} fill="#ef4444" stroke="#b91c1c" strokeWidth={1.5}>
-                      <title>{formatFtpChangeLabel(fc)}</title>
+                      <title>{title}</title>
                     </circle>
                   );
                 }}
