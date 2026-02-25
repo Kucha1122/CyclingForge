@@ -46,29 +46,9 @@ internal sealed class PerformanceManagementService : IPerformanceManagementServi
 
     public async Task<PmcSummary> GetPmcSummaryAsync(Guid userId, int ctlDays = 42, int atlDays = 7, int historyDays = 90)
     {
-        var cacheKey = BuildCacheKey(userId, ctlDays, atlDays, historyDays);
         var today = DateTime.UtcNow.Date;
         var historyStartDate = today.AddDays(-historyDays);
-
-        if (_cache.TryGetValue<PmcSummary?>(cacheKey, out var cached) && cached is not null)
-        {
-            var freshFtpChanges = await _ftpProvider.GetFtpChangesForRangeAsync(userId, historyStartDate, today, CancellationToken.None);
-            return new PmcSummary
-            {
-                CurrentCTL = cached.CurrentCTL,
-                CurrentATL = cached.CurrentATL,
-                CurrentTSB = cached.CurrentTSB,
-                FormStatus = cached.FormStatus,
-                Recommendation = cached.Recommendation,
-                History = cached.History,
-                FtpChanges = freshFtpChanges.ToList(),
-                PreviousWeekAvgCtl = cached.PreviousWeekAvgCtl,
-                PreviousWeekAvgAtl = cached.PreviousWeekAvgAtl,
-                CurrentWeekAvgCtl = cached.CurrentWeekAvgCtl,
-                CurrentWeekAvgAtl = cached.CurrentWeekAvgAtl,
-                RampRateCtlPerWeek = cached.RampRateCtlPerWeek
-            };
-        }
+        // Cache disabled: always compute PMC fresh so that charts reflect latest sync (FTP/eFTP/TSS).
 
         var utcNow = DateTime.UtcNow;
         var localNow = DateTime.Now;
@@ -133,11 +113,6 @@ internal sealed class PerformanceManagementService : IPerformanceManagementServi
             CurrentWeekAvgAtl = currentWeekAvgAtl,
             RampRateCtlPerWeek = rampRateCtlPerWeek
         };
-
-        _cache.Set(cacheKey, summary, new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
-        });
 
         return summary;
     }
@@ -229,11 +204,9 @@ internal sealed class PerformanceManagementService : IPerformanceManagementServi
 
         foreach (var activity in inRange)
         {
-            // Get FTP for the activity date
+            // Get FTP for the activity date; fall back to current manual FTP only when timeline is empty.
             var ftpForDate = await _ftpProvider.GetFtpForDateAsync(userId, activity.StartDate, CancellationToken.None);
-            var ftpForTss = ftpForDate.HasValue && manualFtp.HasValue && manualFtp.Value > 0
-                ? Math.Max(ftpForDate.Value, manualFtp.Value)
-                : ftpForDate ?? manualFtp;
+            var ftpForTss = ftpForDate ?? manualFtp;
 
             // Use ActivityLoadCalculator to calculate load with sport-specific adjustments
             // This replaces the old inline logic with hardcoded sport factors

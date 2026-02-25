@@ -64,7 +64,9 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
         var syncedCount = 0;
         var now = _clock.CurrentDate();
 
-        foreach (var stravaActivity in stravaActivities)
+        // Przetwarzaj aktywności od najstarszej do najnowszej, żeby eFTP timeline
+        // był budowany w poprawnej kolejności (starsze wpisy w UserFtpChanges powstają jako pierwsze).
+        foreach (var stravaActivity in stravaActivities.OrderBy(a => a.StartDate))
         {
             var existingActivity = await _activityRepository
                 .GetByStravaIdAsync(stravaActivity.StravaId, request.UserId, cancellationToken);
@@ -124,6 +126,15 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
 
     private async Task ApplyTssIfPossibleAsync(Guid userId, Activity activity, StravaActivityDto dto, int? userLthr, CancellationToken cancellationToken)
     {
+        // When activity already has fully computed power-based metrics (NP, TSS, FTP used),
+        // avoid recomputing them on subsequent sync runs to keep persisted values stable.
+        if (activity.TrainingStressScore.HasValue &&
+            activity.NormalizedPower.HasValue &&
+            activity.FtpUsed.HasValue)
+        {
+            return;
+        }
+
         List<float>? powerData = null;
         if (!string.IsNullOrEmpty(dto.StreamsJson) && TryParseWattsFromStreams(dto.StreamsJson, out var parsed))
             powerData = parsed;
@@ -141,15 +152,18 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
             var minDuration = await _ftpProvider.GetEftpMinDurationSecondsAsync(userId, cancellationToken);
             var eftp = _eftpEstimator.EstimateFtpFromPowerProfile(profile, minDuration);
             if (eftp.HasValue && eftp.Value > 0)
+            {
                 estimatedFtpFromActivity = (int)Math.Round(eftp.Value);
+                // Persist significant eFTP updates on the FTP timeline so that calendar FTP
+                // and activity FTP use only UserFtpChanges (Manual + EstimatedFromActivity).
+                await _ftpProvider.RegisterEftpChangeIfNeededAsync(userId, dto.StartDate, estimatedFtpFromActivity.Value, cancellationToken);
+            }
         }
 
         var ftpForDate = await _ftpProvider.GetFtpForDateAsync(userId, dto.StartDate, cancellationToken);
         var manualFtp = await _ftpProvider.GetFtpAsync(userId, cancellationToken);
-        // Use at least manual FTP for TSS so CTL/ATL match intervals.icu (they use athlete's set FTP); our timeline can start at lower eFTP and would otherwise inflate TSS).
-        var ftpForTss = ftpForDate.HasValue && manualFtp.HasValue && manualFtp.Value > 0
-            ? Math.Max(ftpForDate.Value, manualFtp.Value)
-            : ftpForDate ?? manualFtp;
+        // Use calendar FTP for the activity date when available; fall back to current manual FTP only when no timeline value exists.
+        var ftpForTss = ftpForDate ?? manualFtp;
 
         if (ftpForTss.HasValue && ftpForTss.Value > 0)
         {
