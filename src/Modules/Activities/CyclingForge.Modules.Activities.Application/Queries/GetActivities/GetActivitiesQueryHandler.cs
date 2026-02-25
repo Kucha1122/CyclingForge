@@ -18,20 +18,25 @@ internal sealed class GetActivitiesQueryHandler : IRequestHandler<GetActivitiesQ
             .GetByUserIdAsync(request.UserId, request.Page, request.PageSize, cancellationToken);
 
         return activities.Select(a => new ActivityDto(
-            a.Id.Value,
-            a.StravaActivityId,
-            a.Name,
-            a.Type.Value,
-            a.StartDate,
-            a.Distance.ToKilometers(),
-            a.MovingTime.ToTimeSpan(),
-            a.TotalElevationGain,
-            a.AverageSpeed,
-            a.MaxSpeed,
-            a.AveragePower,
-            a.MaxPower,
-            a.NormalizedPower,
-            a.IntensityFactor,
-            a.TrainingStressScore)).ToList();
+            Id: a.Id.Value,
+            ExternalId: a.StravaActivityId,
+            Name: a.Name,
+            Type: a.Type.Value,
+            StartDate: a.StartDate,
+            Distance: a.Distance.Meters,
+            MovingTime: a.MovingTime.Seconds,
+            ElapsedTime: a.ElapsedTime.Seconds,
+            TotalElevationGain: a.TotalElevationGain,
+            AverageSpeed: a.AverageSpeed,
+            MaxSpeed: a.MaxSpeed,
+            AverageHeartRate: a.AverageHeartRate,
+            MaxHeartRate: a.MaxHeartRate,
+            AveragePower: a.AveragePower,
+            MaxPower: a.MaxPower,
+            NormalizedPower: a.NormalizedPower,
+            IntensityFactor: a.IntensityFactor,
+            TrainingStressScore: a.TrainingStressScore,
+            FtpUsed: a.FtpUsed,
+            DeviceWatts: a.DeviceWatts)).ToList();
     }
 }

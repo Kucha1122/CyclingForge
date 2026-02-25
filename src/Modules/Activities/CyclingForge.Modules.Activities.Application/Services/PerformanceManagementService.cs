@@ -35,6 +35,15 @@ internal sealed class PerformanceManagementService : IPerformanceManagementServi
         return CalculatePmcHistory(activitiesWithTss, startDate, endDate, ctlDays, atlDays);
     }
 
+    public async Task<List<(DateTime date, float tss)>> GetDailyLoadAsync(Guid userId, DateTime startDate, DateTime endDate)
+    {
+        // For daily load we don't need long warm-up, but we still want to respect
+        // the same load calculation rules (power vs HRSS, sport factors, FTP timeline).
+        var activities = await _activityRepository.GetByUserIdAndDateRangeAsync(userId, startDate, endDate, CancellationToken.None);
+        var activitiesWithTss = await BuildActivitiesWithTssAsync(userId, activities, startDate, endDate);
+        return activitiesWithTss;
+    }
+
     public async Task<PmcSummary> GetPmcSummaryAsync(Guid userId, int ctlDays = 42, int atlDays = 7, int historyDays = 90)
     {
         var cacheKey = BuildCacheKey(userId, ctlDays, atlDays, historyDays);
