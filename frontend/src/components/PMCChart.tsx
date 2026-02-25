@@ -33,6 +33,13 @@ function toDateOnly(s: string): string {
   return match ? match[1] : '';
 }
 
+/** Parse YYYY-MM-DD as local date (no timezone shift). */
+function parseLocalDate(dateStr: string): Date | null {
+  const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
 // Strefy zgodne z interval.icu: Optymalna = -10 do -30 (budowanie formy), Ryzykowna = głęboka fatyga < -35
 function getTsbZoneLabel(tsb: number): string {
   if (tsb < -35) return 'Ryzykowna';
@@ -90,6 +97,15 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
     return map;
   }, [ftpChanges]);
 
+  /** Przy zakresie rocznym pierwszy i ostatni dzień mogą mieć to samo "25 lut" – bez roku etykiety się powielają. */
+  const includeYearInAxis = useMemo(() => {
+    if (data.length < 2) return false;
+    const first = parseLocalDate(data[0].date);
+    const last = parseLocalDate(data[data.length - 1].date);
+    if (!first || !last) return false;
+    return first.getFullYear() !== last.getFullYear() || data.length > 180;
+  }, [data]);
+
   const formattedData = useMemo(
     () =>
       data.map((item, i) => {
@@ -102,11 +118,16 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
         });
         const dateOnly = toDateOnly(item.date);
         const dayFtpChanges = dateOnly ? ftpChangesByDate.get(dateOnly) ?? [] : [];
+        const parsed = parseLocalDate(item.date) ?? new Date(item.date);
+        const dateLabel =
+          includeYearInAxis
+            ? parsed.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })
+            : parsed.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
         return {
           ...item,
-          date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          date: dateLabel,
           dateFull: item.date,
-          dateLabelFull: new Date(item.date).toLocaleDateString(undefined, {
+          dateLabelFull: parsed.toLocaleDateString(undefined, {
             weekday: 'short',
             year: 'numeric',
             month: 'short',
@@ -117,8 +138,23 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
           ...segmentValues,
         };
       }),
-    [data, segments, ftpChangesByDate],
+    [data, segments, ftpChangesByDate, includeYearInAxis],
   );
+
+  /** Jawne ticki osi X (pierwszy, ćwiartki, ostatni), żeby przy rocznym wykresie ostatni dzień nie pokazywał etykiety pierwszego (błąd Recharts przy 365 punktach). */
+  const xAxisTicks = useMemo(() => {
+    const n = formattedData.length;
+    if (n === 0) return undefined;
+    if (n <= 5) return formattedData.map((d) => d.date);
+    const indices = [
+      0,
+      Math.floor(n * 0.25),
+      Math.floor(n * 0.5),
+      Math.floor(n * 0.75),
+      n - 1,
+    ];
+    return indices.map((i) => formattedData[i].date);
+  }, [formattedData]);
 
   const unifiedTooltipContent = (props: {
     active?: boolean;
@@ -344,7 +380,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
       <div className="mt-2 h-10">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={formattedData} margin={{ top: 0, right: 8, left: 8, bottom: 0 }}>
-            <XAxis dataKey="date" stroke="#9ca3af" style={{ fontSize: '12px' }} />
+            <XAxis dataKey="date" stroke="#9ca3af" style={{ fontSize: '12px' }} ticks={xAxisTicks} />
           </LineChart>
         </ResponsiveContainer>
       </div>
