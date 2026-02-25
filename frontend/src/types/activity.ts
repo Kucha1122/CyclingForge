@@ -16,6 +16,8 @@ export interface ActivityDto {
   normalizedPower?: number;
   intensityFactor?: number;
   trainingStressScore?: number;
+  ftpUsed?: number;
+  deviceWatts?: boolean;
 }
 
 export interface ActivityDetailsDto extends ActivityDto {

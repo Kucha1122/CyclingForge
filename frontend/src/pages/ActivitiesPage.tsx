@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { stravaApi, type ActivityCountsDto } from '../services/api';
+import { activitiesApi } from '../services/api';
 import type { ActivityDto } from '../types/activity';
 
 const PER_PAGE = 30;
@@ -9,7 +9,6 @@ const PER_PAGE = 30;
 export const ActivitiesPage = () => {
   useAuth();
   const [activities, setActivities] = useState<ActivityDto[]>([]);
-  const [counts, setCounts] = useState<ActivityCountsDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -20,15 +19,11 @@ export const ActivitiesPage = () => {
   useEffect(() => {
     const fetchInitial = async () => {
       try {
-        const [activitiesRes, countsRes] = await Promise.all([
-          stravaApi.getActivities(1, PER_PAGE),
-          stravaApi.getActivityCounts().catch(() => ({ data: null })),
-        ]);
-        const data = activitiesRes.data;
+        const response = await activitiesApi.getActivities(1, PER_PAGE);
+        const data = response.data;
         setActivities(data);
         setPage(1);
         setHasMore(data.length === PER_PAGE);
-        if (countsRes.data) setCounts(countsRes.data);
       } catch {
         // Failed to fetch activities
       } finally {
@@ -44,7 +39,7 @@ export const ActivitiesPage = () => {
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
-      const response = await stravaApi.getActivities(nextPage, PER_PAGE);
+      const response = await activitiesApi.getActivities(nextPage, PER_PAGE);
       const data = response.data;
       setActivities(prev => [...prev, ...data]);
       setPage(nextPage);
@@ -69,6 +64,12 @@ export const ActivitiesPage = () => {
     observer.observe(el);
     return () => observer.disconnect();
   }, [loadMore, hasMore, loading, loadingMore]);
+
+  const formatTssLabel = (activity: ActivityDto) => {
+    if (activity.trainingStressScore == null) return null;
+    const isPowerBased = activity.normalizedPower != null || activity.deviceWatts === true;
+    return isPowerBased ? 'TSS' : 'HRSS';
+  };
 
   const filteredActivities = activities.filter(activity => {
     if (filter === 'all') return true;
@@ -110,7 +111,7 @@ export const ActivitiesPage = () => {
               : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
           }`}
         >
-          All ({counts?.total ?? activities.length})
+          All ({activities.length})
         </button>
         <button
           onClick={() => setFilter('ride')}
@@ -120,7 +121,7 @@ export const ActivitiesPage = () => {
               : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
           }`}
         >
-          Rides ({counts?.ride ?? activities.filter(a => a.type.toLowerCase().includes('ride')).length})
+          Rides ({activities.filter(a => a.type.toLowerCase().includes('ride')).length})
         </button>
         <button
           onClick={() => setFilter('run')}
@@ -130,7 +131,7 @@ export const ActivitiesPage = () => {
               : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
           }`}
         >
-          Runs ({counts?.run ?? activities.filter(a => a.type.toLowerCase().includes('run')).length})
+          Runs ({activities.filter(a => a.type.toLowerCase().includes('run')).length})
         </button>
         <button
           onClick={() => setFilter('walk')}
@@ -140,7 +141,7 @@ export const ActivitiesPage = () => {
               : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
           }`}
         >
-          Walks ({counts?.walk ?? activities.filter(a => a.type.toLowerCase().includes('walk')).length})
+          Walks ({activities.filter(a => a.type.toLowerCase().includes('walk')).length})
         </button>
       </div>
 
@@ -170,7 +171,7 @@ export const ActivitiesPage = () => {
                       })} • {new Date(activity.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     
-                    <div className="flex flex-wrap gap-4 text-sm">
+                    <div className="flex flex-wrap items-center gap-4 text-sm">
                       <div className="flex items-center gap-1">
                         <span className="text-gray-600">Distance:</span>
                         <span className="font-medium text-gray-900">{((activity.distance ?? 0) / 1000).toFixed(2)} km</span>
@@ -188,6 +189,13 @@ export const ActivitiesPage = () => {
                         <span className="font-medium text-gray-900">{(activity.totalElevationGain ?? 0).toFixed(0)} m</span>
                       </div>
 
+                      {activity.averageHeartRate && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-600">Avg HR:</span>
+                          <span className="font-medium text-red-600">{activity.averageHeartRate.toFixed(0)} bpm</span>
+                        </div>
+                      )}
+
                       {activity.averagePower && (
                         <div className="flex items-center gap-1">
                           <span className="text-gray-600">Avg Power:</span>
@@ -195,9 +203,9 @@ export const ActivitiesPage = () => {
                         </div>
                       )}
 
-                      {activity.trainingStressScore && (
+                      {activity.trainingStressScore != null && (
                         <div className="flex items-center gap-1">
-                          <span className="text-gray-600">TSS:</span>
+                          <span className="text-gray-600">{formatTssLabel(activity) ?? 'TSS'}:</span>
                           <span className="font-medium text-orange-600">{activity.trainingStressScore.toFixed(0)}</span>
                         </div>
                       )}
@@ -207,6 +215,25 @@ export const ActivitiesPage = () => {
                           <span className="text-gray-600">IF:</span>
                           <span className="font-medium text-purple-600">{activity.intensityFactor.toFixed(2)}</span>
                         </div>
+                      )}
+
+                      {activity.ftpUsed != null && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-600">FTP:</span>
+                          <span className="font-medium text-gray-900">{activity.ftpUsed} W</span>
+                        </div>
+                      )}
+
+                      {activity.deviceWatts != null && (
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
+                            activity.deviceWatts
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'border-amber-200 bg-amber-50 text-amber-700'
+                          }`}
+                        >
+                          {activity.deviceWatts ? 'Power meter' : 'Estimated / HR-based'}
+                        </span>
                       )}
                     </div>
                   </div>

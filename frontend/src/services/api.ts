@@ -37,6 +37,8 @@ export const stravaApi = {
 export const activitiesApi = {
   sync: (quickSync?: boolean) =>
     api.post<{ syncedCount: number }>('/activities/sync', null, { params: quickSync ? { quickSync: true } : {} }),
+  getActivities: (page = 1, pageSize = 30) =>
+    api.get<ActivityDto[]>('/activities', { params: { page, pageSize } }),
 };
 
 export interface FtpChangeDto {
