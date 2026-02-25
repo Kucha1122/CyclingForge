@@ -24,11 +24,24 @@ internal sealed class StravaActivitiesService : IStravaActivitiesService
         var fromDb = await _stravaModuleApi.GetActivitiesWithStreamsForUserAsync(userId, afterUtc, beforeUtc, cancellationToken);
         if (fromDb is { Count: > 0 })
         {
+            // Strava DB may contain speed in m/s (legacy) or km/h; normalize to km/h for Activities.
+            const float MetersPerSecondToKmh = 3.6f;
+            const float MaxReasonableMs = 30f; // 30 m/s = 108 km/h; above that assume already km/h
             return fromDb.Select(a => new StravaActivityDto(
                 a.StravaId, a.Name, a.Type, a.StartDate, a.Distance,
                 a.MovingTime, a.ElapsedTime, a.TotalElevationGain,
-                a.AverageSpeed, a.MaxSpeed, a.AverageHeartRate,
+                ToKmh(a.AverageSpeed),
+                ToKmh(a.MaxSpeed),
+                a.AverageHeartRate,
                 a.MaxHeartRate, a.AveragePower, a.DeviceWatts, a.StreamsJson)).ToList();
+
+            static float? ToKmh(float? speed)
+            {
+                if (!speed.HasValue) return null;
+                var v = speed.Value;
+                if (v > MaxReasonableMs) return v; // already km/h
+                return v * MetersPerSecondToKmh;
+            }
         }
 
         var accessToken = await _stravaModuleApi.GetAccessTokenAsync(userId, cancellationToken)

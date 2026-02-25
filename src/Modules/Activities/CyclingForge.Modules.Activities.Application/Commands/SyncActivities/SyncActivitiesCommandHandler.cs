@@ -126,18 +126,33 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
 
     private async Task ApplyTssIfPossibleAsync(Guid userId, Activity activity, StravaActivityDto dto, int? userLthr, CancellationToken cancellationToken)
     {
+        List<float>? powerData = null;
+        if (!string.IsNullOrEmpty(dto.StreamsJson) && TryParseWattsFromStreams(dto.StreamsJson, out var parsed))
+            powerData = parsed;
+
         // When activity already has fully computed power-based metrics (NP, TSS, FTP used),
         // avoid recomputing them on subsequent sync runs to keep persisted values stable.
+        // Still fix MaxPower from power stream when available (it may have been stored wrong as average before).
         if (activity.TrainingStressScore.HasValue &&
             activity.NormalizedPower.HasValue &&
             activity.FtpUsed.HasValue)
         {
+            if (powerData != null && powerData.Count > 0)
+            {
+                float? maxPower = (float)powerData.Max();
+                activity.UpdateMetrics(
+                    maxPower: maxPower,
+                    normalizedPower: activity.NormalizedPower,
+                    intensityFactor: activity.IntensityFactor,
+                    trainingStressScore: activity.TrainingStressScore,
+                    ftpUsed: activity.FtpUsed,
+                    best20MinPower: activity.Best20MinPower,
+                    best5MinPower: activity.Best5MinPower,
+                    best60MinPower: activity.Best60MinPower,
+                    estimatedFtpFromActivity: activity.EstimatedFtpFromActivity);
+            }
             return;
         }
-
-        List<float>? powerData = null;
-        if (!string.IsNullOrEmpty(dto.StreamsJson) && TryParseWattsFromStreams(dto.StreamsJson, out var parsed))
-            powerData = parsed;
 
         float? best20Min = null;
         float? best5Min = null;
@@ -181,8 +196,10 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
                     var tss = _metricsCalculator.CalculateTrainingStressScore(np, if_, dto.MovingTime, ftpForTss);
                     if (tss.HasValue)
                     {
+                        // MaxPower = max from power stream when available; otherwise null (do not use average as max).
+                        float? maxPower = powerData != null && powerData.Count > 0 ? (float)powerData.Max() : null;
                         activity.UpdateMetrics(
-                            maxPower: dto.AveragePower,
+                            maxPower: maxPower,
                             normalizedPower: np.Value,
                             intensityFactor: if_.Value,
                             trainingStressScore: tss,
