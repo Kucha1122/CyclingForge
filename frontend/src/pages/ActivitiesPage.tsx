@@ -193,8 +193,8 @@ export const ActivitiesPage = () => {
         <div className="space-y-3">
           {filteredActivities.map((activity) => (
             <Link
-              key={activity.externalId}
-              to={`/activities/${activity.externalId}`}
+              key={activity.id}
+              to={`/activities/${activity.id}`}
               className="block rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 transition-all hover:shadow-md hover:ring-gray-300"
             >
               <div className="flex items-start justify-between">

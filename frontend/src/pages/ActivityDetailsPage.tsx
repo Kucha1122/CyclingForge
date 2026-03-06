@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { stravaApi } from '../services/api';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { activitiesApi, stravaApi } from '../services/api';
 import type { ActivityDetailsDto } from '../types/activity';
 import {
   LineChart,
@@ -13,9 +13,12 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  ReferenceLine,
 } from 'recharts';
 
-interface Stream {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface StravaStream {
   type: string;
   data: number[];
   series_type: string;
@@ -23,148 +26,737 @@ interface Stream {
   resolution: string;
 }
 
-interface ChartDataPoint {
-  distance: string | number;
+interface ChartPoint {
+  distKm: number;
   time: number;
   heartrate: number | null;
   watts: number | null;
   altitude: number | null;
-  speed: string | null;
+  speedKph: number | null;
   cadence: number | null;
 }
 
-function parseStreamsToChartData(json: string): ChartDataPoint[] {
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function parseStreams(json: string): ChartPoint[] {
   try {
-    const streams: Stream[] = JSON.parse(json);
-    if (!streams || streams.length === 0) return [];
+    const streams: StravaStream[] = JSON.parse(json);
+    if (!streams?.length) return [];
 
-    const distanceStream = streams.find((s) => s.type === 'distance');
-    const timeStream = streams.find((s) => s.type === 'time');
-    const heartrateStream = streams.find((s) => s.type === 'heartrate');
-    const wattsStream = streams.find((s) => s.type === 'watts');
-    const altitudeStream = streams.find((s) => s.type === 'altitude');
-    const velocityStream = streams.find((s) => s.type === 'velocity_smooth');
-    const cadenceStream = streams.find((s) => s.type === 'cadence');
+    const get = (type: string) => streams.find((s) => s.type === type);
+    const distStream = get('distance');
+    const timeStream = get('time');
+    const hrStream = get('heartrate');
+    const wattsStream = get('watts');
+    const altStream = get('altitude');
+    const velStream = get('velocity_smooth');
+    const cadStream = get('cadence');
 
-    const length = distanceStream?.data.length || timeStream?.data.length || 0;
-    const data: ChartDataPoint[] = [];
+    const length = distStream?.data.length ?? timeStream?.data.length ?? 0;
+    const raw: ChartPoint[] = [];
 
     for (let i = 0; i < length; i++) {
-      data.push({
-        distance: distanceStream?.data[i] ? (distanceStream.data[i] / 1000).toFixed(2) : 0,
-        time: timeStream?.data[i] || 0,
-        heartrate: heartrateStream?.data[i] ?? null,
+      raw.push({
+        distKm: distStream ? distStream.data[i] / 1000 : 0,
+        time: timeStream?.data[i] ?? 0,
+        heartrate: hrStream?.data[i] ?? null,
         watts: wattsStream?.data[i] ?? null,
-        altitude: altitudeStream?.data[i] ?? null,
-        speed: velocityStream?.data[i] ? (velocityStream.data[i] * 3.6).toFixed(1) : null,
-        cadence: cadenceStream?.data[i] ?? null,
+        altitude: altStream?.data[i] ?? null,
+        speedKph: velStream ? velStream.data[i] * 3.6 : null,
+        cadence: cadStream?.data[i] ?? null,
       });
     }
-    return data;
+    return raw;
   } catch {
     return [];
   }
 }
 
-export default function ActivityDetailsPage() {
-  const { id } = useParams<{ id: string }>();
-  const [activity, setActivity] = useState<ActivityDetailsDto | null>(null);
-  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [loading, setLoading] = useState(true);
+/** Reduce a stream to at most `target` points using systematic sampling. */
+function downsample(data: ChartPoint[], target = 600): ChartPoint[] {
+  if (data.length <= target) return data;
+  const step = Math.ceil(data.length / target);
+  return data.filter((_, i) => i % step === 0);
+}
 
-  useEffect(() => {
-    if (!id) return;
-    stravaApi.getActivityDetails(id)
-      .then((response) => {
-        setActivity(response.data);
-        if (response.data.streamsJson) {
-          setChartData(parseStreamsToChartData(response.data.streamsJson));
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [id]);
+function formatDuration(ts: string): string {
+  const parts = ts.split(':');
+  if (parts.length === 3) {
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const s = parseInt(parts[2].split('.')[0], 10);
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    return `${m}m ${s}s`;
+  }
+  return ts;
+}
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
-  if (!activity) return <div className="p-8 text-center">Activity not found</div>;
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('pl-PL', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('pl-PL', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function sportIcon(type: string): string {
+  const t = type?.toLowerCase() ?? '';
+  if (t.includes('ride') || t.includes('cycling')) return '🚴';
+  if (t.includes('run')) return '🏃';
+  if (t.includes('swim')) return '🏊';
+  if (t.includes('walk') || t.includes('hike')) return '🚶';
+  if (t.includes('ski')) return '⛷️';
+  return '🏋️';
+}
+
+function sportLabel(type: string): string {
+  const map: Record<string, string> = {
+    ride: 'Jazda',
+    virtualride: 'Jazda (virtual)',
+    run: 'Bieg',
+    walk: 'Spacer',
+    hike: 'Wędrówka',
+    swim: 'Pływanie',
+    alpineski: 'Narty',
+    nordicski: 'Biegi narciarskie',
+    workout: 'Trening',
+  };
+  return map[type?.toLowerCase()] ?? type;
+}
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  unit?: string;
+  accent?: string;
+  sub?: string;
+}
+
+function StatCard({ label, value, unit, accent = 'text-gray-900', sub }: StatCardProps) {
+  return (
+    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200 flex flex-col gap-1">
+      <span className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</span>
+      <div className="flex items-baseline gap-1">
+        <span className={`text-2xl font-bold ${accent}`}>{value}</span>
+        {unit && <span className="text-sm text-gray-500">{unit}</span>}
+      </div>
+      {sub && <span className="text-xs text-gray-400">{sub}</span>}
+    </div>
+  );
+}
+
+// ─── Section Heading ─────────────────────────────────────────────────────────
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
+      <span className="h-px flex-1 bg-gray-200" />
+      {children}
+      <span className="h-px flex-1 bg-gray-200" />
+    </h2>
+  );
+}
+
+// ─── Chart Tooltip ────────────────────────────────────────────────────────────
+
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-lg text-xs">
+      <p className="mb-1 font-semibold text-gray-600">{Number(label).toFixed(2)} km</p>
+      {payload.map((entry: any) => (
+        <div key={entry.dataKey} className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full" style={{ background: entry.color }} />
+          <span className="text-gray-500">{entry.name}:</span>
+          <span className="font-medium text-gray-800">
+            {entry.value != null ? Number(entry.value).toFixed(1) : '—'} {entry.unit}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Skeleton Loader ──────────────────────────────────────────────────────────
+
+function Skeleton({ className = '' }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-gray-200 ${className}`} />;
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="mx-auto max-w-6xl space-y-8 p-6">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-8 w-8" />
+        <Skeleton className="h-8 w-64" />
+      </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-24" />
+        ))}
+      </div>
+      <Skeleton className="h-64" />
+      <Skeleton className="h-64" />
+    </div>
+  );
+}
+
+// ─── Power Best Row ───────────────────────────────────────────────────────────
+
+interface PowerBestProps {
+  label: string;
+  watts?: number;
+  ftp?: number;
+}
+
+function PowerBestRow({ label, watts, ftp }: PowerBestProps) {
+  if (!watts) return null;
+  const pct = ftp ? Math.round((watts / ftp) * 100) : null;
+  const barPct = ftp ? Math.min((watts / ftp) * 100, 150) : 50;
+  const barColor =
+    pct == null
+      ? 'bg-blue-400'
+      : pct >= 120
+      ? 'bg-purple-500'
+      : pct >= 105
+      ? 'bg-red-500'
+      : pct >= 90
+      ? 'bg-orange-500'
+      : pct >= 75
+      ? 'bg-yellow-500'
+      : 'bg-blue-500';
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-4">{activity.name}</h1>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="text-gray-500 text-sm">Distance</h3>
-          <p className="text-2xl font-bold">{(activity.distance / 1000).toFixed(2)} km</p>
-        </div>
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="text-gray-500 text-sm">Moving Time</h3>
-          <p className="text-2xl font-bold">{formatTime(activity.movingTime)}</p>
-        </div>
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="text-gray-500 text-sm">Elevation Gain</h3>
-          <p className="text-2xl font-bold">{activity.totalElevationGain} m</p>
-        </div>
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="text-gray-500 text-sm">Avg Power</h3>
-          <p className="text-2xl font-bold">{activity.averagePower ? `${Math.round(activity.averagePower)} W` : '-'}</p>
-        </div>
+    <div className="grid grid-cols-[7rem_1fr_5rem_4rem] items-center gap-3 py-2">
+      <span className="text-sm font-medium text-gray-600">{label}</span>
+      <div className="h-2 flex-1 rounded-full bg-gray-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${barColor}`}
+          style={{ width: `${barPct}%` }}
+        />
       </div>
-
-      {chartData.length > 0 && (
-        <div className="space-y-8">
-          {/* Elevation Profile */}
-          <div className="bg-white p-4 rounded shadow h-80">
-            <h3 className="text-lg font-semibold mb-2">Elevation Profile</h3>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="distance" label={{ value: 'Distance (km)', position: 'insideBottomRight', offset: -10 }} />
-                <YAxis label={{ value: 'Elevation (m)', angle: -90, position: 'insideLeft' }} />
-                <Tooltip />
-                <Area type="monotone" dataKey="altitude" stroke="#8884d8" fill="#8884d8" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Power & Heart Rate */}
-          <div className="bg-white p-4 rounded shadow h-80">
-            <h3 className="text-lg font-semibold mb-2">Power & Heart Rate</h3>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="distance" label={{ value: 'Distance (km)', position: 'insideBottomRight', offset: -10 }} />
-                <YAxis yAxisId="left" label={{ value: 'Power (W)', angle: -90, position: 'insideLeft' }} />
-                <YAxis yAxisId="right" orientation="right" label={{ value: 'HR (bpm)', angle: 90, position: 'insideRight' }} />
-                <Tooltip />
-                <Legend />
-                <Line yAxisId="left" type="monotone" dataKey="watts" stroke="#82ca9d" dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="heartrate" stroke="#ff7300" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Speed */}
-          <div className="bg-white p-4 rounded shadow h-80">
-            <h3 className="text-lg font-semibold mb-2">Speed</h3>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="distance" label={{ value: 'Distance (km)', position: 'insideBottomRight', offset: -10 }} />
-                <YAxis label={{ value: 'Speed (km/h)', angle: -90, position: 'insideLeft' }} />
-                <Tooltip />
-                <Line type="monotone" dataKey="speed" stroke="#387908" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      <span className="text-right text-sm font-bold text-gray-800">{Math.round(watts)} W</span>
+      {pct != null ? (
+        <span className={`text-right text-xs font-semibold ${barColor.replace('bg-', 'text-')}`}>
+          {pct}% FTP
+        </span>
+      ) : (
+        <span />
       )}
     </div>
   );
 }
 
-function formatTime(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return `${h}h ${m}m ${s}s`;
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
+export default function ActivityDetailsPage() {
+  const { id } = useParams<{ id: string }>();
+  const [activity, setActivity] = useState<ActivityDetailsDto | null>(null);
+  const [rawChart, setRawChart] = useState<ChartPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+
+    activitiesApi
+      .getActivityDetails(id)
+      .then(async (res) => {
+        const act = res.data;
+        setActivity(act);
+        try {
+          const stravaRes = await stravaApi.getActivityDetails(act.stravaActivityId.toString());
+          if (stravaRes.data.streamsJson) {
+            setRawChart(parseStreams(stravaRes.data.streamsJson));
+          }
+        } catch {
+          // streams are optional — chart section simply won't render
+        }
+      })
+      .catch(() => setError('Nie udało się załadować aktywności.'))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const chartData = useMemo(() => downsample(rawChart), [rawChart]);
+
+  if (loading) return <LoadingSkeleton />;
+  if (error || !activity)
+    return (
+      <div className="flex min-h-64 items-center justify-center text-gray-500">
+        {error ?? 'Aktywność nie znaleziona.'}
+      </div>
+    );
+
+  const hasPower = activity.averagePower != null;
+  const hasHR = activity.averageHeartRate != null;
+  const hasStreams = chartData.length > 0;
+  const hasPowerStream = hasStreams && chartData.some((p) => p.watts != null);
+  const hasHRStream = hasStreams && chartData.some((p) => p.heartrate != null);
+  const hasAltitude = hasStreams && chartData.some((p) => p.altitude != null);
+  const hasSpeed = hasStreams && chartData.some((p) => p.speedKph != null);
+  const hasCadence = hasStreams && chartData.some((p) => p.cadence != null);
+  const hasPowerBests = activity.best5MinPower || activity.best20MinPower || activity.best60MinPower;
+
+  const ftp = activity.ftpUsed;
+
+  // Y-axis domains
+  const wattsDomain: [number | string, number | string] = [0, 'auto'];
+  const hrMin = hasHRStream
+    ? Math.max(0, Math.min(...chartData.filter((p) => p.heartrate).map((p) => p.heartrate!)) - 10)
+    : 0;
+  const hrMax = hasHRStream
+    ? Math.max(...chartData.filter((p) => p.heartrate).map((p) => p.heartrate!)) + 10
+    : 220;
+  const altMin = hasAltitude
+    ? Math.max(0, Math.min(...chartData.filter((p) => p.altitude != null).map((p) => p.altitude!)) - 20)
+    : 0;
+  const altMax = hasAltitude
+    ? Math.max(...chartData.filter((p) => p.altitude != null).map((p) => p.altitude!)) + 30
+    : 100;
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-8 p-6">
+
+      {/* ── Header ── */}
+      <div>
+        <Link
+          to="/activities"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          ← Powrót do aktywności
+        </Link>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-3xl shadow-sm ring-1 ring-blue-100">
+              {sportIcon(activity.type)}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 leading-tight">{activity.name}</h1>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                  {sportLabel(activity.type)}
+                </span>
+                {activity.deviceWatts === true && (
+                  <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
+                    ⚡ Miernik mocy
+                  </span>
+                )}
+                {activity.deviceWatts === false && (
+                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                    ~ Moc szacowana
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-medium text-gray-700 capitalize">{formatDate(activity.startDate)}</p>
+            <p className="text-sm text-gray-400">{formatTime(activity.startDate)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Primary Stats ── */}
+      <div>
+        <SectionHeading>Podstawowe dane</SectionHeading>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <StatCard
+            label="Dystans"
+            value={activity.distanceKm.toFixed(2)}
+            unit="km"
+            accent="text-blue-600"
+          />
+          <StatCard
+            label="Czas jazdy"
+            value={formatDuration(activity.movingTime)}
+            accent="text-gray-900"
+          />
+          <StatCard
+            label="Czas całkowity"
+            value={formatDuration(activity.elapsedTime)}
+            accent="text-gray-700"
+          />
+          <StatCard
+            label="Przewyższenie"
+            value={Math.round(activity.totalElevationGain)}
+            unit="m"
+            accent="text-emerald-600"
+          />
+          {activity.averageSpeed != null && (
+            <StatCard
+              label="Śr. prędkość"
+              value={activity.averageSpeed.toFixed(1)}
+              unit="km/h"
+              accent="text-amber-600"
+              sub={activity.maxSpeed != null ? `Maks. ${activity.maxSpeed.toFixed(1)} km/h` : undefined}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* ── Power Metrics ── */}
+      {hasPower && (
+        <div>
+          <SectionHeading>Dane mocy</SectionHeading>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <StatCard
+              label="Śr. moc"
+              value={Math.round(activity.averagePower!)}
+              unit="W"
+              accent="text-blue-600"
+            />
+            {activity.normalizedPower != null && (
+              <StatCard
+                label="Moc normalizowana"
+                value={Math.round(activity.normalizedPower)}
+                unit="W"
+                accent="text-blue-700"
+                sub="NP"
+              />
+            )}
+            {activity.maxPower != null && (
+              <StatCard
+                label="Maks. moc"
+                value={Math.round(activity.maxPower)}
+                unit="W"
+                accent="text-purple-600"
+              />
+            )}
+            {activity.intensityFactor != null && (
+              <StatCard
+                label="Współczynnik intensywności"
+                value={activity.intensityFactor.toFixed(2)}
+                accent="text-orange-600"
+                sub="IF"
+              />
+            )}
+            {activity.trainingStressScore != null && (
+              <StatCard
+                label="Obciążenie treningowe"
+                value={Math.round(activity.trainingStressScore)}
+                accent="text-red-600"
+                sub="TSS"
+              />
+            )}
+            {activity.ftpUsed != null && (
+              <StatCard
+                label="FTP (użyte)"
+                value={activity.ftpUsed}
+                unit="W"
+                accent="text-gray-700"
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── HR Metrics ── */}
+      {hasHR && (
+        <div>
+          <SectionHeading>Tętno</SectionHeading>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <StatCard
+              label="Śr. tętno"
+              value={Math.round(activity.averageHeartRate!)}
+              unit="bpm"
+              accent="text-red-500"
+            />
+            {activity.maxHeartRate != null && (
+              <StatCard
+                label="Maks. tętno"
+                value={Math.round(activity.maxHeartRate)}
+                unit="bpm"
+                accent="text-red-700"
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Charts ── */}
+      {hasStreams && (
+        <div className="space-y-6">
+          <SectionHeading>Wykresy</SectionHeading>
+
+          {/* Elevation Profile */}
+          {hasAltitude && (
+            <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+              <h3 className="mb-1 text-sm font-semibold text-gray-700">Profil wysokości</h3>
+              <p className="mb-4 text-xs text-gray-400">Zmiana wysokości na trasie</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={chartData} margin={{ top: 5, right: 20, bottom: 20, left: 10 }}>
+                  <defs>
+                    <linearGradient id="altGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="distKm"
+                    type="number"
+                    domain={['dataMin', 'dataMax']}
+                    tickFormatter={(v) => `${Number(v).toFixed(1)}`}
+                    label={{ value: 'Dystans (km)', position: 'insideBottomRight', offset: -5, fontSize: 11, fill: '#9ca3af' }}
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  />
+                  <YAxis
+                    domain={[altMin, altMax]}
+                    tickFormatter={(v) => `${v}`}
+                    label={{ value: 'Wys. (m n.p.m.)', angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#9ca3af' }}
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    width={55}
+                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="altitude"
+                    name="Wysokość"
+                    unit=" m"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    fill="url(#altGradient)"
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Power & Heart Rate */}
+          {(hasPowerStream || hasHRStream) && (
+            <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+              <h3 className="mb-1 text-sm font-semibold text-gray-700">Moc i tętno</h3>
+              <p className="mb-4 text-xs text-gray-400">
+                {hasPowerStream && hasHRStream
+                  ? 'Moc (lewa oś) i tętno (prawa oś) w funkcji dystansu'
+                  : hasPowerStream
+                  ? 'Moc w funkcji dystansu'
+                  : 'Tętno w funkcji dystansu'}
+              </p>
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={chartData} margin={{ top: 5, right: 50, bottom: 20, left: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="distKm"
+                    type="number"
+                    domain={['dataMin', 'dataMax']}
+                    tickFormatter={(v) => `${Number(v).toFixed(1)}`}
+                    label={{ value: 'Dystans (km)', position: 'insideBottomRight', offset: -5, fontSize: 11, fill: '#9ca3af' }}
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  />
+                  {hasPowerStream && (
+                    <YAxis
+                      yAxisId="power"
+                      domain={wattsDomain}
+                      tickFormatter={(v) => `${v}`}
+                      label={{ value: 'Moc (W)', angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#3b82f6' }}
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      width={50}
+                    />
+                  )}
+                  {hasHRStream && (
+                    <YAxis
+                      yAxisId="hr"
+                      orientation="right"
+                      domain={[hrMin, hrMax]}
+                      tickFormatter={(v) => `${v}`}
+                      label={{ value: 'Tętno (bpm)', angle: 90, position: 'insideRight', offset: 15, fontSize: 11, fill: '#ef4444' }}
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      width={55}
+                    />
+                  )}
+                  <Tooltip content={<ChartTooltip />} />
+                  <Legend
+                    wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
+                  />
+                  {hasPowerStream && activity.averagePower != null && (
+                    <ReferenceLine
+                      yAxisId="power"
+                      y={Math.round(activity.averagePower)}
+                      stroke="#3b82f6"
+                      strokeDasharray="4 4"
+                      strokeOpacity={0.5}
+                    />
+                  )}
+                  {hasHRStream && activity.averageHeartRate != null && (
+                    <ReferenceLine
+                      yAxisId="hr"
+                      y={Math.round(activity.averageHeartRate)}
+                      stroke="#ef4444"
+                      strokeDasharray="4 4"
+                      strokeOpacity={0.5}
+                    />
+                  )}
+                  {hasPowerStream && (
+                    <Line
+                      yAxisId="power"
+                      type="monotone"
+                      dataKey="watts"
+                      name="Moc"
+                      unit=" W"
+                      stroke="#3b82f6"
+                      strokeWidth={1.5}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                  )}
+                  {hasHRStream && (
+                    <Line
+                      yAxisId="hr"
+                      type="monotone"
+                      dataKey="heartrate"
+                      name="Tętno"
+                      unit=" bpm"
+                      stroke="#ef4444"
+                      strokeWidth={1.5}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Speed & Cadence */}
+          {(hasSpeed || hasCadence) && (
+            <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+              <h3 className="mb-1 text-sm font-semibold text-gray-700">Prędkość i kadencja</h3>
+              <p className="mb-4 text-xs text-gray-400">
+                {hasSpeed && hasCadence
+                  ? 'Prędkość (lewa oś) i kadencja (prawa oś) w funkcji dystansu'
+                  : hasSpeed
+                  ? 'Prędkość w funkcji dystansu'
+                  : 'Kadencja w funkcji dystansu'}
+              </p>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={chartData} margin={{ top: 5, right: 50, bottom: 20, left: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="distKm"
+                    type="number"
+                    domain={['dataMin', 'dataMax']}
+                    tickFormatter={(v) => `${Number(v).toFixed(1)}`}
+                    label={{ value: 'Dystans (km)', position: 'insideBottomRight', offset: -5, fontSize: 11, fill: '#9ca3af' }}
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  />
+                  {hasSpeed && (
+                    <YAxis
+                      yAxisId="speed"
+                      domain={[0, 'auto']}
+                      tickFormatter={(v) => `${v}`}
+                      label={{ value: 'Prędkość (km/h)', angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#f59e0b' }}
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      width={55}
+                    />
+                  )}
+                  {hasCadence && (
+                    <YAxis
+                      yAxisId="cadence"
+                      orientation="right"
+                      domain={[0, 'auto']}
+                      tickFormatter={(v) => `${v}`}
+                      label={{ value: 'Kadencja (rpm)', angle: 90, position: 'insideRight', offset: 15, fontSize: 11, fill: '#8b5cf6' }}
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      width={55}
+                    />
+                  )}
+                  <Tooltip content={<ChartTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                  {activity.averageSpeed != null && hasSpeed && (
+                    <ReferenceLine
+                      yAxisId="speed"
+                      y={Math.round(activity.averageSpeed * 10) / 10}
+                      stroke="#f59e0b"
+                      strokeDasharray="4 4"
+                      strokeOpacity={0.5}
+                    />
+                  )}
+                  {hasSpeed && (
+                    <Line
+                      yAxisId="speed"
+                      type="monotone"
+                      dataKey="speedKph"
+                      name="Prędkość"
+                      unit=" km/h"
+                      stroke="#f59e0b"
+                      strokeWidth={1.5}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                  )}
+                  {hasCadence && (
+                    <Line
+                      yAxisId="cadence"
+                      type="monotone"
+                      dataKey="cadence"
+                      name="Kadencja"
+                      unit=" rpm"
+                      stroke="#8b5cf6"
+                      strokeWidth={1.5}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Power Bests ── */}
+      {hasPowerBests && (
+        <div>
+          <SectionHeading>Najlepsze wyniki mocy</SectionHeading>
+          <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+            <p className="mb-4 text-xs text-gray-400">
+              Najlepsze średnie moce z tej aktywności. Pasek wskazuje % FTP.
+            </p>
+            <div className="divide-y divide-gray-100">
+              <PowerBestRow label="5 minut" watts={activity.best5MinPower} ftp={ftp} />
+              <PowerBestRow label="20 minut" watts={activity.best20MinPower} ftp={ftp} />
+              <PowerBestRow label="60 minut" watts={activity.best60MinPower} ftp={ftp} />
+            </div>
+            {activity.estimatedFtpFromActivity != null && (
+              <div className="mt-4 rounded-lg bg-blue-50 px-4 py-3 ring-1 ring-blue-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                      Szacowane FTP z tej aktywności
+                    </p>
+                    <p className="text-xs text-blue-400 mt-0.5">
+                      Wyliczone na podstawie najlepszych wyników metodą Intervals.icu
+                    </p>
+                  </div>
+                  <span className="text-2xl font-bold text-blue-700">
+                    {activity.estimatedFtpFromActivity} W
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Footer meta ── */}
+      <div className="border-t border-gray-100 pt-4 text-xs text-gray-300 text-right">
+        Zsynchronizowano: {new Date(activity.syncedAt).toLocaleString('pl-PL')}
+      </div>
+    </div>
+  );
 }

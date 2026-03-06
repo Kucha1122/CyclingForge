@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { AthleteProfileDto, AthleteZonesDto } from '../types/strava';
-import type { ActivityDto } from '../types/activity';
+import type { ActivityDto, ActivityDetailsDto } from '../types/activity';
 
 const api = axios.create({
   baseURL: '/api',
@@ -14,13 +14,28 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-import type { ActivityDetailsDto } from '../types/activity';
-
 export interface ActivityCountsDto {
   total: number;
   ride: number;
   run: number;
   walk: number;
+}
+
+export interface StravaActivityDetailsDto {
+  externalId: number;
+  name: string;
+  type: string;
+  startDate: string;
+  distance: number;
+  movingTime: number;
+  elapsedTime: number;
+  totalElevationGain: number;
+  averageSpeed?: number;
+  maxSpeed?: number;
+  averageHeartRate?: number;
+  maxHeartRate?: number;
+  averagePower?: number;
+  streamsJson?: string;
 }
 
 export const stravaApi = {
@@ -31,7 +46,7 @@ export const stravaApi = {
     api.post('/strava/sync', null, { params: fullSync ? { fullSync: true } : {} }),
   getActivities: (page = 1, perPage = 30) => api.get<ActivityDto[]>('/strava/activities', { params: { page, perPage } }),
   getActivityCounts: () => api.get<ActivityCountsDto>('/strava/activities/counts'),
-  getActivityDetails: (id: string) => api.get<ActivityDetailsDto>(`/strava/activities/${id}`),
+  getActivityDetails: (id: string) => api.get<StravaActivityDetailsDto>(`/strava/activities/${id}`),
 };
 
 export const activitiesApi = {
@@ -39,6 +54,7 @@ export const activitiesApi = {
     api.post<{ syncedCount: number }>('/activities/sync', null, { params: quickSync ? { quickSync: true } : {} }),
   getActivities: (page = 1, pageSize = 30) =>
     api.get<ActivityDto[]>('/activities', { params: { page, pageSize } }),
+  getActivityDetails: (id: string) => api.get<ActivityDetailsDto>(`/activities/${id}`),
 };
 
 export interface FtpChangeDto {

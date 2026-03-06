@@ -20,8 +20,31 @@ export interface ActivityDto {
   deviceWatts?: boolean;
 }
 
-export interface ActivityDetailsDto extends ActivityDto {
-  description?: string;
-  calories?: number;
-  streamsJson?: string;
+export interface ActivityDetailsDto {
+  id: string;
+  stravaActivityId: number;
+  name: string;
+  type: string;
+  startDate: string;
+  distanceKm: number;
+  distanceMeters: number;
+  movingTime: string;
+  elapsedTime: string;
+  totalElevationGain: number;
+  averageSpeed?: number;
+  maxSpeed?: number;
+  averageHeartRate?: number;
+  maxHeartRate?: number;
+  averagePower?: number;
+  maxPower?: number;
+  normalizedPower?: number;
+  intensityFactor?: number;
+  trainingStressScore?: number;
+  ftpUsed?: number;
+  best5MinPower?: number;
+  best20MinPower?: number;
+  best60MinPower?: number;
+  estimatedFtpFromActivity?: number;
+  deviceWatts?: boolean;
+  syncedAt: string;
 }
