@@ -36,6 +36,16 @@ internal sealed class GetActivityDetailsQueryHandler : IRequestHandler<GetActivi
             activity.AverageHeartRate,
             activity.MaxHeartRate,
             activity.AveragePower,
+            activity.MaxPower,
+            activity.NormalizedPower,
+            activity.IntensityFactor,
+            activity.TrainingStressScore,
+            activity.FtpUsed,
+            activity.Best5MinPower,
+            activity.Best20MinPower,
+            activity.Best60MinPower,
+            activity.EstimatedFtpFromActivity,
+            activity.DeviceWatts,
             activity.SyncedAt);
     }
 }
