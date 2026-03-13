@@ -1,7 +1,9 @@
 using System.Reflection;
 using CyclingForge.Modules.Activities.Infrastructure;
+using CyclingForge.Modules.Garmin.Infrastructure;
 using CyclingForge.Modules.Strava.Infrastructure;
 using CyclingForge.Modules.Users.Infrastructure;
+using CyclingForge.Modules.Workouts.Infrastructure;
 using CyclingForge.Shared.Infrastructure;
 using CyclingForge.Shared.Infrastructure.Exceptions;
 using CyclingForge.Shared.Infrastructure.Modules;
@@ -15,6 +17,8 @@ var moduleAssemblyNames = new[]
     "CyclingForge.Modules.Users.Api",
     "CyclingForge.Modules.Strava.Api",
     "CyclingForge.Modules.Activities.Api",
+    "CyclingForge.Modules.Garmin.Api",
+    "CyclingForge.Modules.Workouts.Api",
 };
 foreach (var name in moduleAssemblyNames)
     Assembly.Load(name);
@@ -32,6 +36,10 @@ builder.Services.Configure<FtpEstimationOptions>(builder.Configuration.GetSectio
 // Composition: provide user FTP and LTHR to Activities module for TSS calculation
 builder.Services.AddScoped<CyclingForge.Modules.Activities.Application.Services.IUserFtpProvider, CyclingForge.Bootstrapper.Composition.UserFtpProvider>();
 builder.Services.AddScoped<CyclingForge.Modules.Activities.Application.Services.IUserLthrProvider, CyclingForge.Bootstrapper.Composition.UserLthrProvider>();
+
+// Composition: provide readiness data to Workouts module for recommendation engine
+builder.Services.AddScoped<CyclingForge.Shared.Abstractions.Services.IReadinessDataProvider, CyclingForge.Bootstrapper.Composition.ReadinessDataProvider>();
+builder.Services.AddScoped<CyclingForge.Modules.Workouts.Application.Services.IRecommendationEngine, CyclingForge.Bootstrapper.Composition.RecommendationEngine>();
 
 var mvcBuilder = builder.Services.AddControllers();
 foreach (var assembly in ModuleLoader.GetModuleAssemblies())
@@ -92,6 +100,9 @@ var app = builder.Build();
 app.UseUsersMigrations();
 app.UseStravaMigrations();
 app.UseActivitiesMigrations();
+app.UseGarminMigrations();
+app.UseWorkoutsMigrations();
+await CyclingForge.Modules.Workouts.Infrastructure.Services.WorkoutSeeder.SeedAsync(app.Services);
 
 if (app.Environment.IsDevelopment())
 {

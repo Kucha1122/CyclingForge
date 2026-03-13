@@ -14,6 +14,10 @@
     <ProjectReference Include="..\..\Modules\Activities\CyclingForge.Modules.Activities.Api\CyclingForge.Modules.Activities.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Activities\CyclingForge.Modules.Activities.Application\CyclingForge.Modules.Activities.Application.csproj" />
     <ProjectReference Include="..\..\Modules\Activities\CyclingForge.Modules.Activities.Domain\CyclingForge.Modules.Activities.Domain.csproj" />
+    <ProjectReference Include="..\..\Modules\Garmin\CyclingForge.Modules.Garmin.Api\CyclingForge.Modules.Garmin.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Garmin\CyclingForge.Modules.Garmin.Domain\CyclingForge.Modules.Garmin.Domain.csproj" />
+    <ProjectReference Include="..\..\Modules\Workouts\CyclingForge.Modules.Workouts.Api\CyclingForge.Modules.Workouts.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Workouts\CyclingForge.Modules.Workouts.Application\CyclingForge.Modules.Workouts.Application.csproj" />
   </ItemGroup>
 
 </Project>
