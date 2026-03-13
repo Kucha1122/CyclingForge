@@ -1,15 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { metricsApi, stravaApi, activitiesApi } from '../services/api';
+import { metricsApi, stravaApi, activitiesApi, garminApi } from '../services/api';
 import type { PmcSummary, WeeklySummary, MonthlySummary, DailyTssPoint } from '../services/api';
 import type { AthleteProfileDto } from '../types/strava';
+import type { SleepDataDto, WellnessDataDto, GarminStatusDto } from '../types/garmin';
 import { PMCChart } from '../components/PMCChart';
 import { DailyTssChart } from '../components/DailyTssChart';
 import { WeeklySummaryCard } from '../components/WeeklySummaryCard';
 import { MonthlySummaryCard } from '../components/MonthlySummaryCard';
 import { ReadinessCard } from '../components/ReadinessCard';
 import { TrendsCard } from '../components/TrendsCard';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { SleepSummaryCard } from '../components/garmin/SleepSummaryCard';
+import { TrainingReadinessCard } from '../components/garmin/TrainingReadinessCard';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { recommendationsApi } from '../services/api';
+import type { DailyRecommendationDto } from '../types/workout';
+import { CATEGORY_COLORS } from '../types/workout';
+import { ReadinessGauge } from '../components/workouts/ReadinessGauge';
 
 function getStartOfWeek(date: Date): Date {
   const d = new Date(date);
@@ -48,6 +55,10 @@ export const NewDashboardPage = () => {
   const [selectedMonthOffset, setSelectedMonthOffset] = useState(0);
   const [pmcCtlDays, setPmcCtlDays] = useState(42);
   const [pmcAtlDays, setPmcAtlDays] = useState(7);
+  const [garminStatus, setGarminStatus] = useState<GarminStatusDto | null>(null);
+  const [lastSleep, setLastSleep] = useState<SleepDataDto | null>(null);
+  const [todayWellness, setTodayWellness] = useState<WellnessDataDto | null>(null);
+  const [todayRecommendation, setTodayRecommendation] = useState<DailyRecommendationDto | null>(null);
   const [pmcHistoryDays, setPmcHistoryDays] = useState(() => {
     const stored = localStorage.getItem('pmcHistoryDays');
     return stored ? Number(stored) : 365;
@@ -89,7 +100,37 @@ export const NewDashboardPage = () => {
           // Ignore error if profile not connected
         }
 
+        try {
+          const garminStatusRes = await garminApi.getStatus();
+          setGarminStatus(garminStatusRes.data);
+          if (garminStatusRes.data.isConnected) {
+            const today = new Date().toISOString().slice(0, 10);
+            const weekAgo = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
+            const [sleepRes, wellnessRes] = await Promise.all([
+              garminApi.getSleepData(weekAgo, today),
+              garminApi.getWellness(today).catch(() => null),
+            ]);
+            if (sleepRes.data.length > 0) {
+              setLastSleep(sleepRes.data[0]);
+            }
+            if (wellnessRes?.data) {
+              setTodayWellness(wellnessRes.data);
+            }
+          }
+        } catch {
+          // Garmin data not available
+        }
+
         await fetchMetrics();
+
+        try {
+          const recoRes = await recommendationsApi.getToday();
+          if (recoRes.data && !('message' in (recoRes.data as object))) {
+            setTodayRecommendation(recoRes.data as DailyRecommendationDto);
+          }
+        } catch {
+          // Recommendations not available
+        }
       } catch {
         // Error fetching dashboard data
       } finally {
@@ -193,6 +234,65 @@ export const NewDashboardPage = () => {
       {/* Main Content */}
       {stravaProfile ? (
         <div className="space-y-6">
+          {/* Garmin Wellness Row */}
+          {garminStatus?.isConnected && (lastSleep || todayWellness) && (
+            <div className="grid gap-6 md:grid-cols-2">
+              <SleepSummaryCard sleep={lastSleep} />
+              <TrainingReadinessCard wellness={todayWellness} />
+            </div>
+          )}
+
+          {/* Garmin Connect Prompt */}
+          {!garminStatus?.isConnected && (
+            <div className="rounded-lg bg-blue-50 p-4 ring-1 ring-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-blue-900">Connect Garmin for Sleep & Wellness Data</h3>
+                  <p className="text-sm text-blue-700">Track your sleep quality, training readiness, and more.</p>
+                </div>
+                <button
+                  onClick={() => navigate('/profile')}
+                  className="rounded-lg bg-[#007CC3] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#006AAF]"
+                >
+                  Connect Garmin
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Today's Workout Card */}
+          {todayRecommendation && (
+            <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+              <div className="flex items-center gap-6">
+                <ReadinessGauge score={todayRecommendation.readinessScore} size="sm" />
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-gray-900">Today's Workout</h2>
+                  {todayRecommendation.recommendationType === 'RestDay' ? (
+                    <p className="text-gray-600">Rest day recommended - take it easy!</p>
+                  ) : todayRecommendation.recommendationType === 'AlternativeActivity' ? (
+                    <p className="text-gray-600">Consider a light walk or stretching today.</p>
+                  ) : todayRecommendation.recommendedWorkout ? (
+                    <div className="mt-1">
+                      <p className="font-medium text-gray-900">{todayRecommendation.recommendedWorkout.name}</p>
+                      <div className="mt-1 flex gap-2">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[todayRecommendation.recommendedWorkout.category] || 'bg-gray-100 text-gray-800'}`}>
+                          {todayRecommendation.recommendedWorkout.category}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {todayRecommendation.recommendedWorkout.durationMinutes} min / TSS {todayRecommendation.recommendedWorkout.estimatedTSS}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+                <Link to="/workout/today"
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                  View Details
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Top Row - Readiness and Trends */}
           <div className="grid gap-6 lg:grid-cols-2">
             {pmcData && (

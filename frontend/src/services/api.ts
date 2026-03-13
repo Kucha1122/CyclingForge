@@ -1,6 +1,12 @@
 import axios from 'axios';
 import type { AthleteProfileDto, AthleteZonesDto } from '../types/strava';
 import type { ActivityDto, ActivityDetailsDto } from '../types/activity';
+import type { GarminStatusDto, SleepDataDto, WellnessDataDto } from '../types/garmin';
+import type {
+  WorkoutDto, WorkoutSearchResultDto, CreateWorkoutRequest,
+  TrainingPreferenceDto, SaveTrainingPreferenceRequest,
+  DailyRecommendationDto, ReadinessBreakdownDto, WeeklyPlanDto
+} from '../types/workout';
 
 const api = axios.create({
   baseURL: '/api',
@@ -164,6 +170,48 @@ export const usersApi = {
       eftpMinDurationSeconds?: number | null;
     }
   ) => api.put(`/users/${userId}/profile`, profile),
+};
+
+export const garminApi = {
+  getStatus: () => api.get<GarminStatusDto>('/garmin/status'),
+  getAuthorizeUrl: () => api.get<{ authorizeUrl: string }>('/garmin/authorize-url'),
+  authorize: (oAuthToken: string, oAuthVerifier: string) =>
+    api.post('/garmin/authorize', { oAuthToken, oAuthVerifier }),
+  disconnect: () => api.delete('/garmin/disconnect'),
+  sync: (daysBack = 7) =>
+    api.post('/garmin/sync', null, { params: { daysBack } }),
+  getSleepData: (startDate: string, endDate: string) =>
+    api.get<SleepDataDto[]>('/garmin/sleep', { params: { startDate, endDate } }),
+  getWellness: (date: string) =>
+    api.get<WellnessDataDto>('/garmin/wellness', { params: { date } }),
+};
+
+export const workoutsApi = {
+  search: (params?: {
+    category?: string; zone?: string; source?: string;
+    minDuration?: number; maxDuration?: number; search?: string;
+    sortBy?: string; page?: number; pageSize?: number;
+  }) => api.get<WorkoutSearchResultDto>('/workouts', { params }),
+  getById: (id: string) => api.get<WorkoutDto>(`/workouts/${id}`),
+  create: (data: CreateWorkoutRequest) => api.post<string>('/workouts', data),
+  update: (id: string, data: CreateWorkoutRequest) => api.put(`/workouts/${id}`, data),
+  delete: (id: string) => api.delete(`/workouts/${id}`),
+  copy: (id: string) => api.post<string>(`/workouts/${id}/copy`),
+  importZwo: (zwoXmlContent: string) => api.post<string>('/workouts/import', { zwoXmlContent }),
+  exportZwo: (id: string) => api.get<string>(`/workouts/${id}/export`, { responseType: 'text' as never }),
+};
+
+export const trainingPreferenceApi = {
+  get: () => api.get<TrainingPreferenceDto>('/training-preference'),
+  save: (data: SaveTrainingPreferenceRequest) => api.post<TrainingPreferenceDto>('/training-preference', data),
+};
+
+export const recommendationsApi = {
+  getToday: () => api.get<DailyRecommendationDto>('/recommendations/today'),
+  getWeek: (weekStart?: string) => api.get<WeeklyPlanDto>('/recommendations/week', { params: { weekStart } }),
+  getReadiness: (date?: string) => api.get<ReadinessBreakdownDto>('/recommendations/readiness', { params: { date } }),
+  updateStatus: (id: string, status: string, completedActivityId?: string) =>
+    api.put(`/recommendations/${id}/status`, { status, completedActivityId }),
 };
 
 export default api;

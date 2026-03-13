@@ -3,7 +3,11 @@ import { useAuth } from '../context/AuthContext';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: '📊' },
+  { name: "Today's Workout", href: '/workout/today', icon: '🎯' },
+  { name: 'Weekly Plan', href: '/workout/week', icon: '📅' },
+  { name: 'Workout Library', href: '/workouts', icon: '💪' },
   { name: 'Activities', href: '/activities', icon: '🚴' },
+  { name: 'Sleep', href: '/sleep', icon: '🌙' },
   { name: 'Analysis', href: '/analysis', icon: '📈' },
   { name: 'Profile', href: '/profile', icon: '👤' },
 ];
