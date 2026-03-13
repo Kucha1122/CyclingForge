@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { usersApi, stravaApi, type UserProfile } from '../services/api';
+import { usersApi, stravaApi, garminApi, type UserProfile } from '../services/api';
 import type { AthleteProfileDto, AthleteZonesDto } from '../types/strava';
+import type { GarminStatusDto } from '../types/garmin';
 import { useNavigate } from 'react-router-dom';
 
 export const ProfilePage = () => {
@@ -14,6 +15,8 @@ export const ProfilePage = () => {
   const [zones, setZones] = useState<AthleteZonesDto | null>(null);
   const [zonesLoading, setZonesLoading] = useState(false);
   const [zonesError, setZonesError] = useState<string | null>(null);
+  const [garminStatus, setGarminStatus] = useState<GarminStatusDto | null>(null);
+  const [garminDisconnecting, setGarminDisconnecting] = useState(false);
   const [ftp, setFtp] = useState<string>('');
   const [weight, setWeight] = useState<string>('');
   const [lthr, setLthr] = useState<string>('');
@@ -58,6 +61,13 @@ export const ProfilePage = () => {
           }
           const eftpSec = profileResponse.data.eftpMinDurationSeconds;
           setEftpMinMinutes(typeof eftpSec === 'number' ? Math.round(eftpSec / 60) : 5);
+        }
+
+        try {
+          const garminStatusResponse = await garminApi.getStatus();
+          setGarminStatus(garminStatusResponse.data);
+        } catch {
+          // ignore
         }
 
         try {
@@ -211,6 +221,61 @@ export const ProfilePage = () => {
                   className="inline-flex items-center justify-center rounded-lg bg-[#FC4C02] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#e34402]"
                 >
                   Connect with Strava
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Garmin Connect Card */}
+          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">Garmin Connect</h2>
+            {garminStatus?.isConnected ? (
+              <div>
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                    <span>●</span> Connected
+                  </div>
+                  {garminStatus.connectedAt && (
+                    <span className="text-xs text-gray-500">
+                      since {new Date(garminStatus.connectedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={async () => {
+                    setGarminDisconnecting(true);
+                    try {
+                      await garminApi.disconnect();
+                      setGarminStatus({ isConnected: false, connectedAt: null });
+                    } catch {
+                      // ignore
+                    } finally {
+                      setGarminDisconnecting(false);
+                    }
+                  }}
+                  disabled={garminDisconnecting}
+                  className="inline-flex items-center justify-center rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+                >
+                  {garminDisconnecting ? 'Disconnecting...' : 'Disconnect'}
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-gray-600">
+                  Connect your Garmin account to sync sleep, training readiness, and wellness data.
+                </p>
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await garminApi.getAuthorizeUrl();
+                      window.location.href = res.data.authorizeUrl;
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                  className="inline-flex items-center justify-center rounded-lg bg-[#007CC3] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#006AAF]"
+                >
+                  Connect with Garmin
                 </button>
               </div>
             )}
