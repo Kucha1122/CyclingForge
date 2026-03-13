@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>CyclingForge.Modules.Garmin.Api</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CyclingForge.Modules.Garmin.Application\CyclingForge.Modules.Garmin.Application.csproj" />
+    <ProjectReference Include="..\CyclingForge.Modules.Garmin.Infrastructure\CyclingForge.Modules.Garmin.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

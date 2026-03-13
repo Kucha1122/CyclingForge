@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CyclingForge.Modules.Garmin.Application\CyclingForge.Modules.Garmin.Application.csproj" />
+    <ProjectReference Include="..\..\..\Shared\CyclingForge.Shared.Infrastructure\CyclingForge.Shared.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
