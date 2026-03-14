@@ -14,6 +14,7 @@ public sealed class TrainingPreference : AggregateRoot<Guid>
     public DateTime? TargetEventDate { get; private set; }
     public int PreferredWorkoutMinutes { get; private set; }
     public bool ConsiderNonCycling { get; private set; }
+    public PlanMode PlanMode { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -30,6 +31,7 @@ public sealed class TrainingPreference : AggregateRoot<Guid>
         DateTime? targetEventDate,
         int preferredWorkoutMinutes,
         bool considerNonCycling,
+        PlanMode planMode,
         DateTime createdAt)
     {
         return new TrainingPreference
@@ -44,6 +46,7 @@ public sealed class TrainingPreference : AggregateRoot<Guid>
             TargetEventDate = targetEventDate,
             PreferredWorkoutMinutes = preferredWorkoutMinutes,
             ConsiderNonCycling = considerNonCycling,
+            PlanMode = planMode,
             IsActive = true,
             CreatedAt = createdAt
         };
@@ -58,6 +61,7 @@ public sealed class TrainingPreference : AggregateRoot<Guid>
         DateTime? targetEventDate,
         int preferredWorkoutMinutes,
         bool considerNonCycling,
+        PlanMode planMode,
         DateTime updatedAt)
     {
         Goal = goal;
@@ -68,6 +72,7 @@ public sealed class TrainingPreference : AggregateRoot<Guid>
         TargetEventDate = targetEventDate;
         PreferredWorkoutMinutes = preferredWorkoutMinutes;
         ConsiderNonCycling = considerNonCycling;
+        PlanMode = planMode;
         UpdatedAt = updatedAt;
     }
 

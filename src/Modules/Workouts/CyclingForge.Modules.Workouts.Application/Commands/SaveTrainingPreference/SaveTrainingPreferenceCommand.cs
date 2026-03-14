@@ -12,4 +12,5 @@ public sealed record SaveTrainingPreferenceCommand(
     string Level,
     DateTime? TargetEventDate,
     int PreferredWorkoutMinutes,
-    bool ConsiderNonCycling) : ICommand<TrainingPreferenceDto>;
+    bool ConsiderNonCycling,
+    string PlanMode) : ICommand<TrainingPreferenceDto>;

@@ -8,4 +8,5 @@ public sealed record SaveTrainingPreferenceRequest(
     string Level,
     DateTime? TargetEventDate,
     int PreferredWorkoutMinutes,
-    bool ConsiderNonCycling);
+    bool ConsiderNonCycling,
+    string PlanMode);

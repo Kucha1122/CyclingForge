@@ -12,11 +12,16 @@ internal sealed class SaveTrainingPreferenceCommandHandler
     : IRequestHandler<SaveTrainingPreferenceCommand, TrainingPreferenceDto>
 {
     private readonly ITrainingPreferenceRepository _repository;
+    private readonly IDailyRecommendationRepository _recommendationRepository;
     private readonly IClock _clock;
 
-    public SaveTrainingPreferenceCommandHandler(ITrainingPreferenceRepository repository, IClock clock)
+    public SaveTrainingPreferenceCommandHandler(
+        ITrainingPreferenceRepository repository,
+        IDailyRecommendationRepository recommendationRepository,
+        IClock clock)
     {
         _repository = repository;
+        _recommendationRepository = recommendationRepository;
         _clock = clock;
     }
 
@@ -24,7 +29,9 @@ internal sealed class SaveTrainingPreferenceCommandHandler
     {
         var goal = Enum.Parse<TrainingGoal>(request.Goal);
         var level = Enum.Parse<FitnessLevel>(request.Level);
+        var planMode = Enum.Parse<PlanMode>(request.PlanMode);
         var now = _clock.CurrentDate();
+        var today = DateOnly.FromDateTime(now);
 
         var existing = await _repository.GetActiveByUserIdAsync(request.UserId, cancellationToken);
 
@@ -39,9 +46,12 @@ internal sealed class SaveTrainingPreferenceCommandHandler
                 request.TargetEventDate,
                 request.PreferredWorkoutMinutes,
                 request.ConsiderNonCycling,
+                planMode,
                 now);
 
             await _repository.UpdateAsync(existing, cancellationToken);
+            await _recommendationRepository.DeleteByUserIdFromDateAsync(request.UserId, today, cancellationToken);
+
             return existing.ToDto();
         }
 
@@ -55,9 +65,12 @@ internal sealed class SaveTrainingPreferenceCommandHandler
             request.TargetEventDate,
             request.PreferredWorkoutMinutes,
             request.ConsiderNonCycling,
+            planMode,
             now);
 
         await _repository.AddAsync(preference, cancellationToken);
+        await _recommendationRepository.DeleteByUserIdFromDateAsync(request.UserId, today, cancellationToken);
+
         return preference.ToDto();
     }
 }

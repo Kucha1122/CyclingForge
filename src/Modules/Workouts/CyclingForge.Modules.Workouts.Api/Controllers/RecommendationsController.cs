@@ -1,7 +1,9 @@
 using CyclingForge.Modules.Workouts.Api.Requests;
+using CyclingForge.Modules.Workouts.Application.Commands.RegenerateTodayRecommendation;
 using CyclingForge.Modules.Workouts.Application.Commands.UpdateRecommendationStatus;
 using CyclingForge.Modules.Workouts.Application.DTOs;
 using CyclingForge.Modules.Workouts.Application.Queries.GetDailyRecommendation;
+using CyclingForge.Modules.Workouts.Application.Queries.GetFullPlan;
 using CyclingForge.Modules.Workouts.Application.Queries.GetReadinessScore;
 using CyclingForge.Modules.Workouts.Application.Queries.GetWeeklyPlan;
 using CyclingForge.Shared.Abstractions.Auth;
@@ -40,6 +42,17 @@ public sealed class RecommendationsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("plan")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<FullPlanDto>> GetFullPlan(
+        [FromQuery] int weeks = 12,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetFullPlanQuery(_currentUser.UserId, weeks), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("week")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<WeeklyPlanDto>> GetWeeklyPlan(
@@ -69,6 +82,15 @@ public sealed class RecommendationsController : ControllerBase
         var result = await _mediator.Send(
             new GetReadinessScoreQuery(_currentUser.UserId, d), cancellationToken);
 
+        return Ok(result);
+    }
+
+    [HttpPost("today/regenerate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<DailyRecommendationDto>> RegenerateTodayRecommendation(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new RegenerateTodayRecommendationCommand(_currentUser.UserId), cancellationToken);
         return Ok(result);
     }
 

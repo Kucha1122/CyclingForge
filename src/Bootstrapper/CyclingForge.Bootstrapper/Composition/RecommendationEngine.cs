@@ -28,7 +28,10 @@ internal sealed class RecommendationEngine : IRecommendationEngine
     }
 
     public async Task<DailyRecommendationDto> GenerateRecommendationAsync(
-        Guid userId, DateOnly date, CancellationToken cancellationToken = default)
+        Guid userId,
+        DateOnly date,
+        CancellationToken cancellationToken = default,
+        IReadOnlyList<Guid>? avoidRepeatWorkoutIds = null)
     {
         var existing = await _recommendationRepository.GetByUserIdAndDateAsync(userId, date, cancellationToken);
         if (existing is not null)
@@ -61,13 +64,16 @@ internal sealed class RecommendationEngine : IRecommendationEngine
             var maxDuration = preferredDuration + 15;
 
             var recentWorkoutIds = await _recommendationRepository.GetRecentWorkoutIdsAsync(userId, 14, cancellationToken);
+            var idsToAvoid = avoidRepeatWorkoutIds is { Count: > 0 }
+                ? recentWorkoutIds.Union(avoidRepeatWorkoutIds).Distinct().ToList()
+                : recentWorkoutIds;
             var candidates = await _workoutRepository.GetByCategoryAndDurationAsync(category, minDuration, maxDuration, cancellationToken);
 
             if (candidates.Count == 0)
                 candidates = await _workoutRepository.GetByCategoryAndDurationAsync(category, 15, 180, cancellationToken);
 
             var scored = candidates
-                .Select(w => new { Workout = w, Score = ScoreWorkout(w, score, readiness, recentWorkoutIds) })
+                .Select(w => new { Workout = w, Score = ScoreWorkout(w, score, readiness, idsToAvoid, preference) })
                 .OrderByDescending(x => x.Score)
                 .ToList();
 
@@ -192,7 +198,48 @@ internal sealed class RecommendationEngine : IRecommendationEngine
         if (preference is null)
             return baseCategory;
 
-        return ApplyGoalBias(baseCategory, preference.Goal, score);
+        var afterGoal = ApplyGoalBias(baseCategory, preference.Goal, score);
+        var afterLevel = ApplyLevelBias(afterGoal, preference.Level, score);
+        return ApplyDaysPerWeekBias(afterLevel, preference.DaysPerWeek, score);
+    }
+
+    private static WorkoutCategory ApplyLevelBias(WorkoutCategory category, FitnessLevel level, decimal score)
+    {
+        if (level == FitnessLevel.Advanced)
+            return category;
+
+        if (level == FitnessLevel.Beginner)
+        {
+            return category switch
+            {
+                WorkoutCategory.Threshold or WorkoutCategory.VO2Max or WorkoutCategory.Anaerobic or WorkoutCategory.Sprint
+                    when score < 70 => WorkoutCategory.Tempo,
+                WorkoutCategory.SweetSpot when score < 55 => WorkoutCategory.Endurance,
+                _ => category
+            };
+        }
+
+        return category;
+    }
+
+    private static WorkoutCategory ApplyDaysPerWeekBias(WorkoutCategory category, int daysPerWeek, decimal score)
+    {
+        if (daysPerWeek <= 3)
+        {
+            if (category == WorkoutCategory.Endurance && score > 45)
+                return WorkoutCategory.Tempo;
+            if (category == WorkoutCategory.Recovery && score > 35)
+                return WorkoutCategory.Endurance;
+        }
+        else if (daysPerWeek >= 6)
+        {
+            if (category == WorkoutCategory.Tempo && score < 55)
+                return WorkoutCategory.Endurance;
+            if (category == WorkoutCategory.SweetSpot && score < 65)
+                return WorkoutCategory.Tempo;
+        }
+
+        return category;
     }
 
     private static WorkoutCategory ApplyGoalBias(WorkoutCategory baseCategory, TrainingGoal goal, decimal score)
@@ -213,7 +260,12 @@ internal sealed class RecommendationEngine : IRecommendationEngine
         };
     }
 
-    private static decimal ScoreWorkout(Workout workout, decimal readinessScore, ReadinessData readiness, IReadOnlyList<Guid> recentWorkoutIds)
+    private static decimal ScoreWorkout(
+        Workout workout,
+        decimal readinessScore,
+        ReadinessData readiness,
+        IReadOnlyList<Guid> recentWorkoutIds,
+        TrainingPreference? preference)
     {
         decimal score = 50m;
 
@@ -233,6 +285,15 @@ internal sealed class RecommendationEngine : IRecommendationEngine
                 score += 5m;
             if (readinessScore < 40 && workout.Tags.Contains("easy"))
                 score += 5m;
+        }
+
+        if (preference?.Level == FitnessLevel.Beginner)
+        {
+            if (workout.Tags?.Contains("easy") == true)
+                score += 8m;
+            if (workout.Tags?.Contains("vo2max") == true || workout.Tags?.Contains("anaerobic") == true ||
+                workout.Tags?.Contains("sprint") == true || workout.Tags?.Contains("tabata") == true)
+                score -= 10m;
         }
 
         return score;

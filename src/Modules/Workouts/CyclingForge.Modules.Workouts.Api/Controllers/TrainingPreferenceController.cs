@@ -51,7 +51,8 @@ public sealed class TrainingPreferenceController : ControllerBase
             request.Level,
             request.TargetEventDate,
             request.PreferredWorkoutMinutes,
-            request.ConsiderNonCycling);
+            request.ConsiderNonCycling,
+            request.PlanMode);
 
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);

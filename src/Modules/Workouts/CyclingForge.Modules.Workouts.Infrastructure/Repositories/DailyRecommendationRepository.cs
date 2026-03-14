@@ -61,4 +61,13 @@ internal sealed class DailyRecommendationRepository : IDailyRecommendationReposi
         _dbContext.DailyRecommendations.Update(recommendation);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task DeleteByUserIdFromDateAsync(Guid userId, DateOnly fromDate, CancellationToken cancellationToken = default)
+    {
+        var toDelete = await _dbContext.DailyRecommendations
+            .Where(r => r.UserId == userId && r.Date >= fromDate)
+            .ToListAsync(cancellationToken);
+        _dbContext.DailyRecommendations.RemoveRange(toDelete);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
 }

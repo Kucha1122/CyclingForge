@@ -58,6 +58,7 @@ public static class WorkoutMappings
             preference.TargetEventDate,
             preference.PreferredWorkoutMinutes,
             preference.ConsiderNonCycling,
+            preference.PlanMode.ToString(),
             preference.IsActive);
 
     public static DailyRecommendationDto ToDto(this DailyRecommendation recommendation)

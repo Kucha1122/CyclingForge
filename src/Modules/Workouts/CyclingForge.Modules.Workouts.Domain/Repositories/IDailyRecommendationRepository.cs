@@ -11,4 +11,5 @@ public interface IDailyRecommendationRepository
     Task<IReadOnlyList<Guid>> GetRecentWorkoutIdsAsync(Guid userId, int daysBack, CancellationToken cancellationToken = default);
     Task AddAsync(DailyRecommendation recommendation, CancellationToken cancellationToken = default);
     Task UpdateAsync(DailyRecommendation recommendation, CancellationToken cancellationToken = default);
+    Task DeleteByUserIdFromDateAsync(Guid userId, DateOnly fromDate, CancellationToken cancellationToken = default);
 }

@@ -28,3 +28,9 @@ public sealed record WeeklyPlanDto(
     DateOnly WeekStart,
     DateOnly WeekEnd,
     IReadOnlyList<DailyRecommendationDto> Days);
+
+public sealed record FullPlanDto(
+    DateOnly PlanStart,
+    DateOnly PlanEnd,
+    int Weeks,
+    IReadOnlyList<WeeklyPlanDto> WeeksData);

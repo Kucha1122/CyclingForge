@@ -10,4 +10,5 @@ public sealed record TrainingPreferenceDto(
     DateTime? TargetEventDate,
     int PreferredWorkoutMinutes,
     bool ConsiderNonCycling,
+    string PlanMode,
     bool IsActive);

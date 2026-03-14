@@ -27,6 +27,13 @@ internal sealed class TrainingPreferenceConfiguration : IEntityTypeConfiguration
             .HasMaxLength(64)
             .IsRequired();
 
+        builder.Property(p => p.PlanMode)
+            .HasConversion(
+                m => m.ToString(),
+                m => Enum.Parse<PlanMode>(m))
+            .HasMaxLength(64)
+            .IsRequired();
+
         builder.Property(p => p.WeeklyHoursAvailable).HasPrecision(5, 2);
 
         builder.HasIndex(p => new { p.UserId, p.IsActive });

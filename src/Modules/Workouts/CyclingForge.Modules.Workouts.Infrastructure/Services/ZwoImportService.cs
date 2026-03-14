@@ -161,9 +161,14 @@ internal sealed class ZwoImportService : IZwoImportService
                 new XAttribute("PowerLow", step.PowerLow),
                 new XAttribute("PowerHigh", step.PowerHigh)),
 
-            StepType.SteadyState => new XElement("SteadyState",
-                new XAttribute("Duration", step.DurationSeconds),
-                new XAttribute("Power", step.PowerHigh)),
+            StepType.SteadyState => step.PowerLow != step.PowerHigh
+                ? new XElement("Ramp",
+                    new XAttribute("Duration", step.DurationSeconds),
+                    new XAttribute("PowerLow", step.PowerLow),
+                    new XAttribute("PowerHigh", step.PowerHigh))
+                : new XElement("SteadyState",
+                    new XAttribute("Duration", step.DurationSeconds),
+                    new XAttribute("Power", step.PowerHigh)),
 
             StepType.Ramp => new XElement("Ramp",
                 new XAttribute("Duration", step.DurationSeconds),
