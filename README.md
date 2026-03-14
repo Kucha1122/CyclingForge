@@ -78,18 +78,18 @@ flowchart LR
 **Plik:** [`TrainingMetricsCalculator.cs`](src/Modules/Activities/CyclingForge.Modules.Activities.Application/Services/TrainingMetricsCalculator.cs)
 
 - **Normalized Power (NP)**: średnia krocząca 30 s → każda wartość do potęgi 4 → średnia → pierwiastek 4. stopnia.
-- **Intensity Factor (IF)**: \( \text{IF} = \text{NP} / \text{FTP} \).
-- **TSS**: \( \text{TSS} = \frac{\text{duration\_seconds} \times \text{NP} \times \text{IF}}{\text{FTP} \times 3600} \times 100 \) (równoważnie \( (\text{NP}/\text{FTP})^2 \times \text{duration\_hours} \times 100 \)).
+- **Intensity Factor (IF)**: $\text{IF} = \text{NP} / \text{FTP}$
+- **TSS**: $\text{TSS} = \frac{\text{duration}_{\text{seconds}} \times \text{NP} \times \text{IF}}{\text{FTP} \times 3600} \times 100$ (równoważnie $(\text{NP}/\text{FTP})^2 \times \text{duration}_{\text{hours}} \times 100$)
 
 ### 5.2 Metryki oparte na HR
 
 **Plik:** ten sam – `TrainingMetricsCalculator.cs`
 
-- **hrTSS** (uproszczony, oparty na LTHR): \( \text{hrTSS} = \text{duration\_min} \times (\text{avgHR}/\text{LTHR})^2 \times 100/60 \).
+- **hrTSS** (uproszczony, oparty na LTHR): $\text{hrTSS} = \text{duration}_{\text{min}} \times (\text{avgHR}/\text{LTHR})^2 \times 100/60$
 - **HRSS** (TRIMP znormalizowany do 1 h przy LTHR):
-  - \( \text{HRR} = (\text{AvgHR} - \text{RestingHR}) / (\text{MaxHR} - \text{RestingHR}) \)
-  - \( \text{TRIMP} = \text{duration\_min} \times \text{HRR} \times 0{,}64 \times e^{y \times \text{HRR}} \), \( y = 1{,}92 \) (M) / \( 1{,}67 \) (K)
-  - TRIMP przy LTHR dla 1 h; \( \text{HRSS} = (\text{TRIMP} / \text{TRIMP\_LTHR\_1h}) \times 100 \)
+  - $\text{HRR} = (\text{AvgHR} - \text{RestingHR}) / (\text{MaxHR} - \text{RestingHR})$
+  - $\text{TRIMP} = \text{duration}_{\text{min}} \times \text{HRR} \times 0{,}64 \times e^{y \times \text{HRR}}$, $y = 1{,}92$ (M) / $1{,}67$ (K)
+  - TRIMP przy LTHR dla 1 h; $\text{HRSS} = (\text{TRIMP} / \text{TRIMP}_{\text{LTHR,1h}}) \times 100$
   - Dla streamu HR: wygładzanie 30 s, potem średnia i powyższe wzory.
 
 ### 5.3 Obciążenie z uwzględnieniem sportu
@@ -119,10 +119,15 @@ flowchart LR
 
 - Dzienne obciążenie: TSS (lub HRSS z czynnikiem sportu) z `ActivityLoadCalculator`, FTP z daty z `UserFtpProvider`.
 - **EWMA** (Science to Sport / intervals.icu):
-  - \( \text{ctlFactor} = 1 - e^{-1/42} \), \( \text{atlFactor} = 1 - e^{-1/7} \)
-  - \( \text{CTL} = \text{CTL\_prev} + (\text{TSS\_today} - \text{CTL\_prev}) \times \text{ctlFactor} \)
-  - \( \text{ATL} = \text{ATL\_prev} + (\text{TSS\_today} - \text{ATL\_prev}) \times \text{atlFactor} \)
-  - \( \text{TSB} = \text{CTL} - \text{ATL} \)
+
+  $$\text{ctlFactor} = 1 - e^{-1/42}, \qquad \text{atlFactor} = 1 - e^{-1/7}$$
+
+  $$\text{CTL} = \text{CTL}_{\text{prev}} + (\text{TSS}_{\text{today}} - \text{CTL}_{\text{prev}}) \times \text{ctlFactor}$$
+
+  $$\text{ATL} = \text{ATL}_{\text{prev}} + (\text{TSS}_{\text{today}} - \text{ATL}_{\text{prev}}) \times \text{atlFactor}$$
+
+  $$\text{TSB} = \text{CTL} - \text{ATL}$$
+
 - Warm-up: lookback do ~120 dni dla poprawnego rozgrzania CTL.
 - Strefy formy (wg TSB): Ryzykowna (&lt; -35), Optymalna (-35 do -10), Przejściowa (-10 do 5), Świeża (5 do 25), Bardzo świeża (≥ 25).
 
@@ -156,8 +161,8 @@ flowchart LR
 
 **Plik:** [`Workout.cs`](src/Modules/Workouts/CyclingForge.Modules.Workouts.Domain/Entities/Workout.cs) – `RecalculateMetrics` / `EstimatedTSS`.
 
-- Dla każdego kroku: \( \text{tssAccumulator} \mathrel{+}= \text{duration\_sec} \times \text{avgPower}^2 \).
-- \( \text{EstimatedTSS} = \text{round}(\text{tssAccumulator} / 3600 \times 100) \).
+- Dla każdego kroku: $\text{tssAccumulator} \mathrel{+}= \text{duration}_{\text{sec}} \times \text{avgPower}^2$
+- $\text{EstimatedTSS} = \text{round}(\text{tssAccumulator} / 3600 \times 100)$
 
 ---
 
