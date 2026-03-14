@@ -1,23 +1,31 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { workoutsApi } from '../services/api';
 import { WorkoutCard } from '../components/workouts/WorkoutCard';
 import type { WorkoutSummaryDto } from '../types/workout';
 import { WORKOUT_CATEGORIES, TRAINING_ZONES } from '../types/workout';
 
+const CATEGORY_I18N_KEYS: Record<string, string> = {
+  Recovery: 'categoryRecovery', Endurance: 'categoryEndurance', Tempo: 'categoryTempo',
+  SweetSpot: 'categorySweetSpot', Threshold: 'categoryThreshold', VO2Max: 'categoryVO2Max',
+  Anaerobic: 'categoryAnaerobic', Sprint: 'categorySprint', Mixed: 'categoryMixed',
+};
+
 type TabFilter = 'all' | 'system' | 'mine';
 
-const SORT_OPTIONS = [
-  { value: 'default',       label: 'Default (Category)' },
-  { value: 'name_asc',      label: 'Name A→Z' },
-  { value: 'name_desc',     label: 'Name Z→A' },
-  { value: 'duration_asc',  label: 'Duration (shortest)' },
-  { value: 'duration_desc', label: 'Duration (longest)' },
-  { value: 'tss_asc',       label: 'TSS (lowest)' },
-  { value: 'tss_desc',      label: 'TSS (highest)' },
+const SORT_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: 'default',       labelKey: 'sortDefault' },
+  { value: 'name_asc',      labelKey: 'sortNameAsc' },
+  { value: 'name_desc',     labelKey: 'sortNameDesc' },
+  { value: 'duration_asc',  labelKey: 'sortDurationAsc' },
+  { value: 'duration_desc', labelKey: 'sortDurationDesc' },
+  { value: 'tss_asc',       labelKey: 'sortTssAsc' },
+  { value: 'tss_desc',      labelKey: 'sortTssDesc' },
 ];
 
 export const WorkoutLibraryPage = () => {
+  const { t } = useTranslation('workouts');
   const [workouts, setWorkouts] = useState<WorkoutSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -88,30 +96,30 @@ export const WorkoutLibraryPage = () => {
     <div className="min-h-screen bg-gray-50 p-8">
       <header className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Workout Library</h1>
-          <p className="text-gray-600">Browse, create, and manage your workouts</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('library')}</h1>
+          <p className="text-gray-600">{t('librarySubtitle')}</p>
         </div>
         <div className="flex gap-3">
           <Link
             to="/workouts/create"
             className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
           >
-            + Create Workout
+            + {t('createWorkout')}
           </Link>
         </div>
       </header>
 
       {/* Tabs */}
       <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1">
-        {(['all', 'system', 'mine'] as const).map(t => (
+        {(['all', 'system', 'mine'] as const).map((tabKey) => (
           <button
-            key={t}
-            onClick={() => { setTab(t); setPage(1); }}
+            key={tabKey}
+            onClick={() => { setTab(tabKey); setPage(1); }}
             className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              tab === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              tab === tabKey ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            {t === 'all' ? 'All Workouts' : t === 'system' ? 'System Library' : 'My Workouts'}
+            {tabKey === 'all' ? t('allWorkouts') : tabKey === 'system' ? t('systemLibrary') : t('myWorkouts')}
           </button>
         ))}
       </div>
@@ -123,11 +131,11 @@ export const WorkoutLibraryPage = () => {
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search workouts..."
+            placeholder={t('searchPlaceholder')}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           <button type="submit" className="rounded-lg bg-gray-200 px-3 py-2 text-sm hover:bg-gray-300">
-            Search
+            {t('search')}
           </button>
         </form>
 
@@ -136,9 +144,9 @@ export const WorkoutLibraryPage = () => {
           onChange={(e) => { setCategory(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
         >
-          <option value="">All Categories</option>
+          <option value="">{t('allCategories')}</option>
           {WORKOUT_CATEGORIES.map(c => (
-            <option key={c} value={c}>{c}</option>
+            <option key={c} value={c}>{t(CATEGORY_I18N_KEYS[c] ?? 'categoryMixed')}</option>
           ))}
         </select>
 
@@ -147,7 +155,7 @@ export const WorkoutLibraryPage = () => {
           onChange={(e) => { setZone(e.target.value); setPage(1); }}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
         >
-          <option value="">All Zones</option>
+          <option value="">{t('allZones')}</option>
           {TRAINING_ZONES.map(z => (
             <option key={z} value={z}>{z}</option>
           ))}
@@ -159,7 +167,7 @@ export const WorkoutLibraryPage = () => {
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
         >
           {SORT_OPTIONS.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
           ))}
         </select>
 
@@ -168,22 +176,22 @@ export const WorkoutLibraryPage = () => {
             onClick={() => { setCategory(''); setZone(''); setSearch(''); setSearchInput(''); setSortBy('default'); setPage(1); }}
             className="text-sm text-blue-600 hover:text-blue-800"
           >
-            Clear filters
+            {t('clearFilters')}
           </button>
         )}
 
-        <span className="ml-auto text-sm text-gray-500">{totalCount} workouts found</span>
+        <span className="ml-auto text-sm text-gray-500">{t('workoutsFound', { count: totalCount })}</span>
       </div>
 
       {/* Grid */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <p className="text-gray-500">Loading workouts...</p>
+          <p className="text-gray-500">{t('loadingWorkouts')}</p>
         </div>
       ) : workouts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20">
-          <p className="text-lg font-medium text-gray-500">No workouts found</p>
-          <p className="text-gray-400">Try adjusting your filters or create a new workout.</p>
+          <p className="text-lg font-medium text-gray-500">{t('noWorkoutsFound')}</p>
+          <p className="text-gray-400">{t('noWorkoutsHint')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -206,17 +214,17 @@ export const WorkoutLibraryPage = () => {
             disabled={page === 1}
             className="rounded-lg border px-3 py-2 text-sm disabled:opacity-50"
           >
-            Previous
+            {t('previous')}
           </button>
           <span className="px-3 text-sm text-gray-600">
-            Page {page} of {totalPages}
+            {t('pageOf', { current: page, total: totalPages })}
           </span>
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
             className="rounded-lg border px-3 py-2 text-sm disabled:opacity-50"
           >
-            Next
+            {t('next')}
           </button>
         </div>
       )}
@@ -225,10 +233,9 @@ export const WorkoutLibraryPage = () => {
       {deleteId && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="text-lg font-semibold text-gray-900">Delete workout</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('deleteWorkout')}</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Are you sure you want to delete{' '}
-              <span className="font-semibold text-gray-900">&quot;{deleteName}&quot;</span>? This action cannot be undone.
+              {t('deleteWorkoutConfirm', { name: deleteName ?? '' })}
             </p>
             <div className="mt-4 flex justify-end gap-3">
               <button
@@ -236,14 +243,14 @@ export const WorkoutLibraryPage = () => {
                 onClick={handleCancelDelete}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDelete}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
-                Delete
+                {t('delete')}
               </button>
             </div>
           </div>

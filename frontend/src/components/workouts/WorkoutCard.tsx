@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { WorkoutSummaryDto } from '../../types/workout';
 import { CATEGORY_COLORS } from '../../types/workout';
 import { workoutsApi } from '../../services/api';
+
+const CATEGORY_I18N_KEYS: Record<string, string> = {
+  Recovery: 'categoryRecovery', Endurance: 'categoryEndurance', Tempo: 'categoryTempo',
+  SweetSpot: 'categorySweetSpot', Threshold: 'categoryThreshold', VO2Max: 'categoryVO2Max',
+  Anaerobic: 'categoryAnaerobic', Sprint: 'categorySprint', Mixed: 'categoryMixed',
+};
 
 interface WorkoutCardProps {
   workout: WorkoutSummaryDto;
@@ -11,6 +18,8 @@ interface WorkoutCardProps {
 }
 
 export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps) => {
+  const { t } = useTranslation('workouts');
+  const tCommon = useTranslation('common').t;
   const navigate = useNavigate();
   const [copying, setCopying] = useState(false);
   const categoryColor = CATEGORY_COLORS[workout.category] || 'bg-gray-100 text-gray-800';
@@ -40,14 +49,14 @@ export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps
           </Link>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${categoryColor}`}>
-              {workout.category}
+              {t(CATEGORY_I18N_KEYS[workout.category] ?? 'categoryMixed')}
             </span>
             <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
               {workout.targetZone}
             </span>
             {isUserWorkout && (
               <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
-                {workout.source === 'Imported' ? 'Imported' : 'Custom'}
+                {workout.source === 'Imported' ? t('imported') : t('custom')}
               </span>
             )}
           </div>
@@ -57,11 +66,11 @@ export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps
       <div className="flex items-center gap-4 text-sm text-gray-500">
         <div className="flex items-center gap-1">
           <span>⏱</span>
-          <span>{workout.durationMinutes} min</span>
+          <span>{workout.durationMinutes} {tCommon('min')}</span>
         </div>
         <div className="flex items-center gap-1">
           <span>💪</span>
-          <span>TSS {workout.estimatedTSS}</span>
+          <span>{tCommon('tssLabel')} {workout.estimatedTSS}</span>
         </div>
       </div>
 
@@ -82,7 +91,7 @@ export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps
               to={`/workouts/${workout.id}/edit`}
               className="rounded-lg px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
             >
-              Edit
+              {t('edit')}
             </Link>
           )}
           <button
@@ -90,14 +99,14 @@ export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps
             disabled={copying}
             className="rounded-lg px-3 py-1.5 text-xs font-medium text-green-600 hover:bg-green-50 disabled:opacity-50"
           >
-            {copying ? 'Copying…' : 'Copy'}
+            {copying ? t('copying') : t('copy')}
           </button>
           {onDelete && isUserWorkout && (
             <button
               onClick={() => onDelete(workout.id)}
               className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
             >
-              Delete
+              {t('delete')}
             </button>
           )}
         </div>

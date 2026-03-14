@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 interface ReadinessGaugeProps {
   score: number;
   size?: 'sm' | 'md' | 'lg';
@@ -11,16 +13,17 @@ function getScoreColor(score: number): string {
   return '#10b981';
 }
 
-function getScoreLabel(score: number): string {
-  if (score < 15) return 'Rest';
-  if (score < 30) return 'Recovery';
-  if (score < 45) return 'Easy';
-  if (score < 60) return 'Moderate';
-  if (score < 75) return 'Good';
-  return 'Peak';
+function getScoreLabelKey(score: number): string {
+  if (score < 15) return 'readinessRest';
+  if (score < 30) return 'readinessRecovery';
+  if (score < 45) return 'readinessEasy';
+  if (score < 60) return 'readinessModerate';
+  if (score < 75) return 'readinessGood';
+  return 'readinessPeak';
 }
 
 export const ReadinessGauge = ({ score, size = 'md' }: ReadinessGaugeProps) => {
+  const { t } = useTranslation('todayWorkout');
   const dimensions = { sm: 80, md: 140, lg: 200 };
   const dim = dimensions[size];
   const strokeWidth = size === 'sm' ? 6 : size === 'md' ? 10 : 14;
@@ -29,7 +32,7 @@ export const ReadinessGauge = ({ score, size = 'md' }: ReadinessGaugeProps) => {
   const progress = Math.min(100, Math.max(0, score)) / 100;
   const offset = circumference * (1 - progress * 0.75);
   const color = getScoreColor(score);
-  const label = getScoreLabel(score);
+  const label = t(getScoreLabelKey(score));
 
   const textSize = size === 'sm' ? 'text-lg' : size === 'md' ? 'text-3xl' : 'text-5xl';
   const labelSize = size === 'sm' ? 'text-[10px]' : size === 'md' ? 'text-xs' : 'text-sm';

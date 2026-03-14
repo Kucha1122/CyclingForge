@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { activitiesApi, stravaApi } from '../services/api';
 import type { ActivityDetailsDto } from '../types/activity';
+import { formatDate as formatDateUtil, formatTime as formatTimeUtil, formatDateTime } from '../utils/format';
 import {
   LineChart,
   Line,
@@ -91,21 +93,6 @@ function formatDuration(ts: string): string {
   return ts;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('pl-PL', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('pl-PL', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function sportIcon(type: string): string {
   const t = type?.toLowerCase() ?? '';
@@ -117,19 +104,20 @@ function sportIcon(type: string): string {
   return '🏋️';
 }
 
-function sportLabel(type: string): string {
+function getSportLabelKey(type: string): string {
+  const key = type?.toLowerCase() ?? '';
   const map: Record<string, string> = {
-    ride: 'Jazda',
-    virtualride: 'Jazda (virtual)',
-    run: 'Bieg',
-    walk: 'Spacer',
-    hike: 'Wędrówka',
-    swim: 'Pływanie',
-    alpineski: 'Narty',
-    nordicski: 'Biegi narciarskie',
-    workout: 'Trening',
+    ride: 'sportRide',
+    virtualride: 'sportVirtualRide',
+    run: 'sportRun',
+    walk: 'sportWalk',
+    hike: 'sportHike',
+    swim: 'sportSwim',
+    alpineski: 'sportAlpineski',
+    nordicski: 'sportNordicski',
+    workout: 'sportWorkout',
   };
-  return map[type?.toLowerCase()] ?? type;
+  return map[key] ?? 'sportWorkout';
 }
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
@@ -261,6 +249,8 @@ function PowerBestRow({ label, watts, ftp }: PowerBestProps) {
 
 export default function ActivityDetailsPage() {
   const { id } = useParams<{ id: string }>();
+  const { t: tAd, i18n } = useTranslation('activityDetails');
+  const tErr = useTranslation('errors').t;
   const [activity, setActivity] = useState<ActivityDetailsDto | null>(null);
   const [rawChart, setRawChart] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -285,7 +275,7 @@ export default function ActivityDetailsPage() {
           // streams are optional — chart section simply won't render
         }
       })
-      .catch(() => setError('Nie udało się załadować aktywności.'))
+      .catch(() => setError(tErr('activityLoadFailed')))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -295,7 +285,7 @@ export default function ActivityDetailsPage() {
   if (error || !activity)
     return (
       <div className="flex min-h-64 items-center justify-center text-gray-500">
-        {error ?? 'Aktywność nie znaleziona.'}
+        {error ?? tErr('activityNotFound')}
       </div>
     );
 
@@ -327,7 +317,7 @@ export default function ActivityDetailsPage() {
     : 100;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 p-6">
+    <div key={i18n.language} className="mx-auto max-w-6xl space-y-8 p-6">
 
       {/* ── Header ── */}
       <div>
@@ -335,7 +325,7 @@ export default function ActivityDetailsPage() {
           to="/activities"
           className="mb-4 inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 transition-colors"
         >
-          ← Powrót do aktywności
+          {tAd('backToActivities')}
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -346,61 +336,61 @@ export default function ActivityDetailsPage() {
               <h1 className="text-2xl font-bold text-gray-900 leading-tight">{activity.name}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-                  {sportLabel(activity.type)}
+                  {tAd(getSportLabelKey(activity.type))}
                 </span>
                 {activity.deviceWatts === true && (
                   <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
-                    ⚡ Miernik mocy
+                    ⚡ {tAd('powerMeter')}
                   </span>
                 )}
                 {activity.deviceWatts === false && (
                   <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                    ~ Moc szacowana
+                    ~ {tAd('powerEstimated')}
                   </span>
                 )}
               </div>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm font-medium text-gray-700 capitalize">{formatDate(activity.startDate)}</p>
-            <p className="text-sm text-gray-400">{formatTime(activity.startDate)}</p>
+            <p className="text-sm font-medium text-gray-700 capitalize">{formatDateUtil(activity.startDate, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="text-sm text-gray-400">{formatTimeUtil(activity.startDate)}</p>
           </div>
         </div>
       </div>
 
       {/* ── Primary Stats ── */}
       <div>
-        <SectionHeading>Podstawowe dane</SectionHeading>
+        <SectionHeading>{tAd('sectionBasicData')}</SectionHeading>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard
-            label="Dystans"
+            label={tAd('distance')}
             value={activity.distanceKm.toFixed(2)}
             unit="km"
             accent="text-blue-600"
           />
           <StatCard
-            label="Czas jazdy"
+            label={tAd('rideTime')}
             value={formatDuration(activity.movingTime)}
             accent="text-gray-900"
           />
           <StatCard
-            label="Czas całkowity"
+            label={tAd('elapsedTime')}
             value={formatDuration(activity.elapsedTime)}
             accent="text-gray-700"
           />
           <StatCard
-            label="Przewyższenie"
+            label={tAd('elevation')}
             value={Math.round(activity.totalElevationGain)}
             unit="m"
             accent="text-emerald-600"
           />
           {activity.averageSpeed != null && (
             <StatCard
-              label="Śr. prędkość"
+              label={tAd('avgSpeed')}
               value={activity.averageSpeed.toFixed(1)}
               unit="km/h"
               accent="text-amber-600"
-              sub={activity.maxSpeed != null ? `Maks. ${activity.maxSpeed.toFixed(1)} km/h` : undefined}
+              sub={activity.maxSpeed != null ? `${tAd('maxSpeed')} ${activity.maxSpeed.toFixed(1)} km/h` : undefined}
             />
           )}
         </div>
@@ -409,17 +399,17 @@ export default function ActivityDetailsPage() {
       {/* ── Power Metrics ── */}
       {hasPower && (
         <div>
-          <SectionHeading>Dane mocy</SectionHeading>
+          <SectionHeading>{tAd('sectionPowerData')}</SectionHeading>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             <StatCard
-              label="Śr. moc"
+              label={tAd('avgPower')}
               value={Math.round(activity.averagePower!)}
               unit="W"
               accent="text-blue-600"
             />
             {activity.normalizedPower != null && (
               <StatCard
-                label="Moc normalizowana"
+                label={tAd('normalizedPower')}
                 value={Math.round(activity.normalizedPower)}
                 unit="W"
                 accent="text-blue-700"
@@ -428,7 +418,7 @@ export default function ActivityDetailsPage() {
             )}
             {activity.maxPower != null && (
               <StatCard
-                label="Maks. moc"
+                label={tAd('maxPower')}
                 value={Math.round(activity.maxPower)}
                 unit="W"
                 accent="text-purple-600"
@@ -436,7 +426,7 @@ export default function ActivityDetailsPage() {
             )}
             {activity.intensityFactor != null && (
               <StatCard
-                label="Współczynnik intensywności"
+                label={tAd('intensityFactor')}
                 value={activity.intensityFactor.toFixed(2)}
                 accent="text-orange-600"
                 sub="IF"
@@ -444,7 +434,7 @@ export default function ActivityDetailsPage() {
             )}
             {activity.trainingStressScore != null && (
               <StatCard
-                label="Obciążenie treningowe"
+                label={tAd('trainingLoad')}
                 value={Math.round(activity.trainingStressScore)}
                 accent="text-red-600"
                 sub="TSS"
@@ -452,7 +442,7 @@ export default function ActivityDetailsPage() {
             )}
             {activity.ftpUsed != null && (
               <StatCard
-                label="FTP (użyte)"
+                label={tAd('ftpUsed')}
                 value={activity.ftpUsed}
                 unit="W"
                 accent="text-gray-700"
@@ -465,17 +455,17 @@ export default function ActivityDetailsPage() {
       {/* ── HR Metrics ── */}
       {hasHR && (
         <div>
-          <SectionHeading>Tętno</SectionHeading>
+          <SectionHeading>{tAd('sectionHeartrate')}</SectionHeading>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             <StatCard
-              label="Śr. tętno"
+              label={tAd('avgHr')}
               value={Math.round(activity.averageHeartRate!)}
               unit="bpm"
               accent="text-red-500"
             />
             {activity.maxHeartRate != null && (
               <StatCard
-                label="Maks. tętno"
+                label={tAd('maxHr')}
                 value={Math.round(activity.maxHeartRate)}
                 unit="bpm"
                 accent="text-red-700"
@@ -488,13 +478,13 @@ export default function ActivityDetailsPage() {
       {/* ── Charts ── */}
       {hasStreams && (
         <div className="space-y-6">
-          <SectionHeading>Wykresy</SectionHeading>
+          <SectionHeading>{tAd('sectionCharts')}</SectionHeading>
 
           {/* Elevation Profile */}
           {hasAltitude && (
             <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-              <h3 className="mb-1 text-sm font-semibold text-gray-700">Profil wysokości</h3>
-              <p className="mb-4 text-xs text-gray-400">Zmiana wysokości na trasie</p>
+              <h3 className="mb-1 text-sm font-semibold text-gray-700">{tAd('elevationProfile')}</h3>
+              <p className="mb-4 text-xs text-gray-400">{tAd('elevationProfileDesc')}</p>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={chartData} margin={{ top: 5, right: 20, bottom: 20, left: 10 }}>
                   <defs>
@@ -509,13 +499,13 @@ export default function ActivityDetailsPage() {
                     type="number"
                     domain={['dataMin', 'dataMax']}
                     tickFormatter={(v) => `${Number(v).toFixed(1)}`}
-                    label={{ value: 'Dystans (km)', position: 'insideBottomRight', offset: -5, fontSize: 11, fill: '#9ca3af' }}
+                    label={{ value: tAd('distanceKm'), position: 'insideBottomRight', offset: -5, fontSize: 11, fill: '#9ca3af' }}
                     tick={{ fontSize: 11, fill: '#9ca3af' }}
                   />
                   <YAxis
                     domain={[altMin, altMax]}
                     tickFormatter={(v) => `${v}`}
-                    label={{ value: 'Wys. (m n.p.m.)', angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#9ca3af' }}
+                    label={{ value: tAd('elevationM'), angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#9ca3af' }}
                     tick={{ fontSize: 11, fill: '#9ca3af' }}
                     width={55}
                   />
@@ -523,7 +513,7 @@ export default function ActivityDetailsPage() {
                   <Area
                     type="monotone"
                     dataKey="altitude"
-                    name="Wysokość"
+                    name={tAd('altitude')}
                     unit=" m"
                     stroke="#10b981"
                     strokeWidth={2}
@@ -539,13 +529,13 @@ export default function ActivityDetailsPage() {
           {/* Power & Heart Rate */}
           {(hasPowerStream || hasHRStream) && (
             <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-              <h3 className="mb-1 text-sm font-semibold text-gray-700">Moc i tętno</h3>
+              <h3 className="mb-1 text-sm font-semibold text-gray-700">{tAd('powerAndHeartrate')}</h3>
               <p className="mb-4 text-xs text-gray-400">
                 {hasPowerStream && hasHRStream
-                  ? 'Moc (lewa oś) i tętno (prawa oś) w funkcji dystansu'
+                  ? tAd('powerAndHrVsDist')
                   : hasPowerStream
-                  ? 'Moc w funkcji dystansu'
-                  : 'Tętno w funkcji dystansu'}
+                  ? tAd('powerVsDist')
+                  : tAd('hrVsDist')}
               </p>
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={chartData} margin={{ top: 5, right: 50, bottom: 20, left: 10 }}>
@@ -555,7 +545,7 @@ export default function ActivityDetailsPage() {
                     type="number"
                     domain={['dataMin', 'dataMax']}
                     tickFormatter={(v) => `${Number(v).toFixed(1)}`}
-                    label={{ value: 'Dystans (km)', position: 'insideBottomRight', offset: -5, fontSize: 11, fill: '#9ca3af' }}
+                    label={{ value: tAd('distanceKm'), position: 'insideBottomRight', offset: -5, fontSize: 11, fill: '#9ca3af' }}
                     tick={{ fontSize: 11, fill: '#9ca3af' }}
                   />
                   {hasPowerStream && (
@@ -563,7 +553,7 @@ export default function ActivityDetailsPage() {
                       yAxisId="power"
                       domain={wattsDomain}
                       tickFormatter={(v) => `${v}`}
-                      label={{ value: 'Moc (W)', angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#3b82f6' }}
+                      label={{ value: tAd('powerW'), angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#3b82f6' }}
                       tick={{ fontSize: 11, fill: '#9ca3af' }}
                       width={50}
                     />
@@ -574,7 +564,7 @@ export default function ActivityDetailsPage() {
                       orientation="right"
                       domain={[hrMin, hrMax]}
                       tickFormatter={(v) => `${v}`}
-                      label={{ value: 'Tętno (bpm)', angle: 90, position: 'insideRight', offset: 15, fontSize: 11, fill: '#ef4444' }}
+                      label={{ value: tAd('heartrateBpm'), angle: 90, position: 'insideRight', offset: 15, fontSize: 11, fill: '#ef4444' }}
                       tick={{ fontSize: 11, fill: '#9ca3af' }}
                       width={55}
                     />
@@ -606,7 +596,7 @@ export default function ActivityDetailsPage() {
                       yAxisId="power"
                       type="monotone"
                       dataKey="watts"
-                      name="Moc"
+                      name={tAd('power')}
                       unit=" W"
                       stroke="#3b82f6"
                       strokeWidth={1.5}
@@ -619,7 +609,7 @@ export default function ActivityDetailsPage() {
                       yAxisId="hr"
                       type="monotone"
                       dataKey="heartrate"
-                      name="Tętno"
+                      name={tAd('heartrate')}
                       unit=" bpm"
                       stroke="#ef4444"
                       strokeWidth={1.5}
@@ -635,13 +625,13 @@ export default function ActivityDetailsPage() {
           {/* Speed & Cadence */}
           {(hasSpeed || hasCadence) && (
             <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-              <h3 className="mb-1 text-sm font-semibold text-gray-700">Prędkość i kadencja</h3>
+              <h3 className="mb-1 text-sm font-semibold text-gray-700">{tAd('speedAndCadence')}</h3>
               <p className="mb-4 text-xs text-gray-400">
                 {hasSpeed && hasCadence
-                  ? 'Prędkość (lewa oś) i kadencja (prawa oś) w funkcji dystansu'
+                  ? tAd('speedAndCadenceVsDist')
                   : hasSpeed
-                  ? 'Prędkość w funkcji dystansu'
-                  : 'Kadencja w funkcji dystansu'}
+                  ? tAd('speedVsDist')
+                  : tAd('cadenceVsDist')}
               </p>
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chartData} margin={{ top: 5, right: 50, bottom: 20, left: 10 }}>
@@ -651,7 +641,7 @@ export default function ActivityDetailsPage() {
                     type="number"
                     domain={['dataMin', 'dataMax']}
                     tickFormatter={(v) => `${Number(v).toFixed(1)}`}
-                    label={{ value: 'Dystans (km)', position: 'insideBottomRight', offset: -5, fontSize: 11, fill: '#9ca3af' }}
+                    label={{ value: tAd('distanceKm'), position: 'insideBottomRight', offset: -5, fontSize: 11, fill: '#9ca3af' }}
                     tick={{ fontSize: 11, fill: '#9ca3af' }}
                   />
                   {hasSpeed && (
@@ -659,7 +649,7 @@ export default function ActivityDetailsPage() {
                       yAxisId="speed"
                       domain={[0, 'auto']}
                       tickFormatter={(v) => `${v}`}
-                      label={{ value: 'Prędkość (km/h)', angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#f59e0b' }}
+                      label={{ value: tAd('speedKmh'), angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: '#f59e0b' }}
                       tick={{ fontSize: 11, fill: '#9ca3af' }}
                       width={55}
                     />
@@ -670,7 +660,7 @@ export default function ActivityDetailsPage() {
                       orientation="right"
                       domain={[0, 'auto']}
                       tickFormatter={(v) => `${v}`}
-                      label={{ value: 'Kadencja (rpm)', angle: 90, position: 'insideRight', offset: 15, fontSize: 11, fill: '#8b5cf6' }}
+                      label={{ value: tAd('cadenceRpm'), angle: 90, position: 'insideRight', offset: 15, fontSize: 11, fill: '#8b5cf6' }}
                       tick={{ fontSize: 11, fill: '#9ca3af' }}
                       width={55}
                     />
@@ -691,7 +681,7 @@ export default function ActivityDetailsPage() {
                       yAxisId="speed"
                       type="monotone"
                       dataKey="speedKph"
-                      name="Prędkość"
+                      name={tAd('speed')}
                       unit=" km/h"
                       stroke="#f59e0b"
                       strokeWidth={1.5}
@@ -704,7 +694,7 @@ export default function ActivityDetailsPage() {
                       yAxisId="cadence"
                       type="monotone"
                       dataKey="cadence"
-                      name="Kadencja"
+                      name={tAd('cadence')}
                       unit=" rpm"
                       stroke="#8b5cf6"
                       strokeWidth={1.5}
@@ -722,25 +712,25 @@ export default function ActivityDetailsPage() {
       {/* ── Power Bests ── */}
       {hasPowerBests && (
         <div>
-          <SectionHeading>Najlepsze wyniki mocy</SectionHeading>
+          <SectionHeading>{tAd('powerBests')}</SectionHeading>
           <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
             <p className="mb-4 text-xs text-gray-400">
-              Najlepsze średnie moce z tej aktywności. Pasek wskazuje % FTP.
+              {tAd('powerBestsDesc')}
             </p>
             <div className="divide-y divide-gray-100">
-              <PowerBestRow label="5 minut" watts={activity.best5MinPower} ftp={ftp} />
-              <PowerBestRow label="20 minut" watts={activity.best20MinPower} ftp={ftp} />
-              <PowerBestRow label="60 minut" watts={activity.best60MinPower} ftp={ftp} />
+              <PowerBestRow label={tAd('best5min')} watts={activity.best5MinPower} ftp={ftp} />
+              <PowerBestRow label={tAd('best20min')} watts={activity.best20MinPower} ftp={ftp} />
+              <PowerBestRow label={tAd('best60min')} watts={activity.best60MinPower} ftp={ftp} />
             </div>
             {activity.estimatedFtpFromActivity != null && (
               <div className="mt-4 rounded-lg bg-blue-50 px-4 py-3 ring-1 ring-blue-100">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-                      Szacowane FTP z tej aktywności
+                      {tAd('estimatedFtpFromActivity')}
                     </p>
                     <p className="text-xs text-blue-400 mt-0.5">
-                      Wyliczone na podstawie najlepszych wyników metodą Intervals.icu
+                      {tAd('estimatedFtpFromActivityHint')}
                     </p>
                   </div>
                   <span className="text-2xl font-bold text-blue-700">
@@ -755,7 +745,7 @@ export default function ActivityDetailsPage() {
 
       {/* ── Footer meta ── */}
       <div className="border-t border-gray-100 pt-4 text-xs text-gray-300 text-right">
-        Zsynchronizowano: {new Date(activity.syncedAt).toLocaleString('pl-PL')}
+        {tAd('syncedAt')}: {formatDateTime(activity.syncedAt)}
       </div>
     </div>
   );

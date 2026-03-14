@@ -5,7 +5,7 @@ import type { GarminStatusDto, SleepDataDto, WellnessDataDto } from '../types/ga
 import type {
   WorkoutDto, WorkoutSearchResultDto, CreateWorkoutRequest,
   TrainingPreferenceDto, SaveTrainingPreferenceRequest,
-  DailyRecommendationDto, ReadinessBreakdownDto, WeeklyPlanDto
+  DailyRecommendationDto, ReadinessBreakdownDto, WeeklyPlanDto, FullPlanDto
 } from '../types/workout';
 
 const api = axios.create({
@@ -206,8 +206,13 @@ export const trainingPreferenceApi = {
   save: (data: SaveTrainingPreferenceRequest) => api.post<TrainingPreferenceDto>('/training-preference', data),
 };
 
+const PLAN_REQUEST_TIMEOUT_MS = 300000; // 5 min for multi-week generation
+
 export const recommendationsApi = {
   getToday: () => api.get<DailyRecommendationDto>('/recommendations/today'),
+  regenerateToday: () => api.post<DailyRecommendationDto>('/recommendations/today/regenerate'),
+  getPlan: (weeks?: number) =>
+    api.get<FullPlanDto>('/recommendations/plan', { params: { weeks }, timeout: PLAN_REQUEST_TIMEOUT_MS }),
   getWeek: (weekStart?: string) => api.get<WeeklyPlanDto>('/recommendations/week', { params: { weekStart } }),
   getReadiness: (date?: string) => api.get<ReadinessBreakdownDto>('/recommendations/readiness', { params: { date } }),
   updateStatus: (id: string, status: string, completedActivityId?: string) =>

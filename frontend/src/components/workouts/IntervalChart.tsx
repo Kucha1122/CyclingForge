@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { WorkoutStepDto } from '../../types/workout';
 import { ZONE_COLORS } from '../../types/workout';
 
@@ -32,13 +33,14 @@ function powerToZone(power: number): string {
   return 'Z6';
 }
 
-const ZONE_LABELS: Record<string, string> = {
-  Z1: 'Z1 Recovery',
-  Z2: 'Z2 Endurance',
-  Z3: 'Z3 Tempo',
-  Z4: 'Z4 Threshold',
-  Z5: 'Z5 VO2Max',
-  Z6: 'Z6 Anaerobic',
+const ZONE_I18N_KEYS: Record<string, string> = {
+  Z1: 'zone1Short', Z2: 'zone2Short', Z3: 'zone3Short',
+  Z4: 'zone4Short', Z5: 'zone5Short', Z6: 'zone6Short',
+};
+const SEGMENT_LABEL_KEYS: Record<string, string> = {
+  'Intervals — ON': 'intervalsOn', 'Intervals — OFF': 'intervalsOff',
+  Warmup: 'stepWarmup', Cooldown: 'stepCooldown', SteadyState: 'stepSteadyState',
+  Ramp: 'stepRamp', Intervals: 'stepIntervals', FreeRide: 'stepFreeRide',
 };
 
 function getStepSegments(step: WorkoutStepDto): SegmentMeta[] {
@@ -65,7 +67,9 @@ function getStepSegments(step: WorkoutStepDto): SegmentMeta[] {
     return segments;
   }
 
-  if (step.type === 'Ramp' || step.type === 'Warmup' || step.type === 'Cooldown') {
+  // Show ramp whenever powerLow !== powerHigh (any step type)
+  const isRamp = step.powerLow !== step.powerHigh;
+  if (isRamp || step.type === 'Ramp' || step.type === 'Warmup' || step.type === 'Cooldown') {
     const numSegments = Math.max(2, Math.ceil(step.durationSeconds / 30));
     const segDuration = step.durationSeconds / numSegments;
     return Array.from({ length: numSegments }, (_, i) => {
@@ -97,9 +101,19 @@ function formatSeconds(totalSeconds: number): string {
 }
 
 export const IntervalChart = ({ steps, height = 160, ftp }: IntervalChartProps) => {
+  const { t } = useTranslation('workouts');
   const containerRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+
+  const getZoneLabel = (zone: string) => {
+    const key = ZONE_I18N_KEYS[zone];
+    return key ? `Z${zone.slice(1)} ${t(key)}` : zone;
+  };
+  const getSegmentLabel = (label: string) => {
+    const key = SEGMENT_LABEL_KEYS[label];
+    return key ? t(key) : label;
+  };
 
   const sortedSteps = [...steps].sort((a, b) => a.order - b.order);
   const allSegments = sortedSteps.flatMap(getStepSegments);
@@ -197,7 +211,7 @@ export const IntervalChart = ({ steps, height = 160, ftp }: IntervalChartProps) 
           className="pointer-events-none absolute z-10 w-44 rounded-lg bg-gray-800 px-3 py-2 text-xs text-white shadow-lg ring-1 ring-white/10"
           style={{ left: tooltipLeft, top: Math.max(4, tooltip.y - 80) }}
         >
-          <p className="font-semibold">{tooltip.segment.label}</p>
+          <p className="font-semibold">{getSegmentLabel(tooltip.segment.label)}</p>
           <p className="mt-0.5 text-gray-300">
             {formatSeconds(tooltip.segment.duration)}
           </p>
@@ -217,7 +231,7 @@ export const IntervalChart = ({ steps, height = 160, ftp }: IntervalChartProps) 
             className="mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium"
             style={{ backgroundColor: ZONE_COLORS[tooltip.zone], color: '#fff' }}
           >
-            {ZONE_LABELS[tooltip.zone]}
+            {getZoneLabel(tooltip.zone)}
           </p>
         </div>
       )}

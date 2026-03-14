@@ -1,6 +1,9 @@
 import { type FC, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from 'recharts';
 import type { FtpChangeDto, PmcActivitySummaryDto } from '../services/api';
+import { formatDate } from '../utils/format';
+import i18n from '../i18n';
 
 interface PMCData {
   date: string;
@@ -19,12 +22,6 @@ interface PMCChartProps {
   chartId?: string;
 }
 
-function formatFtpChangeLabel(fc: FtpChangeDto): string {
-  const sourceLabel = fc.source === 'Manual' ? 'zmiana ręczna' : 'eFTP z aktywności';
-  const delta = fc.toFtp - fc.fromFtp;
-  const sign = delta > 0 ? '+' : '';
-  return `FTP: ${fc.fromFtp} → ${fc.toFtp} W (Δ ${sign}${delta} W, ${sourceLabel})`;
-}
 
 /** Normalize to YYYY-MM-DD from ISO-like string to avoid timezone shifts when comparing. */
 function toDateOnly(s: string): string {
@@ -40,30 +37,41 @@ function parseLocalDate(dateStr: string): Date | null {
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
 
-// Strefy zgodne z interval.icu: Optymalna = -10 do -30 (budowanie formy), Ryzykowna = głęboka fatyga < -35
-function getTsbZoneLabel(tsb: number): string {
-  if (tsb < -35) return 'Ryzykowna';
-  if (tsb < -10) return 'Optymalna';
-  if (tsb < 5) return 'Przejściowa';
-  if (tsb < 25) return 'Świeża';
-  return 'Bardzo świeża';
-}
-
 function isPrzejściowa(tsb: number): boolean {
   return tsb >= -10 && tsb < 5;
 }
 
-const TSB_ZONES = [
-  { y1: -55, y2: -35, fill: '#ef4444', fillOpacity: 0.25, label: 'Ryzykowna (< -35)' },
-  { y1: -35, y2: -10, fill: '#10b981', fillOpacity: 0.25, label: 'Optymalna (-35 do -10)' },
-  { y1: -10, y2: 5, fill: '#64748b', fillOpacity: 0.22, label: 'Przejściowa (-10 do 5)' },
-  { y1: 5, y2: 25, fill: '#3b82f6', fillOpacity: 0.2, label: 'Świeża (5 do 25)' },
-  { y1: 25, y2: 55, fill: '#8b5cf6', fillOpacity: 0.2, label: 'Bardzo świeża (> 25)' },
-] as const;
+function getTsbZoneLabelKey(tsb: number): string {
+  if (tsb < -35) return 'tsbZoneRisky';
+  if (tsb < -10) return 'tsbZoneOptimal';
+  if (tsb < 5) return 'tsbZoneTransition';
+  if (tsb < 25) return 'tsbZoneFresh';
+  return 'tsbZoneVeryFresh';
+}
 
 const TSB_Y_DOMAIN: [number, number] = [-55, 55];
 
 export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 42, atlDays = 7, chartId = '' }) => {
+  const { t } = useTranslation('charts');
+
+  const TSB_ZONES = useMemo(
+    () => [
+      { y1: -55, y2: -35, fill: '#ef4444', fillOpacity: 0.25, labelKey: 'tsbZoneRisky' as const },
+      { y1: -35, y2: -10, fill: '#10b981', fillOpacity: 0.25, labelKey: 'tsbZoneOptimal' as const },
+      { y1: -10, y2: 5, fill: '#64748b', fillOpacity: 0.22, labelKey: 'tsbZoneTransition' as const },
+      { y1: 5, y2: 25, fill: '#3b82f6', fillOpacity: 0.2, labelKey: 'tsbZoneFresh' as const },
+      { y1: 25, y2: 55, fill: '#8b5cf6', fillOpacity: 0.2, labelKey: 'tsbZoneVeryFresh' as const },
+    ],
+    []
+  );
+
+  const formatFtpChangeLabel = (fc: FtpChangeDto): string => {
+    const sourceLabel = fc.source === 'Manual' ? t('ftpChangeManual') : t('ftpChangeEftp');
+    const delta = fc.toFtp - fc.fromFtp;
+    const sign = delta > 0 ? '+' : '';
+    return `FTP: ${fc.fromFtp} → ${fc.toFtp} W (Δ ${sign}${delta} W, ${sourceLabel})`;
+  };
+
   const loadDomain = useMemo((): [number, number] => {
     const maxLoad = data.reduce((max, p) => Math.max(max, Number(p.ctl) || 0, Number(p.atl) || 0), 0);
     const padded = Math.ceil((maxLoad * 1.1) / 10) * 10; // +10% headroom, round to tens
@@ -121,13 +129,13 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
         const parsed = parseLocalDate(item.date) ?? new Date(item.date);
         const dateLabel =
           includeYearInAxis
-            ? parsed.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })
-            : parsed.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+            ? formatDate(parsed, { day: 'numeric', month: 'short', year: 'numeric' })
+            : formatDate(parsed, { day: 'numeric', month: 'short' });
         return {
           ...item,
           date: dateLabel,
           dateFull: item.date,
-          dateLabelFull: parsed.toLocaleDateString(undefined, {
+          dateLabelFull: formatDate(parsed, {
             weekday: 'short',
             year: 'numeric',
             month: 'short',
@@ -138,7 +146,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
           ...segmentValues,
         };
       }),
-    [data, segments, ftpChangesByDate, includeYearInAxis],
+    [data, segments, ftpChangesByDate, includeYearInAxis, i18n.language],
   );
 
   /** Jawne ticki osi X (pierwszy, ćwiartki, ostatni), żeby przy rocznym wykresie ostatni dzień nie pokazywał etykiety pierwszego (błąd Recharts przy 365 punktach). */
@@ -189,7 +197,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
           <li className="flex items-center justify-between">
             <span className="flex items-center gap-1">
               <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
-              <span>Wytrenowanie (CTL)</span>
+              <span>{t('ctl')}</span>
             </span>
             <span className="font-medium text-gray-900">
               {typeof point.ctl === 'number' ? point.ctl.toFixed(1) : '–'}
@@ -198,7 +206,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
           <li className="flex items-center justify-between">
             <span className="flex items-center gap-1">
               <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
-              <span>Zmęczenie (ATL)</span>
+              <span>{t('atl')}</span>
             </span>
             <span className="font-medium text-gray-900">
               {typeof point.atl === 'number' ? point.atl.toFixed(1) : '–'}
@@ -207,7 +215,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
           <li className="flex items-center justify-between">
             <span className="flex items-center gap-1">
               <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-              <span>Forma (TSB)</span>
+              <span>{t('tsb')}</span>
             </span>
             <span className="font-medium text-gray-900">
               {typeof tsb === 'number' ? tsb.toFixed(1) : '–'}
@@ -217,13 +225,13 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
 
         {typeof tsb === 'number' && (
           <p className="mt-2 border-t border-gray-100 pt-2 text-[11px] text-gray-600">
-            Strefa TSB: {getTsbZoneLabel(tsb)}
+            {t('tsbZoneLabel')} {t(getTsbZoneLabelKey(tsb))}
           </p>
         )}
 
         {ftpChangesForDay.length > 0 && (
           <div className="mt-2 border-t border-gray-100 pt-2">
-            <p className="mb-1 text-[11px] font-semibold text-gray-700">Zmiany FTP</p>
+            <p className="mb-1 text-[11px] font-semibold text-gray-700">{t('ftpChanges')}</p>
             <ul className="space-y-0.5 text-[11px] text-gray-700">
               {ftpChangesForDay.map((fc, idx) => (
                 <li key={idx}>{formatFtpChangeLabel(fc)}</li>
@@ -235,7 +243,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
         {activitiesForDay.length > 0 && (
           <div className="mt-2 border-t border-gray-100 pt-2">
             <p className="mb-1 text-[11px] font-semibold text-gray-700">
-              Aktywności ({activitiesForDay.length})
+              {t('activitiesCount', { count: activitiesForDay.length })}
             </p>
             <ul className="max-h-32 space-y-0.5 overflow-y-auto text-[11px] text-gray-700">
               {activitiesForDay.slice(0, 5).map((act) => (
@@ -249,7 +257,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
               ))}
               {activitiesForDay.length > 5 && (
                 <li className="text-[11px] text-gray-500">
-                  +{activitiesForDay.length - 5} więcej
+                  +{activitiesForDay.length - 5} {t('more')}
                 </li>
               )}
             </ul>
@@ -261,11 +269,11 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
 
   return (
     <div className="relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-      <h2 className="mb-4 text-xl font-semibold text-gray-900">Performance Management Chart</h2>
+      <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('pmcTitle')}</h2>
 
       {/* Obciążenie treningowe (CTL + ATL) */}
       <div className="mb-4">
-        <h3 className="mb-2 text-sm font-medium text-gray-700">Obciążenie treningowe (Wytrenowanie / Zmęczenie)</h3>
+        <h3 className="mb-2 text-sm font-medium text-gray-700">{t('trainingLoadTitle')}</h3>
         <ResponsiveContainer width="100%" height={200}>
           <LineChart
             data={formattedData}
@@ -294,7 +302,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
               dataKey="ctl"
               stroke="#3b82f6"
               strokeWidth={2}
-              name="Wytrenowanie (CTL)"
+              name={t('ctl')}
               dot={false}
               isAnimationActive={false}
             />
@@ -303,7 +311,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
               dataKey="atl"
               stroke="#f59e0b"
               strokeWidth={2}
-              name="Zmęczenie (ATL)"
+              name={t('atl')}
               dot={false}
               isAnimationActive={false}
             />
@@ -311,9 +319,9 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
         </ResponsiveContainer>
       </div>
 
-      {/* Forma (TSB) – wykres w obszarze stref, jak w interval.icu */}
+      {/* Forma (TSB) */}
       <div>
-        <h3 className="mb-2 text-sm font-medium text-gray-700">Forma (TSB)</h3>
+        <h3 className="mb-2 text-sm font-medium text-gray-700">{t('tsb')}</h3>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart
             data={formattedData}
@@ -387,16 +395,16 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
 
       <div className="mt-4 grid grid-cols-3 gap-4 text-center text-sm">
         <div>
-          <p className="text-gray-600">CTL (Wytrenowanie)</p>
-          <p className="text-xs text-gray-500">{ctlDays}-dniowa średnia</p>
+          <p className="text-gray-600">CTL ({t('ctl')})</p>
+          <p className="text-xs text-gray-500">{t('ctlDaysAverage', { days: ctlDays })}</p>
         </div>
         <div>
-          <p className="text-gray-600">ATL (Zmęczenie)</p>
-          <p className="text-xs text-gray-500">{atlDays}-dniowa średnia</p>
+          <p className="text-gray-600">ATL ({t('atl')})</p>
+          <p className="text-xs text-gray-500">{t('atlDaysAverage', { days: atlDays })}</p>
         </div>
         <div>
-          <p className="text-gray-600">TSB (Forma)</p>
-          <p className="text-xs text-gray-500">CTL - ATL</p>
+          <p className="text-gray-600">TSB ({t('tsb')})</p>
+          <p className="text-xs text-gray-500">{t('tsbFormula')}</p>
         </div>
       </div>
       <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-gray-500">
@@ -406,7 +414,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
               className="inline-block h-2.5 w-3 rounded-sm"
               style={{ backgroundColor: zone.fill, opacity: 0.8 }}
             />
-            {zone.label}
+            {t(zone.labelKey)}
           </span>
         ))}
       </div>

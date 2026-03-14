@@ -71,6 +71,8 @@ export interface CreateWorkoutRequest {
   steps: CreateWorkoutStepDto[];
 }
 
+export const PLAN_MODES = ['DailyRecommendations', 'FullPlan'] as const;
+
 export interface TrainingPreferenceDto {
   id: string;
   goal: string;
@@ -81,6 +83,7 @@ export interface TrainingPreferenceDto {
   targetEventDate: string | null;
   preferredWorkoutMinutes: number;
   considerNonCycling: boolean;
+  planMode: string;
   isActive: boolean;
 }
 
@@ -93,6 +96,7 @@ export interface SaveTrainingPreferenceRequest {
   targetEventDate: string | null;
   preferredWorkoutMinutes: number;
   considerNonCycling: boolean;
+  planMode: string;
 }
 
 export interface DailyRecommendationDto {
@@ -125,6 +129,13 @@ export interface WeeklyPlanDto {
   weekStart: string;
   weekEnd: string;
   days: DailyRecommendationDto[];
+}
+
+export interface FullPlanDto {
+  planStart: string;
+  planEnd: string;
+  weeks: number;
+  weeksData: WeeklyPlanDto[];
 }
 
 export const WORKOUT_CATEGORIES = [

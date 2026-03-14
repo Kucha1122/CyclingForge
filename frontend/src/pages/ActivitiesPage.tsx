@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { activitiesApi, metricsApi, type FtpChangeDto } from '../services/api';
 import type { ActivityDto } from '../types/activity';
+import { formatDate, formatTime } from '../utils/format';
 
 const PER_PAGE = 30;
 
 export const ActivitiesPage = () => {
   useAuth();
+  const { t, i18n } = useTranslation('activities');
   const [activities, setActivities] = useState<ActivityDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -104,11 +107,11 @@ export const ActivitiesPage = () => {
     }
 
     if (lastChange.source === 'Manual') {
-      return 'FTP z profilu (ręcznie ustawione)';
+      return 'ftpFromProfile';
     }
 
     if (lastChange.source === 'EstimatedFromActivity') {
-      return 'eFTP wyliczone z aktywności';
+      return 'eftpFromActivity';
     }
 
     return null;
@@ -132,16 +135,16 @@ export const ActivitiesPage = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-xl font-semibold text-gray-700">Loading activities...</p>
+        <p className="text-xl font-semibold text-gray-700">{t('loading')}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div key={i18n.language} className="min-h-screen bg-gray-50 p-8">
       <header className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold text-gray-900">Activities</h1>
-        <p className="text-gray-600">Your complete training history</p>
+        <h1 className="mb-2 text-3xl font-bold text-gray-900">{t('title')}</h1>
+        <p className="text-gray-600">{t('subtitle')}</p>
       </header>
 
       {/* Filters – counts from API (all activities), fallback to loaded when counts not available */}
@@ -154,7 +157,7 @@ export const ActivitiesPage = () => {
               : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
           }`}
         >
-          All ({activities.length})
+          {t('all')} ({activities.length})
         </button>
         <button
           onClick={() => setFilter('ride')}
@@ -164,7 +167,7 @@ export const ActivitiesPage = () => {
               : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
           }`}
         >
-          Rides ({activities.filter(a => a.type.toLowerCase().includes('ride')).length})
+          {t('rides')} ({activities.filter(a => a.type.toLowerCase().includes('ride')).length})
         </button>
         <button
           onClick={() => setFilter('run')}
@@ -174,7 +177,7 @@ export const ActivitiesPage = () => {
               : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
           }`}
         >
-          Runs ({activities.filter(a => a.type.toLowerCase().includes('run')).length})
+          {t('runs')} ({activities.filter(a => a.type.toLowerCase().includes('run')).length})
         </button>
         <button
           onClick={() => setFilter('walk')}
@@ -184,7 +187,7 @@ export const ActivitiesPage = () => {
               : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
           }`}
         >
-          Walks ({activities.filter(a => a.type.toLowerCase().includes('walk')).length})
+          {t('walks')} ({activities.filter(a => a.type.toLowerCase().includes('walk')).length})
         </button>
       </div>
 
@@ -206,42 +209,37 @@ export const ActivitiesPage = () => {
                   <div className="flex-1">
                     <h3 className="mb-1 text-lg font-semibold text-gray-900">{activity.name}</h3>
                     <p className="mb-2 text-sm text-gray-500">
-                      {new Date(activity.startDate).toLocaleDateString('en-US', { 
-                        weekday: 'short', 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })} • {new Date(activity.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {formatDate(activity.startDate, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} • {formatTime(activity.startDate)}
                     </p>
                     
                     <div className="flex flex-wrap items-center gap-4 text-sm">
                       <div className="flex items-center gap-1">
-                        <span className="text-gray-600">Distance:</span>
+                        <span className="text-gray-600">{t('distance')}</span>
                         <span className="font-medium text-gray-900">{((activity.distance ?? 0) / 1000).toFixed(2)} km</span>
                       </div>
                       
                       <div className="flex items-center gap-1">
-                        <span className="text-gray-600">Time:</span>
+                        <span className="text-gray-600">{t('time')}</span>
                         <span className="font-medium text-gray-900">
                           {Math.floor((activity.movingTime ?? 0) / 3600)}h {Math.floor(((activity.movingTime ?? 0) % 3600) / 60)}m
                         </span>
                       </div>
                       
                       <div className="flex items-center gap-1">
-                        <span className="text-gray-600">Elevation:</span>
+                        <span className="text-gray-600">{t('elevation')}</span>
                         <span className="font-medium text-gray-900">{(activity.totalElevationGain ?? 0).toFixed(0)} m</span>
                       </div>
 
                       {activity.averageHeartRate && (
                         <div className="flex items-center gap-1">
-                          <span className="text-gray-600">Avg HR:</span>
+                          <span className="text-gray-600">{t('avgHr')}</span>
                           <span className="font-medium text-red-600">{activity.averageHeartRate.toFixed(0)} bpm</span>
                         </div>
                       )}
 
                       {activity.averagePower && (
                         <div className="flex items-center gap-1">
-                          <span className="text-gray-600">Avg Power:</span>
+                          <span className="text-gray-600">{t('avgPower')}</span>
                           <span className="font-medium text-gray-900">{activity.averagePower.toFixed(0)} W</span>
                         </div>
                       )}
@@ -255,19 +253,19 @@ export const ActivitiesPage = () => {
 
                       {activity.intensityFactor && (
                         <div className="flex items-center gap-1">
-                          <span className="text-gray-600">IF:</span>
+                          <span className="text-gray-600">{t('if')}</span>
                           <span className="font-medium text-purple-600">{activity.intensityFactor.toFixed(2)}</span>
                         </div>
                       )}
 
                       {activity.ftpUsed != null && (
                         <div className="flex items-center gap-1">
-                          <span className="text-gray-600">FTP:</span>
+                          <span className="text-gray-600">{t('ftp')}</span>
                           <span className="font-medium text-gray-900">{activity.ftpUsed} W</span>
                           {(() => {
                             const src = getFtpSourceLabel(activity);
                             return src ? (
-                              <span className="text-[11px] text-gray-500">({src})</span>
+                              <span className="text-[11px] text-gray-500">({t(src)})</span>
                             ) : null;
                           })()}
                         </div>
@@ -281,7 +279,7 @@ export const ActivitiesPage = () => {
                               : 'border-amber-200 bg-amber-50 text-amber-700'
                           }`}
                         >
-                          {activity.deviceWatts ? 'Power meter' : 'Estimated / HR-based'}
+                          {activity.deviceWatts ? t('powerMeter') : t('estimatedOrHr')}
                         </span>
                       )}
                     </div>
@@ -291,13 +289,13 @@ export const ActivitiesPage = () => {
                 <div className="ml-4 text-right">
                   {activity.normalizedPower && (
                     <div className="mb-1">
-                      <p className="text-xs text-gray-500">NP</p>
+                      <p className="text-xs text-gray-500">{t('np')}</p>
                       <p className="text-lg font-bold text-blue-600">{activity.normalizedPower.toFixed(0)} W</p>
                     </div>
                   )}
                   {activity.averageSpeed && (
                     <div>
-                      <p className="text-xs text-gray-500">Avg Speed</p>
+                      <p className="text-xs text-gray-500">{t('avgSpeed')}</p>
                       <p className="text-sm font-medium text-gray-900">{activity.averageSpeed.toFixed(1)} km/h</p>
                     </div>
                   )}
@@ -307,17 +305,15 @@ export const ActivitiesPage = () => {
           ))}
           <div ref={sentinelRef} className="h-4" aria-hidden />
           {loadingMore && (
-            <p className="py-4 text-center text-sm text-gray-500">Loading more...</p>
+            <p className="py-4 text-center text-sm text-gray-500">{t('loadingMore')}</p>
           )}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center rounded-xl bg-white p-12 text-center">
           <div className="mb-4 text-6xl">📭</div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900">No Activities Found</h3>
+          <h3 className="mb-2 text-lg font-medium text-gray-900">{t('noActivities')}</h3>
           <p className="text-gray-500">
-            {filter !== 'all' 
-              ? 'No activities match your current filter. Try changing the filter above.'
-              : 'Sync with Strava to see your activities here.'}
+            {filter !== 'all' ? t('noMatchFilter') : t('syncStravaToSee')}
           </p>
         </div>
       )}
