@@ -241,4 +241,4 @@ tests/                   # Testy jednostkowe, aplikacyjne, integracyjne
 
 ## Licencja
 
-All rights reserved (lub wybierz licencję, np. MIT).
+Do what you want
