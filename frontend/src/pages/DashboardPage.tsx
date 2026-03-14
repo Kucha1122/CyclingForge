@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { stravaApi, activitiesApi } from '../services/api';
 import type { AthleteProfileDto } from '../types/strava';
 import type { ActivityDto } from '../types/activity';
 import { useNavigate, Link } from 'react-router-dom';
+import { formatDate, formatTime } from '../utils/format';
 
 export const DashboardPage = () => {
+  const { t } = useTranslation('dashboard');
   const { user, logout } = useAuth();
   const [stravaProfile, setStravaProfile] = useState<AthleteProfileDto | null>(null);
   const [activities, setActivities] = useState<ActivityDto[]>([]);
@@ -76,7 +79,7 @@ export const DashboardPage = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <p className="text-xl font-semibold text-gray-700">Loading dashboard...</p>
+        <p className="text-xl font-semibold text-gray-700">{t('loadingDashboard')}</p>
       </div>
     );
   }
@@ -86,14 +89,14 @@ export const DashboardPage = () => {
       {/* Header */}
       <header className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user?.email}</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-600">{t('welcomeBack', { email: user?.email ?? '' })}</p>
         </div>
         <button
           onClick={handleLogout}
           className="rounded-lg bg-red-500 px-4 py-2 font-medium text-white transition-colors hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
         >
-          Logout
+          {t('logout')}
         </button>
       </header>
 
@@ -102,14 +105,14 @@ export const DashboardPage = () => {
         <div className="space-y-8">
           {/* User Profile Card */}
           <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">Your Profile</h2>
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('yourProfile')}</h2>
             <div className="space-y-3 text-sm text-gray-700">
                <div className="flex justify-between border-b border-gray-100 pb-2">
-                <span className="font-medium">Email</span>
+                <span className="font-medium">{t('email')}</span>
                 <span>{user?.email}</span>
               </div>
               <div className="flex justify-between border-b border-gray-100 pb-2">
-                <span className="font-medium">User ID</span>
+                <span className="font-medium">{t('userId')}</span>
                 <span className="font-mono text-xs">{user?.userId}</span>
               </div>
             </div>
@@ -117,14 +120,14 @@ export const DashboardPage = () => {
 
           {/* Strava Connection Card */}
           <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">Strava Connection</h2>
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('stravaConnection')}</h2>
             {stravaProfile ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   {stravaProfile.profileImageUrl ? (
                     <img
                       src={stravaProfile.profileImageUrl}
-                      alt="Strava Profile"
+                      alt={t('stravaProfile')}
                       className="h-16 w-16 rounded-full border-2 border-orange-500"
                     />
                   ) : (
@@ -142,26 +145,26 @@ export const DashboardPage = () => {
                   </div>
                 </div>
                 <div className="rounded-lg bg-green-50 p-3 text-center text-sm font-medium text-green-700">
-                  ✓ Connected to Strava
+                  ✓ {t('connectedToStrava')}
                 </div>
                 <button
                   onClick={handleSync}
                   disabled={syncing}
                   className="w-full rounded-lg bg-orange-600 px-4 py-2 font-medium text-white transition-colors hover:bg-orange-700 disabled:opacity-50"
                 >
-                  {syncing ? 'Syncing...' : 'Sync Activities'}
+                  {syncing ? t('syncing') : t('syncActivities')}
                 </button>
               </div>
             ) : (
               <div className="text-center">
                 <p className="mb-4 text-sm text-gray-600">
-                  Connect your Strava account to sync your activities.
+                  {t('connectStravaToSync')}
                 </p>
                 <button
                   onClick={handleConnectStrava}
                   className="w-full rounded-lg bg-[#FC4C02] px-4 py-2 font-medium text-white transition-colors hover:bg-[#e34402]"
                 >
-                  Connect with Strava
+                  {t('connectWithStrava')}
                 </button>
               </div>
             )}
@@ -172,9 +175,9 @@ export const DashboardPage = () => {
         <div className="md:col-span-2">
           <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">Recent Activities</h2>
+              <h2 className="text-xl font-semibold text-gray-900">{t('recentActivities')}</h2>
               <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
-                {activities.length} Activities
+                {t('activitiesCount', { count: activities.length })}
               </span>
             </div>
 
@@ -193,7 +196,7 @@ export const DashboardPage = () => {
                       <div>
                         <h3 className="font-medium text-gray-900">{activity.name}</h3>
                         <p className="text-xs text-gray-500">
-                          {new Date(activity.startDate).toLocaleDateString()} • {new Date(activity.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {formatDate(activity.startDate)} • {formatTime(activity.startDate)}
                         </p>
                       </div>
                     </div>
@@ -209,8 +212,8 @@ export const DashboardPage = () => {
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="mb-4 text-4xl">📭</div>
-                <h3 className="text-lg font-medium text-gray-900">No activities found</h3>
-                <p className="text-gray-500">Sync with Strava to see your recent rides and runs.</p>
+                <h3 className="text-lg font-medium text-gray-900">{t('noActivitiesFound')}</h3>
+                <p className="text-gray-500">{t('syncToSeeActivities')}</p>
               </div>
             )}
           </div>

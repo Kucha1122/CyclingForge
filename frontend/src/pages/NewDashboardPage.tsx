@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { metricsApi, stravaApi, activitiesApi, garminApi } from '../services/api';
 import type { PmcSummary, WeeklySummary, MonthlySummary, DailyTssPoint } from '../services/api';
@@ -44,6 +45,8 @@ export const NewDashboardPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation('dashboard');
+  const tCommon = useTranslation('common').t;
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [stravaProfile, setStravaProfile] = useState<AthleteProfileDto | null>(null);
@@ -186,7 +189,7 @@ export const NewDashboardPage = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <p className="text-xl font-semibold text-gray-700">Loading dashboard...</p>
+        <p className="text-xl font-semibold text-gray-700">{t('loadingDashboard')}</p>
       </div>
     );
   }
@@ -197,8 +200,8 @@ export const NewDashboardPage = () => {
       <header className="mb-8">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600">Welcome back, {user?.email}</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
+            <p className="text-gray-600">{t('welcomeBack', { email: user?.email ?? '' })}</p>
           </div>
           
           {stravaProfile && (
@@ -207,7 +210,7 @@ export const NewDashboardPage = () => {
               disabled={syncing}
               className="rounded-lg bg-orange-600 px-4 py-2 font-medium text-white transition-colors hover:bg-orange-700 disabled:opacity-50"
             >
-              {syncing ? 'Syncing...' : 'Sync Activities'}
+              {syncing ? tCommon('syncing') : t('syncActivities')}
             </button>
           )}
         </div>
@@ -217,14 +220,14 @@ export const NewDashboardPage = () => {
           <div className="rounded-lg bg-orange-50 p-4 ring-1 ring-orange-200">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-orange-900">Connect Strava to Get Started</h3>
-                <p className="text-sm text-orange-700">Sync your activities to see your training metrics and performance data.</p>
+                <h3 className="font-semibold text-orange-900">{t('connectStravaTitle')}</h3>
+                <p className="text-sm text-orange-700">{t('connectStravaDesc')}</p>
               </div>
               <button
                 onClick={handleConnectStrava}
                 className="rounded-lg bg-[#FC4C02] px-4 py-2 font-medium text-white transition-colors hover:bg-[#e34402]"
               >
-                Connect with Strava
+                {t('connectWithStrava')}
               </button>
             </div>
           </div>
@@ -247,14 +250,14 @@ export const NewDashboardPage = () => {
             <div className="rounded-lg bg-blue-50 p-4 ring-1 ring-blue-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-blue-900">Connect Garmin for Sleep & Wellness Data</h3>
-                  <p className="text-sm text-blue-700">Track your sleep quality, training readiness, and more.</p>
+                  <h3 className="font-semibold text-blue-900">{t('connectGarminTitle')}</h3>
+                  <p className="text-sm text-blue-700">{t('connectGarminDesc')}</p>
                 </div>
                 <button
                   onClick={() => navigate('/profile')}
                   className="rounded-lg bg-[#007CC3] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#006AAF]"
                 >
-                  Connect Garmin
+                  {t('connectGarmin')}
                 </button>
               </div>
             </div>
@@ -266,11 +269,11 @@ export const NewDashboardPage = () => {
               <div className="flex items-center gap-6">
                 <ReadinessGauge score={todayRecommendation.readinessScore} size="sm" />
                 <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-gray-900">Today's Workout</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('todaysWorkout')}</h2>
                   {todayRecommendation.recommendationType === 'RestDay' ? (
-                    <p className="text-gray-600">Rest day recommended - take it easy!</p>
+                    <p className="text-gray-600">{t('restDayRecommended')}</p>
                   ) : todayRecommendation.recommendationType === 'AlternativeActivity' ? (
-                    <p className="text-gray-600">Consider a light walk or stretching today.</p>
+                    <p className="text-gray-600">{t('considerLightWalk')}</p>
                   ) : todayRecommendation.recommendedWorkout ? (
                     <div className="mt-1">
                       <p className="font-medium text-gray-900">{todayRecommendation.recommendedWorkout.name}</p>
@@ -279,7 +282,7 @@ export const NewDashboardPage = () => {
                           {todayRecommendation.recommendedWorkout.category}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {todayRecommendation.recommendedWorkout.durationMinutes} min / TSS {todayRecommendation.recommendedWorkout.estimatedTSS}
+                          {todayRecommendation.recommendedWorkout.durationMinutes} {tCommon('min')} / TSS {todayRecommendation.recommendedWorkout.estimatedTSS}
                         </span>
                       </div>
                     </div>
@@ -287,7 +290,7 @@ export const NewDashboardPage = () => {
                 </div>
                 <Link to="/workout/today"
                   className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                  View Details
+                  {tCommon('viewDetails')}
                 </Link>
               </div>
             </div>
@@ -321,22 +324,22 @@ export const NewDashboardPage = () => {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Zakresy:</span>
+                    <span className="text-sm text-gray-600">{t('rangeLabel')}</span>
                     <select
                       value={pmcHistoryDays}
                       onChange={(e) => setPmcHistoryDays(Number(e.target.value))}
                       className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
-                      <option value={7}>7 dni</option>
-                      <option value={30}>1 miesiąc</option>
-                      <option value={42}>42 dni</option>
-                      <option value={90}>3 miesiące</option>
-                      <option value={180}>6 miesięcy</option>
-                      <option value={365}>Rok</option>
+                      <option value={7}>{t('days7')}</option>
+                      <option value={30}>{t('days30')}</option>
+                      <option value={42}>{t('days42')}</option>
+                      <option value={90}>{t('days90')}</option>
+                      <option value={180}>{t('days180')}</option>
+                      <option value={365}>{t('year')}</option>
                     </select>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Stałe CTL/ATL:</span>
+                    <span className="text-sm text-gray-600">{t('ctlAtlConstants')}</span>
                     <select
                       value={`${pmcCtlDays}/${pmcAtlDays}`}
                       onChange={(e) => {
@@ -346,10 +349,10 @@ export const NewDashboardPage = () => {
                       }}
                       className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
-                      <option value="42/7">42/7 dni</option>
-                      <option value="42/14">42/14 dni</option>
-                      <option value="30/7">30/7 dni</option>
-                      <option value="25/7">25/7 dni</option>
+                      <option value="42/7">{t('days42_7')}</option>
+                      <option value="42/14">{t('days42_14')}</option>
+                      <option value="30/7">{t('days30_7')}</option>
+                      <option value="25/7">{t('days25_7')}</option>
                     </select>
                   </div>
                 </div>
@@ -368,10 +371,10 @@ export const NewDashboardPage = () => {
               }`}
             >
               <p className="text-sm font-medium text-gray-700">
-                Ramp rate: <span className="font-semibold">{pmcData.rampRateCtlPerWeek >= 0 ? '+' : ''}{pmcData.rampRateCtlPerWeek.toFixed(1)}</span> CTL/week
+                {t('rampRate')} <span className="font-semibold">{pmcData.rampRateCtlPerWeek >= 0 ? '+' : ''}{pmcData.rampRateCtlPerWeek.toFixed(1)}</span> {t('ctlPerWeek')}
               </p>
               {pmcData.rampRateCtlPerWeek > 7 && (
-                <p className="mt-1 text-xs text-amber-800">Load is rising quickly – pay attention to recovery.</p>
+                <p className="mt-1 text-xs text-amber-800">{t('loadRisingQuickly')}</p>
               )}
             </div>
           )}
@@ -405,15 +408,15 @@ export const NewDashboardPage = () => {
 
           {/* Quick Actions */}
           <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">Quick Actions</h2>
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('quickActions')}</h2>
             <div className="grid gap-4 md:grid-cols-3">
               <button
                 onClick={() => navigate('/activities')}
                 className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4 text-left transition-colors hover:bg-blue-100"
               >
                 <span className="mb-2 block text-2xl">🚴</span>
-                <p className="font-semibold text-blue-900">View Activities</p>
-                <p className="text-sm text-blue-700">Browse your training history</p>
+                <p className="font-semibold text-blue-900">{t('viewActivities')}</p>
+                <p className="text-sm text-blue-700">{t('browseHistory')}</p>
               </button>
               
               <button
@@ -421,8 +424,8 @@ export const NewDashboardPage = () => {
                 className="rounded-lg border-2 border-purple-200 bg-purple-50 p-4 text-left transition-colors hover:bg-purple-100"
               >
                 <span className="mb-2 block text-2xl">📈</span>
-                <p className="font-semibold text-purple-900">Advanced Analysis</p>
-                <p className="text-sm text-purple-700">Deep dive into your data</p>
+                <p className="font-semibold text-purple-900">{t('advancedAnalysis')}</p>
+                <p className="text-sm text-purple-700">{t('deepDive')}</p>
               </button>
               
               <button
@@ -430,8 +433,8 @@ export const NewDashboardPage = () => {
                 className="rounded-lg border-2 border-green-200 bg-green-50 p-4 text-left transition-colors hover:bg-green-100"
               >
                 <span className="mb-2 block text-2xl">⚙️</span>
-                <p className="font-semibold text-green-900">Update Profile</p>
-                <p className="text-sm text-green-700">Set your FTP and weight</p>
+                <p className="font-semibold text-green-900">{t('updateProfile')}</p>
+                <p className="text-sm text-green-700">{t('setFtpWeight')}</p>
               </button>
             </div>
           </div>
@@ -439,8 +442,8 @@ export const NewDashboardPage = () => {
       ) : (
         <div className="flex flex-col items-center justify-center py-12">
           <div className="mb-4 text-6xl">📭</div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900">No Data Yet</h3>
-          <p className="text-gray-500">Connect your Strava account to start tracking your training.</p>
+          <h3 className="mb-2 text-lg font-medium text-gray-900">{t('noDataYet')}</h3>
+          <p className="text-gray-500">{t('connectStravaToStart')}</p>
         </div>
       )}
     </div>

@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { usersApi, stravaApi, garminApi, type UserProfile } from '../services/api';
 import type { AthleteProfileDto, AthleteZonesDto } from '../types/strava';
 import type { GarminStatusDto } from '../types/garmin';
 import { useNavigate } from 'react-router-dom';
+import { formatDate } from '../utils/format';
 
 export const ProfilePage = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { t } = useTranslation('profile');
+  const tCommon = useTranslation('common').t;
+  useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -123,14 +127,14 @@ export const ProfilePage = () => {
           gender: gender || null,
           eftpMinDurationSeconds: eftpSec,
         });
-        setMessage({ type: 'success', text: 'Profile updated successfully!' });
+        setMessage({ type: 'success', text: t('profileUpdated') });
         
         // Refresh profile data
         const profileResponse = await usersApi.getProfile(user.userId);
         setUserProfile(profileResponse.data);
       }
     } catch {
-      setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
+      setMessage({ type: 'error', text: t('profileUpdateFailed') });
     } finally {
       setSaving(false);
     }
@@ -149,7 +153,7 @@ export const ProfilePage = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-xl font-semibold text-gray-700">Loading profile...</p>
+        <p className="text-xl font-semibold text-gray-700">{t('loadingProfile')}</p>
       </div>
     );
   }
@@ -157,8 +161,8 @@ export const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <header className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold text-gray-900">Profile Settings</h1>
-        <p className="text-gray-600">Manage your training profile and metrics</p>
+        <h1 className="mb-2 text-3xl font-bold text-gray-900">{t('title')}</h1>
+        <p className="text-gray-600">{t('subtitle')}</p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -166,22 +170,22 @@ export const ProfilePage = () => {
         <div className="space-y-6">
           {/* User Info Card */}
           <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">Account Info</h2>
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('accountInfo')}</h2>
             <div className="space-y-3 text-sm">
               <div>
-                <p className="text-gray-600">Email</p>
+                <p className="text-gray-600">{t('email')}</p>
                 <p className="font-medium text-gray-900">{userProfile?.email}</p>
               </div>
               <div>
-                <p className="text-gray-600">Name</p>
+                <p className="text-gray-600">{t('name')}</p>
                 <p className="font-medium text-gray-900">
                   {userProfile?.firstName} {userProfile?.lastName}
                 </p>
               </div>
               <div>
-                <p className="text-gray-600">Member Since</p>
+                <p className="text-gray-600">{t('memberSince')}</p>
                 <p className="font-medium text-gray-900">
-                  {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : 'N/A'}
+                  {userProfile?.createdAt ? formatDate(userProfile.createdAt) : tCommon('nA')}
                 </p>
               </div>
             </div>
@@ -189,7 +193,7 @@ export const ProfilePage = () => {
 
           {/* Strava Connection Card */}
           <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">Strava Connection</h2>
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('stravaConnection')}</h2>
             {stravaProfile ? (
               <div className="flex items-center gap-3">
                 {stravaProfile.profileImageUrl && (
@@ -207,20 +211,20 @@ export const ProfilePage = () => {
                     {stravaProfile.city}, {stravaProfile.country}
                   </p>
                   <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                    <span>●</span> Connected
+                    <span>●</span> {t('connected')}
                   </div>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
                 <p className="text-sm text-gray-600">
-                  Your Strava account is currently <span className="font-semibold text-red-600">disconnected</span>.
+                  <span className="font-semibold text-red-600">{t('stravaAccountDisconnected')}</span>
                 </p>
                 <button
                   onClick={handleConnectStrava}
                   className="inline-flex items-center justify-center rounded-lg bg-[#FC4C02] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#e34402]"
                 >
-                  Connect with Strava
+                  {t('connectWithStrava')}
                 </button>
               </div>
             )}
@@ -228,16 +232,16 @@ export const ProfilePage = () => {
 
           {/* Garmin Connect Card */}
           <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">Garmin Connect</h2>
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('garminConnect')}</h2>
             {garminStatus?.isConnected ? (
               <div>
                 <div className="mb-3 flex items-center gap-2">
                   <div className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                    <span>●</span> Connected
+                    <span>●</span> {t('connected')}
                   </div>
                   {garminStatus.connectedAt && (
                     <span className="text-xs text-gray-500">
-                      since {new Date(garminStatus.connectedAt).toLocaleDateString()}
+                      {t('connectedSince')} {formatDate(garminStatus.connectedAt)}
                     </span>
                   )}
                 </div>
@@ -256,13 +260,13 @@ export const ProfilePage = () => {
                   disabled={garminDisconnecting}
                   className="inline-flex items-center justify-center rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
                 >
-                  {garminDisconnecting ? 'Disconnecting...' : 'Disconnect'}
+                  {garminDisconnecting ? t('disconnecting') : t('disconnect')}
                 </button>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
                 <p className="text-sm text-gray-600">
-                  Connect your Garmin account to sync sleep, training readiness, and wellness data.
+                  {t('connectGarminHint')}
                 </p>
                 <button
                   onClick={async () => {
@@ -275,7 +279,7 @@ export const ProfilePage = () => {
                   }}
                   className="inline-flex items-center justify-center rounded-lg bg-[#007CC3] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#006AAF]"
                 >
-                  Connect with Garmin
+                  {t('connectWithGarmin')}
                 </button>
               </div>
             )}
@@ -285,9 +289,9 @@ export const ProfilePage = () => {
           {stravaProfile && (
             <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">Training Zones</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{t('trainingZones')}</h2>
                 <span className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
-                  From Strava
+                  {t('fromStrava')}
                 </span>
               </div>
 
@@ -304,13 +308,13 @@ export const ProfilePage = () => {
 
               {!zonesLoading && !zones && !zonesError && (
                 <p className="text-sm text-gray-600">
-                  Strava did not return any predefined heart rate or power zones for your profile.
+                  {t('stravaNoZones')}
                 </p>
               )}
 
               {zonesError && (
                 <p className="text-sm text-red-600">
-                  Failed to load zones from Strava. You can still use manual metrics below.
+                  {t('failedToLoadZones')}
                 </p>
               )}
 
@@ -320,9 +324,9 @@ export const ProfilePage = () => {
                   {zones.heartRateZones.length > 0 && (
                     <div>
                       <div className="mb-2 flex items-baseline justify-between">
-                        <h3 className="text-sm font-semibold text-gray-900">Heart Rate Zones</h3>
+                        <h3 className="text-sm font-semibold text-gray-900">{t('heartRateZones')}</h3>
                         <p className="text-xs text-gray-500">
-                          {zones.heartRateZones.length} zones (bpm)
+                          {t('zonesCountBpm', { count: zones.heartRateZones.length })}
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -362,9 +366,9 @@ export const ProfilePage = () => {
                   {zones.powerZones.length > 0 && (
                     <div>
                       <div className="mb-2 flex items-baseline justify-between">
-                        <h3 className="text-sm font-semibold text-gray-900">Power Zones</h3>
+                        <h3 className="text-sm font-semibold text-gray-900">{t('powerZones')}</h3>
                         <p className="text-xs text-gray-500">
-                          {zones.powerZones.length} zones (watts)
+                          {t('zonesCountWatts', { count: zones.powerZones.length })}
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -408,7 +412,7 @@ export const ProfilePage = () => {
         {/* Middle Column - Training Settings */}
         <div className="lg:col-span-2">
           <form onSubmit={handleSubmit} className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-6 text-xl font-semibold text-gray-900">Training Metrics</h2>
+            <h2 className="mb-6 text-xl font-semibold text-gray-900">{t('trainingMetrics')}</h2>
 
             {message && (
               <div
@@ -426,10 +430,10 @@ export const ProfilePage = () => {
               {/* FTP Input */}
               <div>
                 <label htmlFor="ftp" className="mb-1 block text-sm font-medium text-gray-900">
-                  Functional Threshold Power (FTP)
+                  {t('ftpLabel')}
                 </label>
                 <p className="mb-2 text-xs text-gray-600">
-                  Your FTP is the maximum power you can sustain for approximately one hour. This is used to calculate training zones and metrics like TSS and IF.
+                  {t('ftpHint')}
                 </p>
                 <div className="relative">
                   <input
@@ -437,16 +441,16 @@ export const ProfilePage = () => {
                     id="ftp"
                     value={ftp}
                     onChange={(e) => setFtp(e.target.value)}
-                    placeholder="Enter your FTP in watts"
+                    placeholder={t('placeholderFtp')}
                     className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-16 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     min="0"
                     step="1"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">watts</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('watts')}</span>
                 </div>
                 {!ftp && (
                   <p className="mt-1 text-xs text-orange-600">
-                    ⚠️ FTP is required to calculate TSS, IF, and other power-based metrics
+                    ⚠️ {t('ftpRequiredWarning')}
                   </p>
                 )}
               </div>
@@ -454,10 +458,10 @@ export const ProfilePage = () => {
               {/* eFTP min duration */}
               <div>
                 <label htmlFor="eftpMinMinutes" className="mb-1 block text-sm font-medium text-gray-900">
-                  Min. czas wysiłku eFTP (minuty)
+                  {t('eftpMinLabel')}
                 </label>
                 <p className="mb-2 text-xs text-gray-600">
-                  Minimalny czas wysiłku (3–30 min) używany do szacowania eFTP z aktywności (jak w intervals.icu). Domyślnie 5 min.
+                  {t('eftpMinHint')}
                 </p>
                 <div className="relative">
                   <input
@@ -469,17 +473,17 @@ export const ProfilePage = () => {
                     max={30}
                     className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">min</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('min')}</span>
                 </div>
               </div>
 
               {/* Weight Input */}
               <div>
                 <label htmlFor="weight" className="mb-1 block text-sm font-medium text-gray-900">
-                  Body Weight
+                  {t('weightLabel')}
                 </label>
                 <p className="mb-2 text-xs text-gray-600">
-                  Your weight is used to calculate power-to-weight ratio and other performance metrics.
+                  {t('weightHint')}
                 </p>
                 <div className="relative">
                   <input
@@ -487,22 +491,22 @@ export const ProfilePage = () => {
                     id="weight"
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
-                    placeholder="Enter your weight"
+                    placeholder={t('placeholderWeight')}
                     className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     min="0"
                     step="0.1"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">kg</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('kg')}</span>
                 </div>
               </div>
 
               {/* LTHR Input */}
               <div>
                 <label htmlFor="lthr" className="mb-1 block text-sm font-medium text-gray-900">
-                  Lactate Threshold Heart Rate (LTHR)
+                  {t('lthrLabel')}
                 </label>
                 <p className="mb-2 text-xs text-gray-600">
-                  Used to estimate TSS for activities without power data (e.g. heart rate only). LTHR + Max HR + Resting HR are used for HRSS (intervals.icu-style) on the PMC chart.
+                  {t('lthrHint')}
                 </p>
                 <div className="relative">
                   <input
@@ -510,23 +514,23 @@ export const ProfilePage = () => {
                     id="lthr"
                     value={lthr}
                     onChange={(e) => setLthr(e.target.value)}
-                    placeholder="e.g. 165"
+                    placeholder={t('placeholderBpm')}
                     className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     min="0"
                     max="250"
                     step="1"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">bpm</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('bpm')}</span>
                 </div>
               </div>
 
               {/* Max HR */}
               <div>
                 <label htmlFor="maxHeartRate" className="mb-1 block text-sm font-medium text-gray-900">
-                  Max Heart Rate
+                  {t('maxHrLabel')}
                 </label>
                 <p className="mb-2 text-xs text-gray-600">
-                  Used with Resting HR and LTHR for HR-based TSS (HRSS) on activities without power. Leave blank if you only use power.
+                  {t('maxHrHint')}
                 </p>
                 <div className="relative">
                   <input
@@ -534,23 +538,23 @@ export const ProfilePage = () => {
                     id="maxHeartRate"
                     value={maxHeartRate}
                     onChange={(e) => setMaxHeartRate(e.target.value)}
-                    placeholder="e.g. 185"
+                    placeholder={t('placeholderMaxHr')}
                     className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     min="0"
                     max="250"
                     step="1"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">bpm</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('bpm')}</span>
                 </div>
               </div>
 
               {/* Resting HR */}
               <div>
                 <label htmlFor="restingHeartRate" className="mb-1 block text-sm font-medium text-gray-900">
-                  Resting Heart Rate
+                  {t('restingHrLabel')}
                 </label>
                 <p className="mb-2 text-xs text-gray-600">
-                  Measure in the morning before getting up. Used with Max HR and LTHR for HRSS on the PMC chart.
+                  {t('restingHrHint')}
                 </p>
                 <div className="relative">
                   <input
@@ -558,23 +562,23 @@ export const ProfilePage = () => {
                     id="restingHeartRate"
                     value={restingHeartRate}
                     onChange={(e) => setRestingHeartRate(e.target.value)}
-                    placeholder="e.g. 48"
+                    placeholder={t('placeholderRestingHr')}
                     className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     min="0"
                     max="120"
                     step="1"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">bpm</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('bpm')}</span>
                 </div>
               </div>
 
               {/* Gender */}
               <div>
                 <label htmlFor="gender" className="mb-1 block text-sm font-medium text-gray-900">
-                  Gender
+                  {t('genderLabel')}
                 </label>
                 <p className="mb-2 text-xs text-gray-600">
-                  Used in HRSS (TRIMP) formula for activities without power (e.g. male / female).
+                  {t('genderHint')}
                 </p>
                 <select
                   id="gender"
@@ -582,24 +586,24 @@ export const ProfilePage = () => {
                   onChange={(e) => setGender(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
+                  <option value="male">{t('male')}</option>
+                  <option value="female">{t('female')}</option>
                 </select>
               </div>
 
               {/* Calculated Metrics */}
               {calculateWattsPerKg() && (
                 <div className="rounded-lg bg-blue-50 p-4 ring-1 ring-blue-200">
-                  <p className="mb-1 text-sm font-medium text-blue-900">Power-to-Weight Ratio</p>
+                  <p className="mb-1 text-sm font-medium text-blue-900">{t('powerToWeight')}</p>
                   <p className="text-3xl font-bold text-blue-700">{calculateWattsPerKg()} W/kg</p>
                   <p className="mt-2 text-xs text-blue-700">
                     {parseFloat(calculateWattsPerKg()!) > 4.5
-                      ? 'Excellent - Professional level'
+                      ? t('pwrExcellent')
                       : parseFloat(calculateWattsPerKg()!) > 3.5
-                      ? 'Very Good - Competitive amateur'
+                      ? t('pwrVeryGood')
                       : parseFloat(calculateWattsPerKg()!) > 2.5
-                      ? 'Good - Recreational racer'
-                      : 'Building fitness'}
+                      ? t('pwrGood')
+                      : t('pwrBuilding')}
                   </p>
                 </div>
               )}
@@ -610,17 +614,16 @@ export const ProfilePage = () => {
                 disabled={saving}
                 className="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
               >
-                {saving ? 'Saving...' : 'Save Profile'}
+                {saving ? t('saving') : t('saveProfile')}
               </button>
             </div>
           </form>
 
           {/* Info Card */}
           <div className="mt-6 rounded-xl bg-gradient-to-br from-purple-50 to-blue-50 p-6 ring-1 ring-purple-200">
-            <h3 className="mb-2 font-semibold text-purple-900">💡 Pro Tip</h3>
+            <h3 className="mb-2 font-semibold text-purple-900">💡 {t('proTip')}</h3>
             <p className="text-sm text-purple-800">
-              To get an accurate FTP value, perform a 20-minute maximum effort test and use 95% of your average power. 
-              Alternatively, use a ramp test or get a lab test for the most accurate results. Update your FTP every 4-6 weeks as your fitness improves.
+              {t('proTipText')}
             </p>
           </div>
         </div>

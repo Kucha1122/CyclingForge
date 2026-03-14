@@ -17,6 +17,7 @@ import { WorkoutDetailPage } from './pages/WorkoutDetailPage';
 import { WorkoutCreatorPage } from './pages/WorkoutCreatorPage';
 import { TodayWorkoutPage } from './pages/TodayWorkoutPage';
 import { WeeklyPlanPage } from './pages/WeeklyPlanPage';
+import { FullPlanPage } from './pages/FullPlanPage';
 import { TrainingSetupPage } from './pages/TrainingSetupPage';
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
               <Route path="/sleep" element={<SleepPage />} />
               <Route path="/workout/today" element={<TodayWorkoutPage />} />
               <Route path="/workout/week" element={<WeeklyPlanPage />} />
+              <Route path="/workout/plan" element={<FullPlanPage />} />
               <Route path="/workouts" element={<WorkoutLibraryPage />} />
               <Route path="/workouts/create" element={<WorkoutCreatorPage />} />
               <Route path="/workouts/:id" element={<WorkoutDetailPage />} />
