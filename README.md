@@ -79,17 +79,17 @@ flowchart LR
 
 - **Normalized Power (NP)**: średnia krocząca 30 s → każda wartość do potęgi 4 → średnia → pierwiastek 4. stopnia.
 - **Intensity Factor (IF)**: $\text{IF} = \text{NP} / \text{FTP}$
-- **TSS**: $\text{TSS} = \frac{\text{duration}_{\text{seconds}} \times \text{NP} \times \text{IF}}{\text{FTP} \times 3600} \times 100$ (równoważnie $(\text{NP}/\text{FTP})^2 \times \text{duration}_{\text{hours}} \times 100$)
+- **TSS**: $\text{TSS} = \frac{\text{duration}\_{\text{seconds}} \times \text{NP} \times \text{IF}}{\text{FTP} \times 3600} \times 100$ (równoważnie $(\text{NP}/\text{FTP})^2 \times \text{duration}\_{\text{hours}} \times 100$)
 
 ### 5.2 Metryki oparte na HR
 
 **Plik:** ten sam – `TrainingMetricsCalculator.cs`
 
-- **hrTSS** (uproszczony, oparty na LTHR): $\text{hrTSS} = \text{duration}_{\text{min}} \times (\text{avgHR}/\text{LTHR})^2 \times 100/60$
+- **hrTSS** (uproszczony, oparty na LTHR): $\text{hrTSS} = \text{duration}\_{\text{min}} \times (\text{avgHR}/\text{LTHR})^2 \times 100/60$
 - **HRSS** (TRIMP znormalizowany do 1 h przy LTHR):
   - $\text{HRR} = (\text{AvgHR} - \text{RestingHR}) / (\text{MaxHR} - \text{RestingHR})$
-  - $\text{TRIMP} = \text{duration}_{\text{min}} \times \text{HRR} \times 0{,}64 \times e^{y \times \text{HRR}}$, $y = 1{,}92$ (M) / $1{,}67$ (K)
-  - TRIMP przy LTHR dla 1 h; $\text{HRSS} = (\text{TRIMP} / \text{TRIMP}_{\text{LTHR,1h}}) \times 100$
+  - $\text{TRIMP} = \text{duration}\_{\text{min}} \times \text{HRR} \times 0{,}64 \times e^{y \times \text{HRR}}$, $y = 1{,}92$ (M) / $1{,}67$ (K)
+  - TRIMP przy LTHR dla 1 h; $\text{HRSS} = (\text{TRIMP} / \text{TRIMP}\_{\text{LTHR,1h}}) \times 100$
   - Dla streamu HR: wygładzanie 30 s, potem średnia i powyższe wzory.
 
 ### 5.3 Obciążenie z uwzględnieniem sportu
@@ -122,9 +122,9 @@ flowchart LR
 
   $$\text{ctlFactor} = 1 - e^{-1/42}, \qquad \text{atlFactor} = 1 - e^{-1/7}$$
 
-  $$\text{CTL} = \text{CTL}_{\text{prev}} + (\text{TSS}_{\text{today}} - \text{CTL}_{\text{prev}}) \times \text{ctlFactor}$$
+  $$\text{CTL} = \text{CTL}\_{\text{prev}} + (\text{TSS}\_{\text{today}} - \text{CTL}\_{\text{prev}}) \times \text{ctlFactor}$$
 
-  $$\text{ATL} = \text{ATL}_{\text{prev}} + (\text{TSS}_{\text{today}} - \text{ATL}_{\text{prev}}) \times \text{atlFactor}$$
+  $$\text{ATL} = \text{ATL}\_{\text{prev}} + (\text{TSS}\_{\text{today}} - \text{ATL}\_{\text{prev}}) \times \text{atlFactor}$$
 
   $$\text{TSB} = \text{CTL} - \text{ATL}$$
 
@@ -161,7 +161,7 @@ flowchart LR
 
 **Plik:** [`Workout.cs`](src/Modules/Workouts/CyclingForge.Modules.Workouts.Domain/Entities/Workout.cs) – `RecalculateMetrics` / `EstimatedTSS`.
 
-- Dla każdego kroku: $\text{tssAccumulator} \mathrel{+}= \text{duration}_{\text{sec}} \times \text{avgPower}^2$
+- Dla każdego kroku: $\text{tssAccumulator} \mathrel{+}= \text{duration}\_{\text{sec}} \times \text{avgPower}^2$
 - $\text{EstimatedTSS} = \text{round}(\text{tssAccumulator} / 3600 \times 100)$
 
 ---
