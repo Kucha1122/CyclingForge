@@ -93,13 +93,15 @@ internal sealed class FitImportService : IFitImportService
                     var offDur = s2.DurationSeconds;
                     var onPow = (s1.PowerLow + s1.PowerHigh) / 2m;
                     var offPow = (s2.PowerLow + s2.PowerHigh) / 2m;
+                    var onCad = s1.Cadence;
+                    var offCad = s2.Cadence;
                     var totalDur = repeatCount * (onDur + offDur);
                     order++;
                     var merged = WorkoutStep.Create(
                         workout.Id, order, StepType.Intervals,
                         totalDur, offPow, onPow, null,
                         repeatCount, onDur, offDur, onPow, offPow,
-                        null, null);
+                        onCad, offCad);
                     stepsToAdd.Add(merged);
                 }
                 continue;
@@ -178,7 +180,9 @@ internal sealed class FitImportService : IFitImportService
                 if (f is null) continue;
                 var nameProp = f.GetType().GetProperty("Name", BindingFlags.Public | BindingFlags.Instance);
                 var name = nameProp?.GetValue(f) as string;
-                if (string.IsNullOrEmpty(name) || !name.Contains(fieldName, StringComparison.OrdinalIgnoreCase))
+                // Match exact field name (case-insensitive) so we don't accidentally
+                // read cadence secondary targets like secondary_custom_target_value_low.
+                if (string.IsNullOrEmpty(name) || !string.Equals(name, fieldName, StringComparison.OrdinalIgnoreCase))
                     continue;
 
                 var getRaw = f.GetType().GetMethod("GetRawValue", [typeof(int)]);
@@ -360,10 +364,11 @@ internal sealed class FitImportService : IFitImportService
             || targetType == WktStepTarget.Power10s || targetType == WktStepTarget.Power30s
             || targetType == WktStepTarget.PowerLap)
         {
-            var fromFieldLow = GetPowerFractionFromField(stepMsg, "CustomTargetValueLow", userFtpWatts)
-                ?? GetPowerFractionFromField(stepMsg, "custom_target_power_low", userFtpWatts);
-            var fromFieldHigh = GetPowerFractionFromField(stepMsg, "CustomTargetValueHigh", userFtpWatts)
-                ?? GetPowerFractionFromField(stepMsg, "custom_target_power_high", userFtpWatts);
+            // Prefer explicit power fields; fall back to generic CustomTargetValueLow/High for older/Zwift exports.
+            var fromFieldLow = GetPowerFractionFromField(stepMsg, "custom_target_power_low", userFtpWatts)
+                ?? GetPowerFractionFromField(stepMsg, "CustomTargetValueLow", userFtpWatts);
+            var fromFieldHigh = GetPowerFractionFromField(stepMsg, "custom_target_power_high", userFtpWatts)
+                ?? GetPowerFractionFromField(stepMsg, "CustomTargetValueHigh", userFtpWatts);
             if (fromFieldLow.HasValue) powerLow = fromFieldLow.Value;
             if (fromFieldHigh.HasValue) powerHigh = fromFieldHigh.Value;
             var low = stepMsg.GetCustomTargetPowerLow();
@@ -392,6 +397,8 @@ internal sealed class FitImportService : IFitImportService
             else
                 powerLow = powerHigh = PowerValueToFraction(targetVal);
         }
+
+        int? cadenceRpm = GetCadenceFromStep(stepMsg);
 
         int durationSeconds;
         int? onDuration = null;
@@ -470,13 +477,97 @@ internal sealed class FitImportService : IFitImportService
                 workoutId, order, stepType,
                 durationSeconds, offPowerVal, onPowerVal, null,
                 repeat, onDuration, offDuration, onPowerVal, offPowerVal,
-                null, null)
+                cadenceRpm, cadenceRpm)
             : WorkoutStep.Create(
                 workoutId, order, stepType,
-                durationSeconds, powerLow, powerHigh, null);
+                durationSeconds, powerLow, powerHigh, cadenceRpm);
 
         steps.Add(step);
         return steps;
+    }
+
+    /// <summary>Reads cadence (RPM) from workout step. Tries: raw field, custom target cadence, secondary target (Cadence).</summary>
+    private static int? GetCadenceFromStep(WorkoutStepMesg stepMsg)
+    {
+        var fromField = GetCadenceFromField(stepMsg);
+        if (fromField.HasValue) return fromField.Value;
+
+        var low = stepMsg.GetCustomTargetCadenceLow();
+        var high = stepMsg.GetCustomTargetCadenceHigh();
+        var val = low ?? high;
+        if (val.HasValue && val.Value > 0)
+        {
+            var v = (decimal)val.Value;
+            if (v < 10 && v > 0) v *= 100;
+            return (int)Math.Clamp(v, 1, 255);
+        }
+
+        if (stepMsg.GetSecondaryTargetType() == WktStepTarget.Cadence)
+        {
+            var secLow = stepMsg.GetSecondaryCustomTargetValueLow();
+            var secHigh = stepMsg.GetSecondaryCustomTargetValueHigh();
+            var sec = secLow ?? secHigh;
+            if (sec.HasValue && sec.Value > 0) return (int)Math.Clamp(sec.Value, 1, 255);
+        }
+
+        return GetCadenceFromFieldByNumber(stepMsg);
+    }
+
+    private static int? GetCadenceFromFieldByNumber(WorkoutStepMesg stepMsg)
+    {
+        if (stepMsg.GetSecondaryTargetType() != WktStepTarget.Cadence) return null;
+        try
+        {
+            var fieldsProp = typeof(Mesg).GetProperty("Fields", BindingFlags.Public | BindingFlags.Instance);
+            var fields = fieldsProp?.GetValue(stepMsg) as System.Collections.IEnumerable;
+            if (fields is null) return null;
+            foreach (var f in fields)
+            {
+                if (f is null) continue;
+                var numProp = f.GetType().GetProperty("Num", BindingFlags.Public | BindingFlags.Instance);
+                var num = numProp?.GetValue(f);
+                var numInt = num is byte b ? b : (num is int i ? i : (num is uint u ? (int)u : -1));
+                if (numInt != 21 && numInt != 22) continue;
+                var getRaw = f.GetType().GetMethod("GetRawValue", [typeof(int)]);
+                var raw = getRaw?.Invoke(f, [0]);
+                int rawNum = raw switch { uint ru => (int)ru, int ri => ri, long rl => (int)rl, _ => 0 };
+                if (rawNum > 0) return Math.Clamp(rawNum, 1, 255);
+            }
+        }
+        catch { /* ignore */ }
+        return null;
+    }
+
+    private static int? GetCadenceFromField(WorkoutStepMesg stepMsg)
+    {
+        try
+        {
+            var fieldsProp = typeof(Mesg).GetProperty("Fields", BindingFlags.Public | BindingFlags.Instance);
+            var fields = fieldsProp?.GetValue(stepMsg) as System.Collections.IEnumerable;
+            if (fields is null) return null;
+            foreach (var f in fields)
+            {
+                if (f is null) continue;
+                var nameProp = f.GetType().GetProperty("Name", BindingFlags.Public | BindingFlags.Instance);
+                var name = nameProp?.GetValue(f) as string;
+                if (string.IsNullOrEmpty(name) || !name.Contains("cadence", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var getRaw = f.GetType().GetMethod("GetRawValue", [typeof(int)]);
+                var raw = getRaw?.Invoke(f, [0]);
+                int rawNum = raw switch
+                {
+                    uint ru => (int)ru,
+                    int ri => ri,
+                    long rl => (int)rl,
+                    float rf => (int)Math.Round(rf),
+                    double rd => (int)Math.Round(rd),
+                    _ => 0
+                };
+                if (rawNum > 0) return Math.Clamp(rawNum, 1, 255);
+            }
+        }
+        catch { /* ignore */ }
+        return null;
     }
 
     private static StepType MapIntensityToStepType(byte? intensity)
