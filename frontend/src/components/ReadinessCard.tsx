@@ -18,6 +18,7 @@ const FORM_STATUS_KEYS: Record<string, string> = {
 
 const RECOMMENDATION_KEY_MAP: Array<{ pattern: RegExp | string; key: string }> = [
   { pattern: /Świeżość w normie|Freshness in range|Good window for intense/i, key: 'tsbRecommendationFresh' },
+  { pattern: /Strefa przejściowa|Transition zone|Możesz trenować umiarkowanie|train moderately/i, key: 'tsbRecommendationTransition' },
 ];
 
 export const ReadinessCard: FC<ReadinessCardProps> = ({

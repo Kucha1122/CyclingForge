@@ -36,6 +36,7 @@
   "tsbFormStatusFresh": "Fresh",
   "tsbFormStatusVeryFresh": "Very fresh",
   "tsbRecommendationFresh": "Freshness in range. Good window for intense sessions or racing.",
+  "tsbRecommendationTransition": "Transition zone. You can train moderately.",
   "formTrendsTitle": "Form Trends",
   "trendStable": "→ Stable",
   "trendWas": "was",
