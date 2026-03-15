@@ -136,6 +136,15 @@ internal sealed class WorkoutRepository : IWorkoutRepository
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task DeleteAllByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var toDelete = await _dbContext.Workouts
+            .Where(w => w.UserId == userId)
+            .ToListAsync(cancellationToken);
+        _dbContext.Workouts.RemoveRange(toDelete);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     private IQueryable<Workout> BuildSearchQuery(
         Guid? userId,
         WorkoutCategory? category,

@@ -41,6 +41,8 @@ export const WorkoutLibraryPage = () => {
   const [sortBy, setSortBy] = useState('default');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteName, setDeleteName] = useState<string | null>(null);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [importingZwo, setImportingZwo] = useState(false);
   const [importingFit, setImportingFit] = useState(false);
   const [importingZip, setImportingZip] = useState(false);
@@ -107,6 +109,19 @@ export const WorkoutLibraryPage = () => {
   const handleCancelDelete = () => {
     setDeleteId(null);
     setDeleteName(null);
+  };
+
+  const handleConfirmDeleteAll = async () => {
+    setDeletingAll(true);
+    try {
+      await workoutsApi.deleteAllMine();
+      setDeleteAllOpen(false);
+      fetchWorkouts();
+    } catch {
+      // ignore
+    } finally {
+      setDeletingAll(false);
+    }
   };
 
   const handleImportZwoOrFitFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -342,7 +357,17 @@ export const WorkoutLibraryPage = () => {
           </button>
         )}
 
-        <span className="ml-auto text-sm text-tertiary">{t('workoutsFound', { count: totalCount })}</span>
+        {tab === 'mine' && totalCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setDeleteAllOpen(true)}
+            className="ml-auto rounded-lg border border-state-danger-border bg-state-danger-bg px-3 py-2 text-sm font-medium text-state-danger-text hover:bg-state-danger-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            {t('deleteAllMyWorkouts')}
+          </button>
+        )}
+
+        <span className={`text-sm text-tertiary ${tab === 'mine' && totalCount > 0 ? '' : 'ml-auto'}`}>{t('workoutsFound', { count: totalCount })}</span>
       </div>
 
       {/* Grid */}
@@ -413,6 +438,36 @@ export const WorkoutLibraryPage = () => {
                 className="rounded-lg bg-state-danger-bg px-4 py-2 text-sm font-medium text-state-danger-text hover:bg-state-danger-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 {t('delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete all my workouts confirmation modal */}
+      {deleteAllOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-primary/40">
+          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl ring-1 ring-border-default">
+            <h2 className="text-lg font-semibold text-primary">{t('deleteAllMyWorkouts')}</h2>
+            <p className="mt-2 text-sm text-secondary">
+              {t('deleteAllMyWorkoutsConfirm')}
+            </p>
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteAllOpen(false)}
+                disabled={deletingAll}
+                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteAll}
+                disabled={deletingAll}
+                className="rounded-lg bg-state-danger-bg px-4 py-2 text-sm font-medium text-state-danger-text hover:bg-state-danger-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+              >
+                {deletingAll ? t('deleting') : t('delete')}
               </button>
             </div>
           </div>

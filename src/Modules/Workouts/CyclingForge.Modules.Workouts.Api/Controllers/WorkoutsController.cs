@@ -1,6 +1,7 @@
 using CyclingForge.Modules.Workouts.Api.Requests;
 using CyclingForge.Modules.Workouts.Application.Commands.CopyWorkout;
 using CyclingForge.Modules.Workouts.Application.Commands.CreateWorkout;
+using CyclingForge.Modules.Workouts.Application.Commands.DeleteAllUserWorkouts;
 using CyclingForge.Modules.Workouts.Application.Commands.DeleteWorkout;
 using CyclingForge.Modules.Workouts.Application.Commands.ImportWorkout;
 using CyclingForge.Modules.Workouts.Application.Commands.ImportWorkoutsFromZip;
@@ -103,6 +104,14 @@ public sealed class WorkoutsController : ControllerBase
             request.TargetZone, request.IsPublic, request.Tags, request.Steps);
 
         await _mediator.Send(command, cancellationToken);
+        return Ok();
+    }
+
+    [HttpDelete("mine")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> DeleteAllMyWorkouts(CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteAllUserWorkoutsCommand(_currentUser.UserId), cancellationToken);
         return Ok();
     }
 

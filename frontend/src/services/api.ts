@@ -197,6 +197,7 @@ export const workoutsApi = {
   create: (data: CreateWorkoutRequest) => api.post<string>('/workouts', data),
   update: (id: string, data: CreateWorkoutRequest) => api.put(`/workouts/${id}`, data),
   delete: (id: string) => api.delete(`/workouts/${id}`),
+  deleteAllMine: () => api.delete('/workouts/mine'),
   copy: (id: string) => api.post<string>(`/workouts/${id}/copy`),
   importZwo: (zwoXmlContent: string) => api.post<string>('/workouts/import', { zwoXmlContent }),
   parseZwo: (zwoXmlContent: string) => api.post<ParseZwoResultDto>('/workouts/parse-zwo', { zwoXmlContent }),
