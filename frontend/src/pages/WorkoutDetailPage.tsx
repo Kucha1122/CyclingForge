@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { workoutsApi, usersApi } from '../services/api';
@@ -32,6 +32,29 @@ export const WorkoutDetailPage = () => {
   const [copying, setCopying] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [highlightedStepOrder, setHighlightedStepOrder] = useState<number | null>(null);
+  const highlightClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const setHighlight = (order: number | null) => {
+    if (highlightClearRef.current) {
+      clearTimeout(highlightClearRef.current);
+      highlightClearRef.current = null;
+    }
+    setHighlightedStepOrder(order);
+  };
+
+  const scheduleClearHighlight = () => {
+    highlightClearRef.current = setTimeout(() => {
+      setHighlightedStepOrder(null);
+      highlightClearRef.current = null;
+    }, 150);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (highlightClearRef.current) clearTimeout(highlightClearRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -210,8 +233,22 @@ export const WorkoutDetailPage = () => {
 
         {/* Interval Chart */}
         <div className="mb-8 rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
-          <h2 className="mb-4 text-lg font-semibold text-primary">{t('workoutProfile')}</h2>
-          <IntervalChart steps={workout.steps} height={200} ftp={ftp ?? undefined} />
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-semibold text-primary">{t('workoutProfile')}</h2>
+            {highlightedStepOrder != null && (() => {
+              const step = workout.steps.find((s) => Number(s.order) === highlightedStepOrder);
+              if (!step) return null;
+              return (
+                <span
+                  className="inline-flex items-center rounded-full bg-accent/15 px-3 py-1 text-sm font-medium text-accent transition-opacity duration-200"
+                  role="status"
+                >
+                  {t('stepHighlightLabel', { order: step.order, type: t(STEP_TYPE_I18N_KEYS[step.type] ?? step.type) })}
+                </span>
+              );
+            })()}
+          </div>
+          <IntervalChart steps={workout.steps} height={200} ftp={ftp ?? undefined} highlightedStepOrder={highlightedStepOrder} />
         </div>
 
         {/* Steps Table */}
@@ -238,7 +275,12 @@ export const WorkoutDetailPage = () => {
               </thead>
               <tbody>
                 {workout.steps.sort((a, b) => a.order - b.order).map(step => (
-                  <tr key={step.id} className="border-b border-border-default">
+                  <tr
+                    key={step.id}
+                    className={`cursor-default border-b border-border-default transition-colors duration-200 hover:bg-muted/50 ${Number(step.order) === highlightedStepOrder ? 'bg-accent/10' : ''}`}
+                    onMouseEnter={() => setHighlight(Number(step.order))}
+                    onMouseLeave={scheduleClearHighlight}
+                  >
                     <td className="py-2 pr-4 text-tertiary">{step.order}</td>
                     <td className="py-2 pr-4 font-medium text-primary">{t(STEP_TYPE_I18N_KEYS[step.type] ?? step.type)}</td>
                     <td className="py-2 pr-4 text-primary">{formatDuration(step.durationSeconds)}</td>
