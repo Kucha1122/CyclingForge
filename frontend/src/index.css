@@ -1,1 +1,102 @@
 @import "tailwindcss";
+
+/* Class-based dark mode (toggle via .dark on root) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Semantic design tokens – light theme */
+:root {
+  --bg-page: #f9fafb;
+  --bg-surface: #ffffff;
+  --bg-muted: #f3f4f6;
+  --bg-elevated: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-tertiary: #6b7280;
+  --border-default: #e5e7eb;
+  --border-strong: #d1d5db;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-foreground: #ffffff;
+  --state-active-bg: #eff6ff;
+  --state-active-text: #1d4ed8;
+  --state-danger-bg: #fef2f2;
+  --state-danger-text: #b91c1c;
+  --state-danger-hover: #fee2e2;
+  --state-success-bg: #f0fdf4;
+  --state-success-text: #166534;
+  --sidebar-header: linear-gradient(to right, #2563eb, #1d4ed8);
+  --chart-1: #2563eb;
+  --chart-2: #059669;
+  --chart-3: #d97706;
+  --chart-4: #dc2626;
+  --chart-5: #7c3aed;
+  --chart-6: #0891b2;
+  --chart-7: #be185d;
+  --chart-8: #0d9488;
+}
+
+/* Semantic design tokens – dark theme */
+.dark {
+  --bg-page: #111827;
+  --bg-surface: #1f2937;
+  --bg-muted: #374151;
+  --bg-elevated: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #e5e7eb;
+  --text-tertiary: #9ca3af;
+  --border-default: #374151;
+  --border-strong: #4b5563;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-foreground: #ffffff;
+  --state-active-bg: #1e3a8a;
+  --state-active-text: #93c5fd;
+  --state-danger-bg: #450a0a;
+  --state-danger-text: #fca5a5;
+  --state-danger-hover: #7f1d1d;
+  --state-success-bg: #14532d;
+  --state-success-text: #86efac;
+  --sidebar-header: linear-gradient(to right, #1e40af, #1e3a8a);
+  --chart-1: #60a5fa;
+  --chart-2: #34d399;
+  --chart-3: #fbbf24;
+  --chart-4: #f87171;
+  --chart-5: #a78bfa;
+  --chart-6: #22d3ee;
+  --chart-7: #f472b6;
+  --chart-8: #2dd4bf;
+}
+
+/* Expose tokens as Tailwind theme colors for utilities (bg-*, text-*, border-*) */
+@theme {
+  --color-page: var(--bg-page);
+  --color-surface: var(--bg-surface);
+  --color-muted: var(--bg-muted);
+  --color-elevated: var(--bg-elevated);
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-tertiary: var(--text-tertiary);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-state-active-bg: var(--state-active-bg);
+  --color-state-active-text: var(--state-active-text);
+  --color-state-danger-bg: var(--state-danger-bg);
+  --color-state-danger-text: var(--state-danger-text);
+  --color-state-danger-hover: var(--state-danger-hover);
+  --color-state-success-bg: var(--state-success-bg);
+  --color-state-success-text: var(--state-success-text);
+}
+
+/* Smooth theme transition on root */
+html {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Dark mode: native date picker uses dark theme (icon + calendar popup) */
+.dark input[type="date"],
+.dark input[type="datetime-local"],
+.dark input[type="time"] {
+  color-scheme: dark;
+}
