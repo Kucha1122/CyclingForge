@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ChevronDownIcon,
@@ -35,6 +35,17 @@ function formatDuration(seconds: number): string {
   return secs > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${mins} min`;
 }
 
+/** Display minutes without float noise (e.g. 15, 5.5). */
+function formatMinutes(minutes: number): string {
+  const rounded = Math.round(minutes * 10) / 10;
+  return rounded % 1 === 0 ? String(Math.round(rounded)) : String(rounded);
+}
+
+/** Display percent as integer (e.g. 55 not 55.0000000000). */
+function formatPercent(percent: number): string {
+  return String(Math.round(percent));
+}
+
 interface WorkoutStepCardProps {
   step: EditableStep;
   index: number;
@@ -56,6 +67,11 @@ export const WorkoutStepCard = ({
 }: WorkoutStepCardProps) => {
   const { t } = useTranslation('workouts');
   const [expanded, setExpanded] = useState(false);
+  /** When set, the user is editing this field; value is the raw input string so they can clear/type freely. */
+  const [editing, setEditing] = useState<{ field: string; value: string } | null>(null);
+  useEffect(() => {
+    if (!expanded) setEditing(null);
+  }, [expanded]);
   const zone = powerToZone(step.powerHigh);
   const zoneColor = ZONE_COLORS[zone] ?? '#94a3b8';
   const stepTypeLabel = t(STEP_TYPE_I18N_KEYS[step.type] ?? step.type);
@@ -170,24 +186,35 @@ export const WorkoutStepCard = ({
                   </label>
                   <input
                     type="number"
-                    value={step.durationSeconds}
-                    onChange={(e) =>
-                      onUpdate(step.tempId, { durationSeconds: +e.target.value })
-                    }
+                    step="0.5"
+                    min={0}
+                    value={editing?.field === 'duration' ? editing.value : formatMinutes(step.durationSeconds / 60)}
+                    onFocus={() => setEditing({ field: 'duration', value: formatMinutes(step.durationSeconds / 60) })}
+                    onBlur={() => {
+                      const mins = parseFloat(editing?.field === 'duration' ? editing.value : '');
+                      if (!Number.isNaN(mins) && mins >= 0)
+                        onUpdate(step.tempId, { durationSeconds: Math.round(mins * 60) });
+                      setEditing(null);
+                    }}
+                    onChange={(e) => setEditing((prev) => (prev?.field === 'duration' ? { ...prev, value: e.target.value } : prev))}
                     className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-tertiary">
-                    Power Low (% FTP)
+                    {t('stepLabelPowerLow')}
                   </label>
                   <input
                     type="number"
-                    step="0.01"
-                    value={step.powerLow}
-                    onChange={(e) =>
-                      onUpdate(step.tempId, { powerLow: +e.target.value })
-                    }
+                    step="1"
+                    value={editing?.field === 'powerLow' ? editing.value : formatPercent(step.powerLow * 100)}
+                    onFocus={() => setEditing({ field: 'powerLow', value: formatPercent(step.powerLow * 100) })}
+                    onBlur={() => {
+                      const pct = parseFloat(editing?.field === 'powerLow' ? editing.value : '');
+                      if (!Number.isNaN(pct)) onUpdate(step.tempId, { powerLow: pct / 100 });
+                      setEditing(null);
+                    }}
+                    onChange={(e) => setEditing((prev) => (prev?.field === 'powerLow' ? { ...prev, value: e.target.value } : prev))}
                     className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
@@ -197,11 +224,15 @@ export const WorkoutStepCard = ({
                   </label>
                   <input
                     type="number"
-                    step="0.01"
-                    value={step.powerHigh}
-                    onChange={(e) =>
-                      onUpdate(step.tempId, { powerHigh: +e.target.value })
-                    }
+                    step="1"
+                    value={editing?.field === 'powerHigh' ? editing.value : formatPercent(step.powerHigh * 100)}
+                    onFocus={() => setEditing({ field: 'powerHigh', value: formatPercent(step.powerHigh * 100) })}
+                    onBlur={() => {
+                      const pct = parseFloat(editing?.field === 'powerHigh' ? editing.value : '');
+                      if (!Number.isNaN(pct)) onUpdate(step.tempId, { powerHigh: pct / 100 });
+                      setEditing(null);
+                    }}
+                    onChange={(e) => setEditing((prev) => (prev?.field === 'powerHigh' ? { ...prev, value: e.target.value } : prev))}
                     className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
@@ -214,40 +245,56 @@ export const WorkoutStepCard = ({
                   </label>
                   <input
                     type="number"
-                    value={step.repeat ?? 4}
-                    onChange={(e) =>
-                      onUpdate(step.tempId, { repeat: +e.target.value })
-                    }
+                    min={1}
+                    value={editing?.field === 'repeat' ? editing.value : String(step.repeat ?? 4)}
+                    onFocus={() => setEditing({ field: 'repeat', value: String(step.repeat ?? 4) })}
+                    onBlur={() => {
+                      const raw = editing?.field === 'repeat' ? editing.value : '';
+                      const n = parseInt(raw, 10);
+                      if (!Number.isNaN(n) && n >= 1) onUpdate(step.tempId, { repeat: n });
+                      setEditing(null);
+                    }}
+                    onChange={(e) => setEditing((prev) => (prev?.field === 'repeat' ? { ...prev, value: e.target.value } : prev))}
                     className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-tertiary">
-                    {t('stepLabelOnSec')}
+                    {t('stepLabelOnMin')}
                   </label>
                   <input
                     type="number"
-                    value={step.onDurationSeconds ?? 60}
-                    onChange={(e) =>
-                      onUpdate(step.tempId, {
-                        onDurationSeconds: +e.target.value,
-                      })
-                    }
+                    step="0.5"
+                    min={0}
+                    value={editing?.field === 'onMin' ? editing.value : formatMinutes((step.onDurationSeconds ?? 60) / 60)}
+                    onFocus={() => setEditing({ field: 'onMin', value: formatMinutes((step.onDurationSeconds ?? 60) / 60) })}
+                    onBlur={() => {
+                      const mins = parseFloat(editing?.field === 'onMin' ? editing.value : '');
+                      if (!Number.isNaN(mins) && mins >= 0)
+                        onUpdate(step.tempId, { onDurationSeconds: Math.round(mins * 60) });
+                      setEditing(null);
+                    }}
+                    onChange={(e) => setEditing((prev) => (prev?.field === 'onMin' ? { ...prev, value: e.target.value } : prev))}
                     className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-tertiary">
-                    Off (sec)
+                    {t('stepLabelOffMin')}
                   </label>
                   <input
                     type="number"
-                    value={step.offDurationSeconds ?? 60}
-                    onChange={(e) =>
-                      onUpdate(step.tempId, {
-                        offDurationSeconds: +e.target.value,
-                      })
-                    }
+                    step="0.5"
+                    min={0}
+                    value={editing?.field === 'offMin' ? editing.value : formatMinutes((step.offDurationSeconds ?? 60) / 60)}
+                    onFocus={() => setEditing({ field: 'offMin', value: formatMinutes((step.offDurationSeconds ?? 60) / 60) })}
+                    onBlur={() => {
+                      const mins = parseFloat(editing?.field === 'offMin' ? editing.value : '');
+                      if (!Number.isNaN(mins) && mins >= 0)
+                        onUpdate(step.tempId, { offDurationSeconds: Math.round(mins * 60) });
+                      setEditing(null);
+                    }}
+                    onChange={(e) => setEditing((prev) => (prev?.field === 'offMin' ? { ...prev, value: e.target.value } : prev))}
                     className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
@@ -257,25 +304,33 @@ export const WorkoutStepCard = ({
                   </label>
                   <input
                     type="number"
-                    step="0.01"
-                    value={step.onPower ?? 1.0}
-                    onChange={(e) =>
-                      onUpdate(step.tempId, { onPower: +e.target.value })
-                    }
+                    step="1"
+                    value={editing?.field === 'onPower' ? editing.value : formatPercent((step.onPower ?? 1) * 100)}
+                    onFocus={() => setEditing({ field: 'onPower', value: formatPercent((step.onPower ?? 1) * 100) })}
+                    onBlur={() => {
+                      const pct = parseFloat(editing?.field === 'onPower' ? editing.value : '');
+                      if (!Number.isNaN(pct)) onUpdate(step.tempId, { onPower: pct / 100 });
+                      setEditing(null);
+                    }}
+                    onChange={(e) => setEditing((prev) => (prev?.field === 'onPower' ? { ...prev, value: e.target.value } : prev))}
                     className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-tertiary">
-                    Off Power (% FTP)
+                    {t('stepLabelOffPower')}
                   </label>
                   <input
                     type="number"
-                    step="0.01"
-                    value={step.offPower ?? 0.5}
-                    onChange={(e) =>
-                      onUpdate(step.tempId, { offPower: +e.target.value })
-                    }
+                    step="1"
+                    value={editing?.field === 'offPower' ? editing.value : formatPercent((step.offPower ?? 0.5) * 100)}
+                    onFocus={() => setEditing({ field: 'offPower', value: formatPercent((step.offPower ?? 0.5) * 100) })}
+                    onBlur={() => {
+                      const pct = parseFloat(editing?.field === 'offPower' ? editing.value : '');
+                      if (!Number.isNaN(pct)) onUpdate(step.tempId, { offPower: pct / 100 });
+                      setEditing(null);
+                    }}
+                    onChange={(e) => setEditing((prev) => (prev?.field === 'offPower' ? { ...prev, value: e.target.value } : prev))}
                     className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
