@@ -52,7 +52,7 @@ internal sealed class FitExportService : IFitExportService
     {
         if (step.Type == StepType.Intervals && step.Repeat.HasValue && step.OnDurationSeconds.HasValue && step.OffDurationSeconds.HasValue && step.Repeat > 0)
         {
-            // ON step: duration = on duration, power = on power
+            // ON step: duration = on duration, power = on power, cadence = on cadence
             var onMsg = new WorkoutStepMesg();
             onMsg.SetMessageIndex(messageIndex++);
             onMsg.SetIntensity(Intensity.Interval);
@@ -60,9 +60,10 @@ internal sealed class FitExportService : IFitExportService
             onMsg.SetDurationTime((uint)step.OnDurationSeconds.Value);
             onMsg.SetTargetType(WktStepTarget.Power);
             SetPowerTarget(onMsg, step.OnPower ?? step.PowerHigh, step.OnPower ?? step.PowerHigh);
+            SetCadenceTarget(onMsg, step.OnCadence);
             list.Add(onMsg);
 
-            // OFF step: duration = off duration, power = off power
+            // OFF step: duration = off duration, power = off power, cadence = off cadence
             var offMsg = new WorkoutStepMesg();
             offMsg.SetMessageIndex(messageIndex++);
             offMsg.SetIntensity(Intensity.Active);
@@ -71,6 +72,7 @@ internal sealed class FitExportService : IFitExportService
             offMsg.SetTargetType(WktStepTarget.Power);
             var offPower = step.OffPower ?? 0.5m;
             SetPowerTarget(offMsg, offPower, offPower);
+            SetCadenceTarget(offMsg, step.OffCadence);
             list.Add(offMsg);
 
             // Repeat marker: repeat previous 2 steps N times (no duration_time, no repeat_time)
@@ -93,8 +95,33 @@ internal sealed class FitExportService : IFitExportService
             msg.SetTargetType(WktStepTarget.Power);
             SetPowerTarget(msg, step.PowerLow, step.PowerHigh);
         }
+        SetCadenceTarget(msg, step.Cadence);
 
         list.Add(msg);
+    }
+
+    private static void SetCadenceTarget(WorkoutStepMesg msg, int? cadenceRpm)
+    {
+        if (!cadenceRpm.HasValue || cadenceRpm.Value <= 0) return;
+        var c = (uint)Math.Clamp(cadenceRpm.Value, 1, 255);
+        msg.SetCustomTargetCadenceLow(c);
+        msg.SetCustomTargetCadenceHigh(c);
+        SetSecondaryCadenceTarget(msg, c);
+    }
+
+    /// <summary>Also set cadence as secondary target (primary is power); some devices only read secondary.</summary>
+    private static void SetSecondaryCadenceTarget(WorkoutStepMesg msg, uint cadenceRpm)
+    {
+        try
+        {
+            msg.SetSecondaryTargetType(WktStepTarget.Cadence);
+            msg.SetSecondaryCustomTargetValueLow(cadenceRpm);
+            msg.SetSecondaryCustomTargetValueHigh(cadenceRpm);
+        }
+        catch
+        {
+            // SDK may not have secondary target API
+        }
     }
 
     private static void SetPowerTarget(WorkoutStepMesg msg, decimal low, decimal high)
