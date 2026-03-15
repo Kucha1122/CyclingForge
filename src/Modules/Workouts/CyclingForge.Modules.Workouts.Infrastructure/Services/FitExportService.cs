@@ -30,40 +30,60 @@ internal sealed class FitExportService : IFitExportService
         workoutMsg.SetCapabilities(0);
         encode.Write(workoutMsg);
 
+        var allStepMesgs = new List<WorkoutStepMesg>();
+        ushort messageIndex = 0;
         foreach (var step in workout.Steps.OrderBy(s => s.Order))
         {
-            var stepMesgs = CreateStepMessages(step);
-            foreach (var m in stepMesgs)
-                encode.Write(m);
+            CreateStepMessages(step, allStepMesgs, ref messageIndex);
         }
+        foreach (var m in allStepMesgs)
+            encode.Write(m);
 
         encode.Close();
         return stream.ToArray();
     }
 
-    private static List<WorkoutStepMesg> CreateStepMessages(WorkoutStep step)
+    /// <summary>
+    /// Appends step message(s) to the list. Intervals are exported as 3 steps (ON, OFF, repeat marker)
+    /// so that duration and repeat count are stored in plain Time steps and repeat_steps only — avoids
+    /// SDK/profile issues with RepetitionTime and repeat_time. Import already merges these back into one Intervals step.
+    /// </summary>
+    private static void CreateStepMessages(WorkoutStep step, List<WorkoutStepMesg> list, ref ushort messageIndex)
     {
-        var list = new List<WorkoutStepMesg>();
-
         if (step.Type == StepType.Intervals && step.Repeat.HasValue && step.OnDurationSeconds.HasValue && step.OffDurationSeconds.HasValue && step.Repeat > 0)
         {
-            var m = new WorkoutStepMesg();
-            m.SetMessageIndex((ushort)(step.Order - 1));
-            m.SetIntensity(Intensity.Interval);
-            m.SetDurationType(WktStepDuration.RepetitionTime);
-            m.SetDurationTime((uint)step.OnDurationSeconds.Value);
-            m.SetTargetType(WktStepTarget.Power);
-            SetPowerTarget(m, step.OnPower ?? step.PowerHigh, step.OnPower ?? step.PowerHigh);
-            m.SetRepeatTime((uint)step.OffDurationSeconds.Value);
-            m.SetRepeatSteps((uint)step.Repeat.Value);
-            if (step.OffPower.HasValue)
-                m.SetRepeatPower(FractionToPercent(step.OffPower.Value));
-            list.Add(m);
-            return list;
+            // ON step: duration = on duration, power = on power
+            var onMsg = new WorkoutStepMesg();
+            onMsg.SetMessageIndex(messageIndex++);
+            onMsg.SetIntensity(Intensity.Interval);
+            onMsg.SetDurationType(WktStepDuration.Time);
+            onMsg.SetDurationTime((uint)step.OnDurationSeconds.Value);
+            onMsg.SetTargetType(WktStepTarget.Power);
+            SetPowerTarget(onMsg, step.OnPower ?? step.PowerHigh, step.OnPower ?? step.PowerHigh);
+            list.Add(onMsg);
+
+            // OFF step: duration = off duration, power = off power
+            var offMsg = new WorkoutStepMesg();
+            offMsg.SetMessageIndex(messageIndex++);
+            offMsg.SetIntensity(Intensity.Active);
+            offMsg.SetDurationType(WktStepDuration.Time);
+            offMsg.SetDurationTime((uint)step.OffDurationSeconds.Value);
+            offMsg.SetTargetType(WktStepTarget.Power);
+            var offPower = step.OffPower ?? 0.5m;
+            SetPowerTarget(offMsg, offPower, offPower);
+            list.Add(offMsg);
+
+            // Repeat marker: repeat previous 2 steps N times (no duration_time, no repeat_time)
+            var repeatMsg = new WorkoutStepMesg();
+            repeatMsg.SetMessageIndex(messageIndex++);
+            repeatMsg.SetDurationType(WktStepDuration.RepeatUntilStepsCmplt);
+            repeatMsg.SetRepeatSteps((uint)step.Repeat.Value);
+            list.Add(repeatMsg);
+            return;
         }
 
         var msg = new WorkoutStepMesg();
-        msg.SetMessageIndex((ushort)(step.Order - 1));
+        msg.SetMessageIndex(messageIndex++);
         msg.SetIntensity(StepTypeToIntensity(step.Type));
         msg.SetDurationType(WktStepDuration.Time);
         msg.SetDurationTime((uint)step.GetTotalDurationSeconds());
@@ -75,7 +95,6 @@ internal sealed class FitExportService : IFitExportService
         }
 
         list.Add(msg);
-        return list;
     }
 
     private static void SetPowerTarget(WorkoutStepMesg msg, decimal low, decimal high)
@@ -86,10 +105,11 @@ internal sealed class FitExportService : IFitExportService
         msg.SetCustomTargetPowerHigh(highPercent);
     }
 
+    /// <summary>Converts fraction of FTP (e.g. 1.14 = 114%) to percent for FIT. Allows up to 2000% for sprints/anaerobic.</summary>
     private static uint FractionToPercent(decimal fraction)
     {
         var percent = Math.Round(fraction * 100m);
-        return (uint)Math.Clamp(percent, 0, 100);
+        return (uint)Math.Clamp(percent, 0, 2000);
     }
 
     private static Intensity StepTypeToIntensity(StepType type)
