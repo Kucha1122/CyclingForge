@@ -4,6 +4,7 @@ import type { ActivityDto, ActivityDetailsDto } from '../types/activity';
 import type { GarminStatusDto, SleepDataDto, WellnessDataDto } from '../types/garmin';
 import type {
   WorkoutDto, WorkoutSearchResultDto, CreateWorkoutRequest,
+  BulkImportZwoResult,
   TrainingPreferenceDto, SaveTrainingPreferenceRequest,
   DailyRecommendationDto, ReadinessBreakdownDto, WeeklyPlanDto, FullPlanDto
 } from '../types/workout';
@@ -198,6 +199,16 @@ export const workoutsApi = {
   delete: (id: string) => api.delete(`/workouts/${id}`),
   copy: (id: string) => api.post<string>(`/workouts/${id}/copy`),
   importZwo: (zwoXmlContent: string) => api.post<string>('/workouts/import', { zwoXmlContent }),
+  importFit: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<string>('/workouts/import-fit', formData);
+  },
+  importZwoZip: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<BulkImportZwoResult>('/workouts/import-zip', formData, { timeout: 120000 });
+  },
   exportZwo: (id: string) => api.get<string>(`/workouts/${id}/export`, { responseType: 'text' as never }),
 };
 

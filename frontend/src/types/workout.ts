@@ -47,6 +47,17 @@ export interface WorkoutSearchResultDto {
   pageSize: number;
 }
 
+export interface BulkImportZwoError {
+  fileName: string;
+  message: string;
+}
+
+export interface BulkImportZwoResult {
+  importedCount: number;
+  failedCount: number;
+  errors: BulkImportZwoError[];
+}
+
 export interface CreateWorkoutStepDto {
   order: number;
   type: string;

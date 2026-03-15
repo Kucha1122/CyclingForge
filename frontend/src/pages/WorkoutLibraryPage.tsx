@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { workoutsApi } from '../services/api';
@@ -38,6 +38,14 @@ export const WorkoutLibraryPage = () => {
   const [sortBy, setSortBy] = useState('default');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteName, setDeleteName] = useState<string | null>(null);
+  const [importingZwo, setImportingZwo] = useState(false);
+  const [importingFit, setImportingFit] = useState(false);
+  const [importingZip, setImportingZip] = useState(false);
+  const [importZipResult, setImportZipResult] = useState<{ imported: number; failed: number; errors: { fileName: string; message: string }[] } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [listRefreshKey, setListRefreshKey] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
 
   const fetchWorkouts = useCallback(async () => {
     setLoading(true);
@@ -60,7 +68,21 @@ export const WorkoutLibraryPage = () => {
     }
   }, [page, category, zone, search, tab, sortBy]);
 
-  useEffect(() => { fetchWorkouts(); }, [fetchWorkouts]);
+  useEffect(() => { fetchWorkouts(); }, [fetchWorkouts, listRefreshKey]);
+
+  // After ZIP import, refresh list so "My workouts" shows new items
+  useEffect(() => {
+    if (importZipResult && importZipResult.imported > 0) {
+      fetchWorkouts();
+    }
+  }, [importZipResult, fetchWorkouts]);
+
+  // Auto-hide import result message after 8 seconds
+  useEffect(() => {
+    if (!importZipResult) return;
+    const timer = setTimeout(() => setImportZipResult(null), 8000);
+    return () => clearTimeout(timer);
+  }, [importZipResult]);
 
   const handleRequestDelete = (id: string, name: string) => {
     setDeleteId(id);
@@ -84,6 +106,70 @@ export const WorkoutLibraryPage = () => {
     setDeleteName(null);
   };
 
+  const handleImportZwoOrFitFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const isFit = file.name.toLowerCase().endsWith('.fit');
+    if (isFit) setImportingFit(true);
+    else setImportingZwo(true);
+    setImportZipResult(null);
+    setImportError(null);
+    try {
+      if (isFit) {
+        await workoutsApi.importFit(file);
+      } else {
+        const text = await file.text();
+        await workoutsApi.importZwo(text);
+      }
+      setTab('mine');
+      setPage(1);
+      setListRefreshKey((k) => k + 1);
+    } catch (err: unknown) {
+      const data = err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response
+        ? (err.response as { data?: unknown }).data
+        : undefined;
+      const message = typeof data === 'string'
+        ? data
+        : data && typeof data === 'object' && 'message' in data && typeof (data as { message?: unknown }).message === 'string'
+          ? (data as { message: string }).message
+          : data && typeof data === 'object' && 'detail' in data && typeof (data as { detail?: unknown }).detail === 'string'
+            ? (data as { detail: string }).detail
+            : data && typeof data === 'object' && 'title' in data && typeof (data as { title?: unknown }).title === 'string'
+              ? (data as { title: string }).title
+              : err instanceof Error
+                ? err.message
+                : t('importErrorUnknown');
+      setImportError(message);
+    } finally {
+      setImportingFit(false);
+      setImportingZwo(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleImportZipFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportingZip(true);
+    setImportZipResult(null);
+    try {
+      const { data } = await workoutsApi.importZwoZip(file);
+      setImportZipResult({
+        imported: data.importedCount,
+        failed: data.failedCount,
+        errors: data.errors,
+      });
+      setTab('mine');
+      setPage(1);
+      setListRefreshKey((k) => k + 1);
+    } catch {
+      setImportZipResult({ imported: 0, failed: 0, errors: [{ fileName: '', message: t('importZipErrorNetwork') }] });
+    } finally {
+      setImportingZip(false);
+      e.target.value = '';
+    }
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSearch(searchInput);
@@ -99,13 +185,86 @@ export const WorkoutLibraryPage = () => {
           <h1 className="text-3xl font-bold text-primary">{t('library')}</h1>
           <p className="text-secondary">{t('librarySubtitle')}</p>
         </div>
-        <div className="flex gap-3">
-          <Link
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".zwo,.fit"
+              className="hidden"
+              onChange={handleImportZwoOrFitFile}
+            />
+            <input
+              ref={zipInputRef}
+              type="file"
+              accept=".zip"
+              className="hidden"
+              onChange={handleImportZipFile}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importingZwo || importingFit || importingZip}
+              className="rounded-lg border border-border-default bg-surface px-4 py-2.5 text-sm font-medium text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+            >
+              {(importingZwo || importingFit) ? t('importingZwo') : t('importZwoOrFitFile')}
+            </button>
+            <button
+              type="button"
+              onClick={() => zipInputRef.current?.click()}
+              disabled={importingZwo || importingZip}
+              className="rounded-lg border border-border-default bg-surface px-4 py-2.5 text-sm font-medium text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+            >
+              {importingZip ? t('importingZip') : t('importZwoZip')}
+            </button>
+            <Link
             to="/workouts/create"
             className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             + {t('createWorkout')}
           </Link>
+          </div>
+          {importError && (
+            <div className="flex items-start justify-between gap-2 rounded-lg border border-state-danger bg-state-danger/10 px-3 py-2 text-sm text-state-danger-text">
+              <p>{importError}</p>
+              <button
+                type="button"
+                onClick={() => setImportError(null)}
+                className="shrink-0 rounded p-1 hover:bg-state-danger/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                aria-label={t('close')}
+              >
+                ×
+              </button>
+            </div>
+          )}
+          {importZipResult && (
+            <div className="flex items-start justify-between gap-2 rounded-lg border border-border-default bg-muted/50 px-3 py-2 text-sm text-primary">
+              <div>
+                {importZipResult.imported > 0 && <p>{t('importZipSuccess', { count: importZipResult.imported })}</p>}
+                {importZipResult.failed > 0 && (
+                  <p className="mt-1 text-state-danger-text">{t('importZipFailed', { count: importZipResult.failed })}</p>
+                )}
+                {importZipResult.errors.length > 0 && importZipResult.errors.length <= 5 && (
+                  <ul className="mt-1 list-inside list-disc text-tertiary">
+                    {importZipResult.errors.map((err, i) => (
+                      <li key={i}>{err.fileName ? `${err.fileName}: ${err.message}` : err.message}</li>
+                    ))}
+                  </ul>
+                )}
+                {importZipResult.errors.length > 5 && (
+                  <p className="mt-1 text-tertiary">{t('importZipErrorsMore', { count: importZipResult.errors.length })}</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setImportZipResult(null)}
+                className="shrink-0 rounded p-1 text-tertiary hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                aria-label={t('close')}
+              >
+                ×
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
