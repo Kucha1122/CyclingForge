@@ -1,0 +1,74 @@
+{
+  "FtpEstimation": {
+    // Automatic FTP estimation from activity power profiles
+    "MinIncreaseWatts": 5,           // Minimum watts increase to accept auto eFTP
+    "MinIncreasePercent": 0.0,       // Alternative: minimum % increase (0 = disabled)
+    "AllowDecreases": false,         // Allow automatic FTP decreases
+    "MinDecreaseWatts": 10,          // Minimum watts decrease to accept
+    "MinDecreasePercent": 0.05       // Minimum 5% decrease to accept
+  },
+  
+  "ActivityLoadConfiguration": {
+    // Sport-specific multipliers for training load calculation
+    // Applied to HRSS for activities without power meters
+    // Power-based TSS (device_watts=true) is NOT affected by these factors
+    
+    "SportFactors": {
+      "Walk": {
+        "TssMultiplier": 0.33,       // Walking = 33% of calculated HRSS
+        "UseHrss": true,
+        "Description": "Walking/Hiking activities"
+      },
+      "Hike": {
+        "TssMultiplier": 0.30,
+        "UseHrss": true,
+        "Description": "Hiking activities"
+      },
+      "Ride": {
+        "TssMultiplier": 0.72,       // Cycling without power = 72% of HRSS
+        "UseHrss": true,
+        "Description": "Cycling without power meter"
+      },
+      "VirtualRide": {
+        "TssMultiplier": 0.72,       // Indoor cycling = same as outdoor
+        "UseHrss": true,
+        "Description": "Indoor cycling (Zwift, TrainerRoad, etc.) without power"
+      },
+      "Run": {
+        "TssMultiplier": 0.90,       // Running closer to cycling intensity
+        "UseHrss": true,
+        "Description": "Running activities"
+      },
+      "Swim": {
+        "TssMultiplier": 0.75,
+        "UseHrss": true,
+        "Description": "Swimming activities"
+      },
+      "AlpineSki": {
+        "TssMultiplier": 0.50,
+        "UseHrss": true,
+        "Description": "Alpine/downhill skiing"
+      },
+      "BackcountrySki": {
+        "TssMultiplier": 0.85,
+        "UseHrss": true,
+        "Description": "Backcountry skiing"
+      },
+      "NordicSki": {
+        "TssMultiplier": 0.90,
+        "UseHrss": true,
+        "Description": "Nordic/cross-country skiing"
+      },
+      "Workout": {
+        "TssMultiplier": 0.70,
+        "UseHrss": true,
+        "Description": "General workout/strength training"
+      },
+      "Yoga": {
+        "TssMultiplier": 0.25,
+        "UseHrss": true,
+        "Description": "Yoga/stretching/flexibility"
+      }
+    }
+  }
+}
