@@ -44,3 +44,10 @@ public sealed record WorkoutSearchResultDto(
     int TotalCount,
     int Page,
     int PageSize);
+
+public sealed record BulkImportZwoResult(
+    int ImportedCount,
+    int FailedCount,
+    IReadOnlyList<BulkImportZwoError> Errors);
+
+public sealed record BulkImportZwoError(string FileName, string Message);

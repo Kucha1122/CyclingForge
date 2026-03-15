@@ -1,5 +1,6 @@
 using CyclingForge.Modules.Workouts.Application.Services;
 using CyclingForge.Modules.Workouts.Domain.Repositories;
+using CyclingForge.Modules.Workouts.Infrastructure.Configuration;
 using CyclingForge.Modules.Workouts.Infrastructure.Database;
 using CyclingForge.Modules.Workouts.Infrastructure.Repositories;
 using CyclingForge.Modules.Workouts.Infrastructure.Services;
@@ -20,10 +21,15 @@ public static class Extensions
         services.AddSqlServer<WorkoutsDbContext>(
             configuration.GetConnectionString("WorkoutsDb")!);
 
+        services.Configure<WorkoutSeedOptions>(
+            configuration.GetSection(WorkoutSeedOptions.SectionName));
+
         services.AddScoped<IWorkoutRepository, WorkoutRepository>();
         services.AddScoped<ITrainingPreferenceRepository, TrainingPreferenceRepository>();
         services.AddScoped<IDailyRecommendationRepository, DailyRecommendationRepository>();
         services.AddScoped<IZwoImportService, ZwoImportService>();
+        services.AddScoped<IFitImportService, FitImportService>();
+        services.AddScoped<IZwiftSeedService, ZwiftSeedService>();
 
         return services;
     }

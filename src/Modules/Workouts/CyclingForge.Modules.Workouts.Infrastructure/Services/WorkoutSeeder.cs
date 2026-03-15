@@ -1,9 +1,12 @@
+using CyclingForge.Modules.Workouts.Application.Services;
 using CyclingForge.Modules.Workouts.Domain.Entities;
 using CyclingForge.Modules.Workouts.Domain.Enums;
+using CyclingForge.Modules.Workouts.Infrastructure.Configuration;
 using CyclingForge.Modules.Workouts.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CyclingForge.Modules.Workouts.Infrastructure.Services;
 
@@ -28,6 +31,15 @@ public static class WorkoutSeeder
         await context.SaveChangesAsync();
 
         logger.LogInformation("Seeded {Count} system workouts.", workouts.Count);
+
+        var options = scope.ServiceProvider.GetRequiredService<IOptions<WorkoutSeedOptions>>().Value;
+        if (options.SeedZwiftEnabled && !string.IsNullOrWhiteSpace(options.SeedZwiftFromPath))
+        {
+            var zwiftSeedService = scope.ServiceProvider.GetRequiredService<IZwiftSeedService>();
+            var zwiftCount = await zwiftSeedService.SeedFromPathAsync(options.SeedZwiftFromPath);
+            if (zwiftCount > 0)
+                logger.LogInformation("Seeded {Count} Zwift workouts from ZWO directory.", zwiftCount);
+        }
     }
 
     private static List<Workout> CreateSystemWorkouts()

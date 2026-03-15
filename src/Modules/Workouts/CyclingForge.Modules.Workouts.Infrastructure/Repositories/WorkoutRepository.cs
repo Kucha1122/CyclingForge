@@ -159,7 +159,13 @@ internal sealed class WorkoutRepository : IWorkoutRepository
             query = query.Where(w => w.TargetZone == zone.Value);
 
         if (source.HasValue)
-            query = query.Where(w => w.Source == source.Value);
+        {
+            if (source.Value == WorkoutSource.UserCreated && userId.HasValue)
+                query = query.Where(w => w.UserId == userId.Value &&
+                    (w.Source == WorkoutSource.UserCreated || w.Source == WorkoutSource.Imported));
+            else
+                query = query.Where(w => w.Source == source.Value);
+        }
 
         if (minDuration.HasValue)
             query = query.Where(w => w.DurationMinutes >= minDuration.Value);

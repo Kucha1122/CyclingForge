@@ -40,6 +40,8 @@ builder.Services.AddScoped<CyclingForge.Modules.Activities.Application.Services.
 // Composition: provide readiness data to Workouts module for recommendation engine
 builder.Services.AddScoped<CyclingForge.Shared.Abstractions.Services.IReadinessDataProvider, CyclingForge.Bootstrapper.Composition.ReadinessDataProvider>();
 builder.Services.AddScoped<CyclingForge.Modules.Workouts.Application.Services.IRecommendationEngine, CyclingForge.Bootstrapper.Composition.RecommendationEngine>();
+// Composition: provide user FTP to Workouts module for FIT import (watts → % FTP)
+builder.Services.AddScoped<CyclingForge.Modules.Workouts.Application.Services.IWorkoutImportFtpProvider, CyclingForge.Bootstrapper.Composition.WorkoutImportFtpProvider>();
 
 var mvcBuilder = builder.Services.AddControllers();
 foreach (var assembly in ModuleLoader.GetModuleAssemblies())

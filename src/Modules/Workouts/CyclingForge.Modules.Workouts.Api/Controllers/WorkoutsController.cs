@@ -3,11 +3,14 @@ using CyclingForge.Modules.Workouts.Application.Commands.CopyWorkout;
 using CyclingForge.Modules.Workouts.Application.Commands.CreateWorkout;
 using CyclingForge.Modules.Workouts.Application.Commands.DeleteWorkout;
 using CyclingForge.Modules.Workouts.Application.Commands.ImportWorkout;
+using CyclingForge.Modules.Workouts.Application.Commands.ImportWorkoutsFromZip;
 using CyclingForge.Modules.Workouts.Application.Commands.UpdateWorkout;
 using CyclingForge.Modules.Workouts.Application.DTOs;
 using CyclingForge.Modules.Workouts.Application.Queries.ExportWorkoutToZwo;
 using CyclingForge.Modules.Workouts.Application.Queries.GetWorkoutDetails;
 using CyclingForge.Modules.Workouts.Application.Queries.GetWorkouts;
+using CyclingForge.Modules.Workouts.Application.Services;
+using CyclingForge.Modules.Workouts.Infrastructure.Configuration;
 using CyclingForge.Shared.Abstractions.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -23,11 +26,19 @@ public sealed class WorkoutsController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUser;
+    private readonly IZwiftSeedService _zwiftSeedService;
+    private readonly WorkoutSeedOptions _seedOptions;
 
-    public WorkoutsController(IMediator mediator, ICurrentUserService currentUser)
+    public WorkoutsController(
+        IMediator mediator,
+        ICurrentUserService currentUser,
+        IZwiftSeedService zwiftSeedService,
+        Microsoft.Extensions.Options.IOptions<WorkoutSeedOptions> seedOptions)
     {
         _mediator = mediator;
         _currentUser = currentUser;
+        _zwiftSeedService = zwiftSeedService;
+        _seedOptions = seedOptions.Value;
     }
 
     [HttpGet]
@@ -122,6 +133,53 @@ public sealed class WorkoutsController : ControllerBase
         return CreatedAtAction(nameof(GetWorkout), new { id }, id);
     }
 
+    [HttpPost("import-fit")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<Guid>> ImportFit(IFormFile? file, CancellationToken cancellationToken)
+    {
+        const long maxFitSizeBytes = 5 * 1024 * 1024; // 5 MB
+        if (file == null || file.Length == 0)
+            return BadRequest("No file or empty file.");
+        if (!file.FileName.EndsWith(".fit", StringComparison.OrdinalIgnoreCase))
+            return BadRequest("Only .fit files are allowed.");
+        if (file.Length > maxFitSizeBytes)
+            return BadRequest("FIT file is too large (max 5 MB).");
+
+        await using var formStream = file.OpenReadStream();
+        using var stream = new MemoryStream();
+        await formStream.CopyToAsync(stream, cancellationToken);
+        stream.Position = 0;
+
+        try
+        {
+            var id = await _mediator.Send(new ImportWorkoutFromFitCommand(_currentUser.UserId, stream), cancellationToken);
+            return CreatedAtAction(nameof(GetWorkout), new { id }, id);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost("import-zip")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<BulkImportZwoResult>> ImportZwoZip(IFormFile? file, CancellationToken cancellationToken)
+    {
+        const long maxZipSizeBytes = 50 * 1024 * 1024; // 50 MB
+        if (file == null || file.Length == 0)
+            return BadRequest(new BulkImportZwoResult(0, 0, [new BulkImportZwoError("", "No file or empty file.")]));
+        if (!file.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new BulkImportZwoResult(0, 0, [new BulkImportZwoError(file.FileName, "Only .zip files are allowed.")]));
+        if (file.Length > maxZipSizeBytes)
+            return BadRequest(new BulkImportZwoResult(0, 0, [new BulkImportZwoError(file.FileName, "ZIP file is too large (max 50 MB).")]));
+
+        await using var stream = file.OpenReadStream();
+        var result = await _mediator.Send(new ImportWorkoutsFromZipCommand(_currentUser.UserId, stream), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{id:guid}/export")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -131,4 +189,18 @@ public sealed class WorkoutsController : ControllerBase
         if (result is null) return NotFound();
         return Content(result, "application/xml");
     }
+
+    [HttpPost("seed-zwift")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<SeedZwiftResponse>> SeedZwift(CancellationToken cancellationToken)
+    {
+        if (!_seedOptions.SeedZwiftEnabled || string.IsNullOrWhiteSpace(_seedOptions.SeedZwiftFromPath))
+            return BadRequest(new SeedZwiftResponse(0, "Zwift seed is disabled or path not configured."));
+
+        var addedCount = await _zwiftSeedService.SeedFromPathAsync(_seedOptions.SeedZwiftFromPath, cancellationToken);
+        return Ok(new SeedZwiftResponse(addedCount, null));
+    }
 }
+
+public sealed record SeedZwiftResponse(int AddedCount, string? ErrorMessage);
