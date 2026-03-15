@@ -6,6 +6,24 @@ Modularny monolit zbudowany w .NET i React: Clean Architecture, Domain-Driven De
 
 ---
 
+## Podgląd aplikacji
+
+Zrzuty ekranu z interfejsu (zdjęcia dodaj do [`docs/screenshots/`](docs/screenshots/) – patrz instrukcja w tym folderze):
+
+| Dashboard | Rekomendacja na dziś |
+|-----------|----------------------|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Rekomendacja na dziś](docs/screenshots/workout-today.png) |
+
+| Analiza PMC | Biblioteka treningów |
+|-------------|----------------------|
+| ![Analiza PMC](docs/screenshots/analysis.png) | ![Biblioteka treningów](docs/screenshots/workouts.png) |
+
+| Designer treningu |
+|-------------------|
+| ![Designer treningu](docs/screenshots/workout-designer.png) |
+
+---
+
 ## Architektura i stos technologiczny
 
 ### Backend

@@ -72,7 +72,6 @@ yarn-error.log*
 .temp/
 coverage/
 .cursor/
-docs/
 
 # Nested repo (wozzwo clone inside scripts)
 scripts/wozzwo/.git/
