@@ -4,6 +4,8 @@
   "cancel": "Cancel",
   "delete": "Delete",
   "logout": "Logout",
+  "themeLight": "Light mode",
+  "themeDark": "Dark mode",
   "back": "Back",
   "loading": "Loading…",
   "noData": "No data",
