@@ -47,7 +47,9 @@ internal sealed class CopyWorkoutCommandHandler : IRequestHandler<CopyWorkoutCom
                 step.OnDurationSeconds,
                 step.OffDurationSeconds,
                 step.OnPower,
-                step.OffPower);
+                step.OffPower,
+                step.OnCadence,
+                step.OffCadence);
 
             copy.AddStep(copiedStep);
         }

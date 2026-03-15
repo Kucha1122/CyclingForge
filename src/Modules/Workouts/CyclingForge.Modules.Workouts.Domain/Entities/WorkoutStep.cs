@@ -17,6 +17,8 @@ public sealed class WorkoutStep : Entity<Guid>
     public int? OffDurationSeconds { get; private set; }
     public decimal? OnPower { get; private set; }
     public decimal? OffPower { get; private set; }
+    public int? OnCadence { get; private set; }
+    public int? OffCadence { get; private set; }
 
     private WorkoutStep() { }
 
@@ -32,7 +34,9 @@ public sealed class WorkoutStep : Entity<Guid>
         int? onDurationSeconds = null,
         int? offDurationSeconds = null,
         decimal? onPower = null,
-        decimal? offPower = null)
+        decimal? offPower = null,
+        int? onCadence = null,
+        int? offCadence = null)
     {
         return new WorkoutStep
         {
@@ -48,7 +52,9 @@ public sealed class WorkoutStep : Entity<Guid>
             OnDurationSeconds = onDurationSeconds,
             OffDurationSeconds = offDurationSeconds,
             OnPower = onPower,
-            OffPower = offPower
+            OffPower = offPower,
+            OnCadence = onCadence,
+            OffCadence = offCadence
         };
     }
 
@@ -63,7 +69,9 @@ public sealed class WorkoutStep : Entity<Guid>
         int? onDurationSeconds,
         int? offDurationSeconds,
         decimal? onPower,
-        decimal? offPower)
+        decimal? offPower,
+        int? onCadence,
+        int? offCadence)
     {
         Order = order;
         Type = type;
@@ -76,6 +84,8 @@ public sealed class WorkoutStep : Entity<Guid>
         OffDurationSeconds = offDurationSeconds;
         OnPower = onPower;
         OffPower = offPower;
+        OnCadence = onCadence;
+        OffCadence = offCadence;
     }
 
     public int GetTotalDurationSeconds()

@@ -34,7 +34,9 @@ public static class WorkoutMappings
             step.OnDurationSeconds,
             step.OffDurationSeconds,
             step.OnPower,
-            step.OffPower);
+            step.OffPower,
+            step.OnCadence,
+            step.OffCadence);
 
     public static ParseZwoStepDto ToParseZwoStepDto(this WorkoutStep step)
         => new(
@@ -48,7 +50,9 @@ public static class WorkoutMappings
             step.OnDurationSeconds,
             step.OffDurationSeconds,
             step.OnPower,
-            step.OffPower);
+            step.OffPower,
+            step.OnCadence,
+            step.OffCadence);
 
     public static ParseZwoResultDto ToParseZwoResultDto(this Workout workout)
         => new(

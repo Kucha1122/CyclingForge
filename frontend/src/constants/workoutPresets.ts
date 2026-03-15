@@ -169,6 +169,8 @@ export const PRESET_BLOCKS: PresetBlock[] = [
       offDurationSeconds: 60,
       onPower: 1.0,
       offPower: 0.5,
+      onCadence: null,
+      offCadence: null,
     }),
   },
 ];

@@ -36,6 +36,8 @@ const newStep = (order: number): EditableStep => ({
   offDurationSeconds: null,
   onPower: null,
   offPower: null,
+  onCadence: null,
+  offCadence: null,
 });
 
 export const WorkoutCreatorPage = () => {
@@ -178,6 +180,8 @@ export const WorkoutCreatorPage = () => {
     offDurationSeconds: s.offDurationSeconds ?? null,
     onPower: s.onPower ?? null,
     offPower: s.offPower ?? null,
+    onCadence: s.onCadence ?? null,
+    offCadence: s.offCadence ?? null,
   }));
 
   const totalDuration = stepsForChart.reduce(

@@ -17,6 +17,7 @@ interface SegmentMeta {
   powerLow: number;
   powerHigh: number;
   isRamp?: boolean;
+  cadence?: number | null;
 }
 
 interface TooltipState {
@@ -83,6 +84,7 @@ function getStepSegments(step: WorkoutStepDto): SegmentMeta[] {
         label: 'Intervals — ON',
         powerLow: onPow,
         powerHigh: onPow,
+        cadence: step.onCadence ?? null,
       });
       segments.push({
         duration: step.offDurationSeconds,
@@ -90,6 +92,7 @@ function getStepSegments(step: WorkoutStepDto): SegmentMeta[] {
         label: 'Intervals — OFF',
         powerLow: offPow,
         powerHigh: offPow,
+        cadence: step.offCadence ?? null,
       });
     }
     return segments;
@@ -105,6 +108,7 @@ function getStepSegments(step: WorkoutStepDto): SegmentMeta[] {
       powerLow: step.powerLow,
       powerHigh: step.powerHigh,
       isRamp: true,
+      cadence: step.cadence ?? null,
     }];
   }
 
@@ -114,6 +118,7 @@ function getStepSegments(step: WorkoutStepDto): SegmentMeta[] {
     label: step.type,
     powerLow: step.powerLow,
     powerHigh: step.powerHigh,
+    cadence: step.cadence ?? null,
   }];
 }
 
@@ -348,6 +353,11 @@ export const IntervalChart = ({ steps, height = 160, ftp, highlightedStepOrder =
               {tooltip.segment.powerLow === tooltip.segment.powerHigh
                 ? `${Math.round(tooltip.segment.powerHigh * ftp)}W`
                 : `${Math.round(tooltip.segment.powerLow * ftp)}–${Math.round(tooltip.segment.powerHigh * ftp)}W`}
+            </p>
+          )}
+          {tooltip.segment.cadence != null && (
+            <p className="mt-1 text-gray-300">
+              {t('cadence')}: {tooltip.segment.cadence} rpm
             </p>
           )}
           <p

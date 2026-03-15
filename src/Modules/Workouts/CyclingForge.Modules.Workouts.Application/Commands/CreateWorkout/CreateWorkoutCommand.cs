@@ -23,4 +23,6 @@ public sealed record CreateWorkoutStepDto(
     int? OnDurationSeconds,
     int? OffDurationSeconds,
     decimal? OnPower,
-    decimal? OffPower);
+    decimal? OffPower,
+    int? OnCadence,
+    int? OffCadence);

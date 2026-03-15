@@ -222,12 +222,18 @@ namespace CyclingForge.Modules.Workouts.Infrastructure.Migrations
                     b.Property<int>("DurationSeconds")
                         .HasColumnType("int");
 
+                    b.Property<int?>("OffCadence")
+                        .HasColumnType("int");
+
                     b.Property<int?>("OffDurationSeconds")
                         .HasColumnType("int");
 
                     b.Property<decimal?>("OffPower")
                         .HasPrecision(5, 3)
                         .HasColumnType("decimal(5,3)");
+
+                    b.Property<int?>("OnCadence")
+                        .HasColumnType("int");
 
                     b.Property<int?>("OnDurationSeconds")
                         .HasColumnType("int");

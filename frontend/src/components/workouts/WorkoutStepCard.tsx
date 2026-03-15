@@ -99,6 +99,15 @@ export const WorkoutStepCard = ({
       ? intervalsLabel
       : `${stepTypeLabel} · ${formatDuration(totalDuration)} · ${powerLabel}`;
 
+  const cadenceTooltip =
+    step.type === 'Intervals'
+      ? (step.onCadence != null || step.offCadence != null)
+        ? `${t('stepLabelCadenceOn')}: ${step.onCadence ?? '–'} rpm · ${t('stepLabelCadenceOff')}: ${step.offCadence ?? '–'} rpm`
+        : undefined
+      : step.cadence != null
+        ? `${t('cadence')}: ${step.cadence} rpm`
+        : undefined;
+
   return (
     <div
       className="overflow-hidden rounded-lg border border-border-default bg-surface shadow-sm transition-shadow hover:shadow-md"
@@ -109,6 +118,7 @@ export const WorkoutStepCard = ({
         type="button"
         onClick={() => setExpanded((e) => !e)}
         className="flex w-full items-center gap-3 px-4 py-3 text-left focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset"
+        title={cadenceTooltip}
       >
         <span className="text-xs font-medium text-tertiary tabular-nums">
           {t('stepNumber', { num: index + 1 })}
@@ -336,22 +346,59 @@ export const WorkoutStepCard = ({
                 </div>
               </>
             )}
-            <div>
-              <label className="mb-1 block text-xs font-medium text-tertiary">
-                {t('stepLabelCadence')}
-              </label>
-              <input
-                type="number"
-                value={step.cadence ?? ''}
-                onChange={(e) =>
-                  onUpdate(step.tempId, {
-                    cadence: e.target.value ? +e.target.value : null,
-                  })
-                }
-                className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                placeholder="–"
-              />
-            </div>
+            {step.type === 'Intervals' ? (
+              <>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-tertiary">
+                    {t('stepLabelCadenceOn')}
+                  </label>
+                  <input
+                    type="number"
+                    value={step.onCadence ?? ''}
+                    onChange={(e) =>
+                      onUpdate(step.tempId, {
+                        onCadence: e.target.value ? +e.target.value : null,
+                      })
+                    }
+                    className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                    placeholder="–"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-tertiary">
+                    {t('stepLabelCadenceOff')}
+                  </label>
+                  <input
+                    type="number"
+                    value={step.offCadence ?? ''}
+                    onChange={(e) =>
+                      onUpdate(step.tempId, {
+                        offCadence: e.target.value ? +e.target.value : null,
+                      })
+                    }
+                    className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                    placeholder="–"
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-tertiary">
+                  {t('stepLabelCadence')}
+                </label>
+                <input
+                  type="number"
+                  value={step.cadence ?? ''}
+                  onChange={(e) =>
+                    onUpdate(step.tempId, {
+                      cadence: e.target.value ? +e.target.value : null,
+                    })
+                  }
+                  className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  placeholder="–"
+                />
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -11,6 +11,8 @@ export interface WorkoutStepDto {
   offDurationSeconds: number | null;
   onPower: number | null;
   offPower: number | null;
+  onCadence?: number | null;
+  offCadence?: number | null;
 }
 
 export interface WorkoutDto {
@@ -70,6 +72,8 @@ export interface CreateWorkoutStepDto {
   offDurationSeconds?: number | null;
   onPower?: number | null;
   offPower?: number | null;
+  onCadence?: number | null;
+  offCadence?: number | null;
 }
 
 export interface CreateWorkoutRequest {
@@ -105,6 +109,8 @@ export interface ParseZwoStepDto {
   offDurationSeconds?: number | null;
   onPower?: number | null;
   offPower?: number | null;
+  onCadence?: number | null;
+  offCadence?: number | null;
 }
 
 export const PLAN_MODES = ['DailyRecommendations', 'FullPlan'] as const;

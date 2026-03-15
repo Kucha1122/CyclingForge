@@ -48,7 +48,9 @@ internal sealed class CreateWorkoutCommandHandler : IRequestHandler<CreateWorkou
                 stepDto.OnDurationSeconds,
                 stepDto.OffDurationSeconds,
                 stepDto.OnPower,
-                stepDto.OffPower);
+                stepDto.OffPower,
+                stepDto.OnCadence,
+                stepDto.OffCadence);
 
             workout.AddStep(step);
         }

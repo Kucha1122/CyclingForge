@@ -52,7 +52,9 @@ internal sealed class UpdateWorkoutCommandHandler : IRequestHandler<UpdateWorkou
                 stepDto.OnDurationSeconds,
                 stepDto.OffDurationSeconds,
                 stepDto.OnPower,
-                stepDto.OffPower);
+                stepDto.OffPower,
+                stepDto.OnCadence,
+                stepDto.OffCadence);
         });
 
         workout.ReplaceSteps(newSteps);

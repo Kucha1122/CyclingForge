@@ -27,7 +27,9 @@ public sealed record WorkoutStepDto(
     int? OnDurationSeconds,
     int? OffDurationSeconds,
     decimal? OnPower,
-    decimal? OffPower);
+    decimal? OffPower,
+    int? OnCadence,
+    int? OffCadence);
 
 public sealed record WorkoutSummaryDto(
     Guid Id,
@@ -75,4 +77,6 @@ public sealed record ParseZwoStepDto(
     int? OnDurationSeconds,
     int? OffDurationSeconds,
     decimal? OnPower,
-    decimal? OffPower);
+    decimal? OffPower,
+    int? OnCadence,
+    int? OffCadence);

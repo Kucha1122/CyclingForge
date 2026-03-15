@@ -298,7 +298,11 @@ export const WorkoutDetailPage = () => {
                         </span>
                       )}
                     </td>
-                    <td className="py-2 pr-4 text-tertiary">{step.cadence ?? '-'}</td>
+                    <td className="py-2 pr-4 text-tertiary">
+                      {step.type === 'Intervals' && (step.onCadence != null || step.offCadence != null)
+                        ? `${step.onCadence ?? '–'} / ${step.offCadence ?? '–'}`
+                        : (step.cadence ?? '-')}
+                    </td>
                     <td className="py-2 text-tertiary">
                       {step.type === 'Intervals' && step.repeat && (
                         <span>

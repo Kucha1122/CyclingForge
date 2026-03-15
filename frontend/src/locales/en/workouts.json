@@ -143,6 +143,8 @@
   "stepLabelOnPower": "On Power (% FTP)",
   "stepLabelOffPower": "Off Power (% FTP)",
   "stepLabelCadence": "Cadence (opt)",
+  "stepLabelCadenceOn": "Cadence ON",
+  "stepLabelCadenceOff": "Cadence OFF",
   "stepNumber": "Step {{num}}",
   "stepMoveUp": "Move up",
   "stepMoveDown": "Move down",

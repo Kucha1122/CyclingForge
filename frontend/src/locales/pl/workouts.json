@@ -143,6 +143,8 @@
   "stepLabelOnPower": "Moc ON (% FTP)",
   "stepLabelOffPower": "Moc OFF (% FTP)",
   "stepLabelCadence": "Kadencja (opc.)",
+  "stepLabelCadenceOn": "Kadencja ON",
+  "stepLabelCadenceOff": "Kadencja OFF",
   "stepNumber": "Krok {{num}}",
   "stepMoveUp": "Przesuń w górę",
   "stepMoveDown": "Przesuń w dół",

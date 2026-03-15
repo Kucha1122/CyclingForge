@@ -128,13 +128,16 @@ internal sealed class ZwoImportService : IZwoImportService
         var onPower = GetDecimalAttr(el, "OnPower", 1.0m);
         var offPower = GetDecimalAttr(el, "OffPower", 0.5m);
         var cadence = GetNullableIntAttr(el, "Cadence");
+        var onCadence = GetNullableIntAttr(el, "OnCadence") ?? cadence;
+        var offCadence = GetNullableIntAttr(el, "OffCadence");
 
         var totalDuration = repeat * (onDuration + offDuration);
 
         return WorkoutStep.Create(
             workoutId, ++order, StepType.Intervals,
             totalDuration, offPower, onPower, cadence,
-            repeat, onDuration, offDuration, onPower, offPower);
+            repeat, onDuration, offDuration, onPower, offPower,
+            onCadence, offCadence);
     }
 
     private static WorkoutStep CreateFreeRideStep(XElement el, Guid workoutId, ref int order)
@@ -147,48 +150,72 @@ internal sealed class ZwoImportService : IZwoImportService
             duration, 0, 0, cadence);
     }
 
+    private static XElement BuildIntervalsXElement(WorkoutStep step)
+    {
+        var attrs = new List<XAttribute>
+        {
+            new("Repeat", step.Repeat ?? 1),
+            new("OnDuration", step.OnDurationSeconds ?? 0),
+            new("OffDuration", step.OffDurationSeconds ?? 0),
+            new("OnPower", step.OnPower ?? 1.0m),
+            new("OffPower", step.OffPower ?? 0.5m)
+        };
+        if (step.OnCadence.HasValue)
+            attrs.Add(new XAttribute("OnCadence", step.OnCadence.Value));
+        if (step.OffCadence.HasValue)
+            attrs.Add(new XAttribute("OffCadence", step.OffCadence.Value));
+        return new XElement("IntervalsT", attrs);
+    }
+
     private static XElement StepToXElement(WorkoutStep step)
     {
         return step.Type switch
         {
-            StepType.Warmup => new XElement("Warmup",
-                new XAttribute("Duration", step.DurationSeconds),
-                new XAttribute("PowerLow", step.PowerLow),
-                new XAttribute("PowerHigh", step.PowerHigh)),
-
-            StepType.Cooldown => new XElement("Cooldown",
-                new XAttribute("Duration", step.DurationSeconds),
-                new XAttribute("PowerLow", step.PowerLow),
-                new XAttribute("PowerHigh", step.PowerHigh)),
-
+            StepType.Warmup => BuildRampLikeXElement("Warmup", step),
+            StepType.Cooldown => BuildRampLikeXElement("Cooldown", step),
             StepType.SteadyState => step.PowerLow != step.PowerHigh
-                ? new XElement("Ramp",
-                    new XAttribute("Duration", step.DurationSeconds),
-                    new XAttribute("PowerLow", step.PowerLow),
-                    new XAttribute("PowerHigh", step.PowerHigh))
-                : new XElement("SteadyState",
-                    new XAttribute("Duration", step.DurationSeconds),
-                    new XAttribute("Power", step.PowerHigh)),
-
-            StepType.Ramp => new XElement("Ramp",
-                new XAttribute("Duration", step.DurationSeconds),
-                new XAttribute("PowerLow", step.PowerLow),
-                new XAttribute("PowerHigh", step.PowerHigh)),
-
-            StepType.Intervals => new XElement("IntervalsT",
-                new XAttribute("Repeat", step.Repeat ?? 1),
-                new XAttribute("OnDuration", step.OnDurationSeconds ?? 0),
-                new XAttribute("OffDuration", step.OffDurationSeconds ?? 0),
-                new XAttribute("OnPower", step.OnPower ?? 1.0m),
-                new XAttribute("OffPower", step.OffPower ?? 0.5m)),
-
-            StepType.FreeRide => new XElement("FreeRide",
-                new XAttribute("Duration", step.DurationSeconds)),
-
+                ? BuildRampLikeXElement("Ramp", step)
+                : BuildSteadyStateXElement(step),
+            StepType.Ramp => BuildRampLikeXElement("Ramp", step),
+            StepType.Intervals => BuildIntervalsXElement(step),
+            StepType.FreeRide => BuildFreeRideXElement(step),
             _ => new XElement("SteadyState",
                 new XAttribute("Duration", step.DurationSeconds),
                 new XAttribute("Power", step.PowerHigh))
         };
+    }
+
+    private static XElement BuildRampLikeXElement(string tagName, WorkoutStep step)
+    {
+        var attrs = new List<XAttribute>
+        {
+            new("Duration", step.DurationSeconds),
+            new("PowerLow", step.PowerLow),
+            new("PowerHigh", step.PowerHigh)
+        };
+        if (step.Cadence.HasValue)
+            attrs.Add(new XAttribute("Cadence", step.Cadence.Value));
+        return new XElement(tagName, attrs);
+    }
+
+    private static XElement BuildSteadyStateXElement(WorkoutStep step)
+    {
+        var attrs = new List<XAttribute>
+        {
+            new("Duration", step.DurationSeconds),
+            new("Power", step.PowerHigh)
+        };
+        if (step.Cadence.HasValue)
+            attrs.Add(new XAttribute("Cadence", step.Cadence.Value));
+        return new XElement("SteadyState", attrs);
+    }
+
+    private static XElement BuildFreeRideXElement(WorkoutStep step)
+    {
+        var attrs = new List<XAttribute> { new("Duration", step.DurationSeconds) };
+        if (step.Cadence.HasValue)
+            attrs.Add(new XAttribute("Cadence", step.Cadence.Value));
+        return new XElement("FreeRide", attrs);
     }
 
     private static WorkoutCategory ClassifyWorkout(Workout workout)
@@ -284,6 +311,16 @@ internal sealed class ZwoImportService : IZwoImportService
     private static int? GetNullableIntAttr(XElement el, string name)
     {
         var attr = el.Attribute(name);
-        return attr is not null && int.TryParse(attr.Value, out var val) ? val : null;
+        if (attr is not null && int.TryParse(attr.Value, out var val))
+            return val;
+        // Some ZWO files use lowercase (e.g. "cadence" instead of "Cadence")
+        if (name.Length > 0 && char.IsUpper(name[0]))
+        {
+            var lowerName = char.ToLowerInvariant(name[0]) + name[1..];
+            attr = el.Attribute(lowerName);
+            if (attr is not null && int.TryParse(attr.Value, out var valLower))
+                return valLower;
+        }
+        return null;
     }
 }
