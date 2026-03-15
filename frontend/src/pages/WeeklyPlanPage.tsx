@@ -37,15 +37,15 @@ export const WeeklyPlanPage = () => {
   }, [weekOffset]);
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center"><p className="text-gray-500">{tCommon('loadingWeeklyPlan')}</p></div>;
+    return <div className="flex min-h-screen items-center justify-center"><p className="text-tertiary">{tCommon('loadingWeeklyPlan')}</p></div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-page p-8">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{tNav('weeklyPlan')}</h1>
+        <h1 className="text-3xl font-bold text-primary">{tNav('weeklyPlan')}</h1>
         {plan && (
-          <p className="text-gray-600">
+          <p className="text-secondary">
             {formatDate(plan.weekStart)} - {formatDate(plan.weekEnd)}
           </p>
         )}
@@ -54,15 +54,15 @@ export const WeeklyPlanPage = () => {
       {/* Week navigation */}
       <div className="mb-6 flex items-center justify-between">
         <button onClick={() => setWeekOffset(w => w - 1)}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">
+          className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm text-primary hover:bg-muted">
           ← {tCommon('previousWeek')}
         </button>
         <button onClick={() => setWeekOffset(0)}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">
+          className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm text-primary hover:bg-muted">
           {tCommon('thisWeekLabel')}
         </button>
         <button onClick={() => setWeekOffset(w => w + 1)}
-          className="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">
+          className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm text-primary hover:bg-muted">
           {tCommon('nextWeekLabel')} →
         </button>
       </div>
@@ -78,8 +78,8 @@ export const WeeklyPlanPage = () => {
 
       {/* Weekly summary */}
       {plan && (
-        <div className="mt-8 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">{tCommon('weekSummary')}</h2>
+        <div className="mt-8 rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+          <h2 className="mb-4 text-lg font-semibold text-primary">{tCommon('weekSummary')}</h2>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <SummaryCard
               label={tCommon('trainingDays')}
@@ -113,39 +113,39 @@ const CATEGORY_I18N_KEYS: Record<string, string> = {
 function DayCard({ day, dayKey, tCommon, tWorkouts }: { day: DailyRecommendationDto; dayKey: string; tCommon: (key: string) => string; tWorkouts: (key: string) => string }) {
   const isToday = day.date === new Date().toISOString().split('T')[0];
   const workout = day.recommendedWorkout;
-  const categoryColor = workout ? (CATEGORY_COLORS[workout.category] || 'bg-gray-100 text-gray-800') : '';
+  const categoryColor = workout ? (CATEGORY_COLORS[workout.category] || 'bg-muted text-primary dark:bg-muted dark:text-primary') : '';
 
   const statusColors: Record<string, string> = {
-    Completed: 'border-green-300 bg-green-50',
-    Skipped: 'border-gray-300 bg-gray-50',
-    Accepted: 'border-blue-300 bg-blue-50',
-    Pending: 'border-gray-200 bg-white',
+    Completed: 'border-border-default bg-muted',
+    Skipped: 'border-border-default bg-page',
+    Accepted: 'border-border-default bg-state-active-bg',
+    Pending: 'border-border-default bg-surface',
   };
 
   return (
-    <div className={`rounded-xl p-4 shadow-sm ring-1 ${statusColors[day.status] || 'ring-gray-200 bg-white'} ${isToday ? 'ring-2 ring-blue-500' : ''}`}>
+    <div className={`rounded-xl p-4 shadow-sm ring-1 ${statusColors[day.status] || 'ring-border-default bg-surface'} ${isToday ? 'ring-2 ring-accent' : ''}`}>
       <div className="mb-2">
-        <div className={`text-sm font-semibold ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>{tCommon(dayKey)}</div>
-        <div className="text-xs text-gray-500">{formatDate(day.date)}</div>
+        <div className={`text-sm font-semibold ${isToday ? 'text-accent' : 'text-secondary'}`}>{tCommon(dayKey)}</div>
+        <div className="text-xs text-tertiary">{formatDate(day.date)}</div>
       </div>
 
       {/* Readiness indicator */}
       <div className="mb-2 flex items-center gap-1">
         <div className="h-2 w-2 rounded-full" style={{ backgroundColor: getScoreColor(day.readinessScore) }} />
-        <span className="text-xs text-gray-500">{Math.round(day.readinessScore)}</span>
+        <span className="text-xs text-tertiary">{Math.round(day.readinessScore)}</span>
       </div>
 
       {day.recommendationType === 'RestDay' && (
         <div className="text-center">
           <p className="text-lg">😴</p>
-          <p className="text-xs font-medium text-gray-500">{tCommon('rest')}</p>
+          <p className="text-xs font-medium text-tertiary">{tCommon('rest')}</p>
         </div>
       )}
 
       {day.recommendationType === 'AlternativeActivity' && (
         <div className="text-center">
           <p className="text-lg">🚶</p>
-          <p className="text-xs font-medium text-gray-500">{tCommon('walk')}</p>
+          <p className="text-xs font-medium text-tertiary">{tCommon('walk')}</p>
         </div>
       )}
 
@@ -154,23 +154,23 @@ function DayCard({ day, dayKey, tCommon, tWorkouts }: { day: DailyRecommendation
           <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${categoryColor}`}>
             {tWorkouts(CATEGORY_I18N_KEYS[workout.category] ?? 'categoryMixed')}
           </span>
-          <p className="mt-1 truncate text-xs font-medium text-gray-900" title={workout.name}>
+          <p className="mt-1 truncate text-xs font-medium text-primary" title={workout.name}>
             {workout.name}
           </p>
-          <p className="text-[10px] text-gray-400">{workout.durationMinutes} {tCommon('min')} / {tCommon('tssLabel')} {workout.estimatedTSS}</p>
+          <p className="text-[10px] text-tertiary">{workout.durationMinutes} {tCommon('min')} / {tCommon('tssLabel')} {workout.estimatedTSS}</p>
         </div>
       )}
 
       {day.status === 'Completed' && (
-        <div className="mt-1 text-center text-xs text-green-600">✓ {tCommon('done')}</div>
+        <div className="mt-1 text-center text-xs text-state-success-text">✓ {tCommon('done')}</div>
       )}
       {day.status === 'Skipped' && (
-        <div className="mt-1 text-center text-xs text-gray-400">{tWorkouts('statusSkipped')}</div>
+        <div className="mt-1 text-center text-xs text-tertiary">{tWorkouts('statusSkipped')}</div>
       )}
 
       {isToday && day.recommendationType === 'Workout' && (
         <Link to="/workout/today"
-          className="mt-2 block rounded bg-blue-600 py-1 text-center text-[10px] font-medium text-white hover:bg-blue-700">
+          className="mt-2 block rounded bg-accent py-1 text-center text-[10px] font-medium text-accent-foreground hover:opacity-90">
           {tCommon('view')}
         </Link>
       )}
@@ -180,9 +180,9 @@ function DayCard({ day, dayKey, tCommon, tWorkouts }: { day: DailyRecommendation
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-gray-50 p-3 text-center">
-      <p className="text-xl font-bold text-gray-900">{value}</p>
-      <p className="text-xs text-gray-500">{label}</p>
+    <div className="rounded-lg bg-page p-3 text-center">
+      <p className="text-xl font-bold text-primary">{value}</p>
+      <p className="text-xs text-tertiary">{label}</p>
     </div>
   );
 }

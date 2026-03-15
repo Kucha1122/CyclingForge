@@ -197,9 +197,9 @@ export const WorkoutCreatorPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-page">
       {/* Sticky header */}
-      <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-border-default bg-surface/95 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-1 flex-wrap items-center gap-3">
             <input
@@ -207,12 +207,12 @@ export const WorkoutCreatorPage = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t('creatorWorkoutNamePlaceholder')}
-              className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-lg font-semibold text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+              className="min-w-0 flex-1 rounded-lg border border-border-default bg-surface px-3 py-2 text-lg font-semibold text-primary placeholder-tertiary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1"
             />
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm font-medium text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
             >
               {WORKOUT_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -223,7 +223,7 @@ export const WorkoutCreatorPage = () => {
             <select
               value={targetZone}
               onChange={(e) => setTargetZone(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm font-medium text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
             >
               {TRAINING_ZONES.map((z) => (
                 <option key={z} value={z}>
@@ -233,17 +233,17 @@ export const WorkoutCreatorPage = () => {
             </select>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">{totalMinutes} {tCommon('min')}</span>
+            <span className="text-sm text-tertiary">{totalMinutes} {tCommon('min')}</span>
             <button
               onClick={() => navigate('/workouts')}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-accent"
             >
               {t('creatorCancel')}
             </button>
             <button
               onClick={handleSave}
               disabled={saving || !name}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:opacity-90 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1"
             >
               {saving ? t('creatorSaving') : isEditing ? t('creatorSave') : t('creatorCreate')}
             </button>
@@ -257,8 +257,8 @@ export const WorkoutCreatorPage = () => {
           <div className="lg:col-span-3 space-y-6">
             {/* Sticky chart */}
             <div className="lg:sticky lg:top-24">
-              <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-                <h2 className="mb-2 text-sm font-semibold text-gray-700">
+              <div className="rounded-xl bg-surface p-4 shadow-sm ring-1 ring-border-default">
+                <h2 className="mb-2 text-sm font-semibold text-secondary">
                   {t('creatorZonePreview')}
                 </h2>
                 <IntervalChart steps={stepsForChart} height={200} />
@@ -266,21 +266,21 @@ export const WorkoutCreatorPage = () => {
             </div>
 
             {/* Steps list */}
-            <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+            <div className="rounded-xl bg-surface p-4 shadow-sm ring-1 ring-border-default">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-700">
+                <h2 className="text-sm font-semibold text-secondary">
                   {t('creatorWorkoutSteps')}
                 </h2>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowImport(!showImport)}
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-accent"
                   >
                     {t('creatorImportZwo')}
                   </button>
                   <button
                     onClick={addStep}
-                    className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                    className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground transition-colors hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1"
                   >
                     + {t('creatorAddStep')}
                   </button>
@@ -288,17 +288,17 @@ export const WorkoutCreatorPage = () => {
               </div>
 
               {showImport && (
-                <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+                <div className="mb-4 rounded-lg border border-border-default bg-state-active-bg p-4">
                   <textarea
                     value={zwoImport}
                     onChange={(e) => setZwoImport(e.target.value)}
                     rows={4}
-                    className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="mb-2 w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                     placeholder={t('creatorImportPaste')}
                   />
                   <button
                     onClick={handleImport}
-                    className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"
                   >
                     {t('creatorImportButton')}
                   </button>
@@ -324,36 +324,36 @@ export const WorkoutCreatorPage = () => {
 
           {/* Right column: Presets + Metadata (40%) */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+            <div className="rounded-xl bg-surface p-4 shadow-sm ring-1 ring-border-default">
               <PresetBlockBar onAdd={addPresetBlocks} />
             </div>
 
-            <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-              <h3 className="mb-3 text-sm font-semibold text-gray-700">
+            <div className="rounded-xl bg-surface p-4 shadow-sm ring-1 ring-border-default">
+              <h3 className="mb-3 text-sm font-semibold text-secondary">
                 {t('creatorDescriptionSettings')}
               </h3>
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                  <label className="mb-1 block text-xs font-medium text-tertiary">
                     {t('creatorDescription')}
                   </label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={2}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                     placeholder={t('creatorDescriptionPlaceholder')}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                  <label className="mb-1 block text-xs font-medium text-tertiary">
                     {t('creatorTags')}
                   </label>
                   <input
                     type="text"
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                     placeholder={t('creatorTagsPlaceholder')}
                   />
                 </div>
@@ -363,11 +363,11 @@ export const WorkoutCreatorPage = () => {
                     id="isPublic"
                     checked={isPublic}
                     onChange={(e) => setIsPublic(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-border-default text-accent focus:ring-accent"
                   />
                   <label
                     htmlFor="isPublic"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-medium text-primary"
                   >
                     {t('creatorPublicWorkout')}
                   </label>

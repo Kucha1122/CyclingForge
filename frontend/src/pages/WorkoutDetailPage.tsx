@@ -76,19 +76,19 @@ export const WorkoutDetailPage = () => {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center"><p className="text-gray-500">{t('loadingWorkouts')}</p></div>;
+    return <div className="flex min-h-screen items-center justify-center bg-page"><p className="text-tertiary">{t('loadingWorkouts')}</p></div>;
   }
 
   if (!workout) {
-    return <div className="flex min-h-screen items-center justify-center"><p className="text-gray-500">{t('workoutNotFound')}</p></div>;
+    return <div className="flex min-h-screen items-center justify-center bg-page"><p className="text-tertiary">{t('workoutNotFound')}</p></div>;
   }
 
-  const categoryColor = CATEGORY_COLORS[workout.category] || 'bg-gray-100 text-gray-800';
+  const categoryColor = CATEGORY_COLORS[workout.category] || 'bg-muted text-primary dark:bg-muted dark:text-primary';
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-page p-8">
       <div className="mb-6">
-        <Link to="/workouts" className="text-sm text-blue-600 hover:text-blue-800">
+        <Link to="/workouts" className="text-sm text-accent hover:opacity-80">
           {t('backToLibrary')}
         </Link>
       </div>
@@ -97,15 +97,15 @@ export const WorkoutDetailPage = () => {
         <header className="mb-8">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{WORKOUT_NAME_KEYS[workout.name] ? t(WORKOUT_NAME_KEYS[workout.name]) : workout.name}</h1>
+              <h1 className="text-3xl font-bold text-primary">{WORKOUT_NAME_KEYS[workout.name] ? t(WORKOUT_NAME_KEYS[workout.name]) : workout.name}</h1>
               <div className="mt-2 flex flex-wrap gap-2">
                 <span className={`rounded-full px-3 py-1 text-sm font-medium ${categoryColor}`}>
                   {t(CATEGORY_I18N_KEYS[workout.category] ?? 'categoryMixed')}
                 </span>
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+                <span className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-secondary">
                   {workout.targetZone}
                 </span>
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+                <span className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-secondary">
                   {workout.source === 'Imported' ? t('imported') : workout.source === 'UserCreated' ? t('custom') : workout.source === 'System' ? t('sourceSystem') : workout.source}
                 </span>
               </div>
@@ -114,13 +114,13 @@ export const WorkoutDetailPage = () => {
               <button
                 onClick={handleCopy}
                 disabled={copying}
-                className="rounded-lg border border-green-300 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 disabled:opacity-50"
+                className="rounded-lg border border-border-default bg-state-success-bg px-4 py-2 text-sm font-medium text-state-success-text hover:opacity-90 disabled:opacity-50"
               >
                 {copying ? t('copying') : t('copyWorkout')}
               </button>
               <button
                 onClick={handleExport}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-muted"
               >
                 {t('exportZwo')}
               </button>
@@ -130,40 +130,40 @@ export const WorkoutDetailPage = () => {
 
         {/* Stats */}
         <div className="mb-8 grid grid-cols-3 gap-4">
-          <div className="rounded-xl bg-white p-4 text-center shadow-sm ring-1 ring-gray-200">
-            <p className="text-2xl font-bold text-gray-900">{workout.durationMinutes} {tCommon('min')}</p>
-            <p className="text-sm text-gray-500">{t('duration')}</p>
+          <div className="rounded-xl bg-surface p-4 text-center shadow-sm ring-1 ring-border-default">
+            <p className="text-2xl font-bold text-primary">{workout.durationMinutes} {tCommon('min')}</p>
+            <p className="text-sm text-tertiary">{t('duration')}</p>
           </div>
-          <div className="rounded-xl bg-white p-4 text-center shadow-sm ring-1 ring-gray-200">
-            <p className="text-2xl font-bold text-gray-900">{workout.estimatedTSS}</p>
-            <p className="text-sm text-gray-500">{t('estimatedTSS')}</p>
+          <div className="rounded-xl bg-surface p-4 text-center shadow-sm ring-1 ring-border-default">
+            <p className="text-2xl font-bold text-primary">{workout.estimatedTSS}</p>
+            <p className="text-sm text-tertiary">{t('estimatedTSS')}</p>
           </div>
-          <div className="rounded-xl bg-white p-4 text-center shadow-sm ring-1 ring-gray-200">
-            <p className="text-2xl font-bold text-gray-900">{workout.steps.length}</p>
-            <p className="text-sm text-gray-500">{t('steps')}</p>
+          <div className="rounded-xl bg-surface p-4 text-center shadow-sm ring-1 ring-border-default">
+            <p className="text-2xl font-bold text-primary">{workout.steps.length}</p>
+            <p className="text-sm text-tertiary">{t('steps')}</p>
           </div>
         </div>
 
         {/* Description */}
         {workout.description && (
-          <div className="mb-8 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-2 text-lg font-semibold text-gray-900">{t('description')}</h2>
-            <p className="text-gray-600">{workout.description}</p>
+          <div className="mb-8 rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+            <h2 className="mb-2 text-lg font-semibold text-primary">{t('description')}</h2>
+            <p className="text-secondary">{workout.description}</p>
           </div>
         )}
 
         {/* Interval Chart */}
-        <div className="mb-8 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">{t('workoutProfile')}</h2>
+        <div className="mb-8 rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+          <h2 className="mb-4 text-lg font-semibold text-primary">{t('workoutProfile')}</h2>
           <IntervalChart steps={workout.steps} height={200} ftp={ftp ?? undefined} />
         </div>
 
         {/* Steps Table */}
-        <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+        <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">{t('steps')}</h2>
+            <h2 className="text-lg font-semibold text-primary">{t('steps')}</h2>
             {ftp && ftp > 0 && (
-              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+              <span className="rounded-full bg-state-active-bg px-3 py-1 text-xs font-medium text-state-active-text">
                 FTP: {ftp}W
               </span>
             )}
@@ -171,7 +171,7 @@ export const WorkoutDetailPage = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-gray-500">
+                <tr className="border-b border-border-default text-left text-tertiary">
                   <th className="pb-2 pr-4">{t('hash')}</th>
                   <th className="pb-2 pr-4">{t('type')}</th>
                   <th className="pb-2 pr-4">{t('duration')}</th>
@@ -182,26 +182,26 @@ export const WorkoutDetailPage = () => {
               </thead>
               <tbody>
                 {workout.steps.sort((a, b) => a.order - b.order).map(step => (
-                  <tr key={step.id} className="border-b border-gray-50">
-                    <td className="py-2 pr-4 text-gray-400">{step.order}</td>
-                    <td className="py-2 pr-4 font-medium">{t(STEP_TYPE_I18N_KEYS[step.type] ?? step.type)}</td>
-                    <td className="py-2 pr-4">{formatDuration(step.durationSeconds)}</td>
+                  <tr key={step.id} className="border-b border-border-default">
+                    <td className="py-2 pr-4 text-tertiary">{step.order}</td>
+                    <td className="py-2 pr-4 font-medium text-primary">{t(STEP_TYPE_I18N_KEYS[step.type] ?? step.type)}</td>
+                    <td className="py-2 pr-4 text-primary">{formatDuration(step.durationSeconds)}</td>
                     <td className="py-2 pr-4">
-                      <span className="text-gray-700">
+                      <span className="text-secondary">
                         {step.powerLow === step.powerHigh
                           ? `${Math.round(step.powerHigh * 100)}%`
                           : `${Math.round(step.powerLow * 100)}–${Math.round(step.powerHigh * 100)}%`}
                       </span>
                       {ftp && ftp > 0 && (
-                        <span className="ml-1.5 font-medium text-yellow-600">
+                        <span className="ml-1.5 font-medium text-accent">
                           {step.powerLow === step.powerHigh
                             ? `${Math.round(step.powerHigh * ftp)}W`
                             : `${Math.round(step.powerLow * ftp)}–${Math.round(step.powerHigh * ftp)}W`}
                         </span>
                       )}
                     </td>
-                    <td className="py-2 pr-4 text-gray-500">{step.cadence ?? '-'}</td>
-                    <td className="py-2 text-gray-500">
+                    <td className="py-2 pr-4 text-tertiary">{step.cadence ?? '-'}</td>
+                    <td className="py-2 text-tertiary">
                       {step.type === 'Intervals' && step.repeat && (
                         <span>
                           {step.repeat}x&nbsp;(

@@ -106,17 +106,17 @@ export const TodayWorkoutPage = () => {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center"><p className="text-gray-500">{t('loadingWorkout')}</p></div>;
+    return <div className="flex min-h-screen items-center justify-center"><p className="text-tertiary">{t('loadingWorkout')}</p></div>;
   }
 
   if (noPreference) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-8">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-page p-8">
         <div className="text-center">
-          <h1 className="mb-4 text-3xl font-bold text-gray-900">{t('setUpTitle')}</h1>
-          <p className="mb-6 text-gray-600">{t('setUpDesc')}</p>
+          <h1 className="mb-4 text-3xl font-bold text-primary">{t('setUpTitle')}</h1>
+          <p className="mb-6 text-secondary">{t('setUpDesc')}</p>
           <Link to="/training-setup"
-            className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700">
+            className="rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-foreground hover:opacity-90">
             {tCommon('getStarted')}
           </Link>
         </div>
@@ -128,19 +128,19 @@ export const TodayWorkoutPage = () => {
   const altWorkout = recommendation?.alternativeWorkout;
 
   return (
-    <div key={i18n.language} className="min-h-screen bg-gray-50 p-8">
+    <div key={i18n.language} className="min-h-screen bg-page p-8">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
-        <p className="text-gray-600">{formatDate(new Date(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <h1 className="text-3xl font-bold text-primary">{t('title')}</h1>
+        <p className="text-secondary">{formatDate(new Date(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </header>
 
       <div className="mx-auto max-w-4xl">
         {/* Readiness Score */}
-        <div className="mb-8 rounded-xl bg-white p-8 shadow-sm ring-1 ring-gray-200">
+        <div className="mb-8 rounded-xl bg-surface p-8 shadow-sm ring-1 ring-border-default">
           <div className="flex flex-col items-center gap-6 md:flex-row">
             <ReadinessGauge score={readiness?.overallScore ?? recommendation?.readinessScore ?? 50} size="lg" />
             <div className="flex-1">
-              <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('readinessBreakdown')}</h2>
+              <h2 className="mb-4 text-xl font-semibold text-primary">{t('readinessBreakdown')}</h2>
               <div className="grid grid-cols-2 gap-3">
                 {readiness?.tsbValue != null && (
                   <MetricCard label={t('formTsb')} value={readiness.tsbValue.toFixed(1)} score={readiness.tsbScore} />
@@ -164,42 +164,42 @@ export const TodayWorkoutPage = () => {
 
         {/* Recommendation Reason */}
         {recommendation?.reason && (
-          <div className="mb-6 rounded-xl bg-blue-50 p-4 ring-1 ring-blue-200">
-            <p className="text-sm text-blue-800">{translateReason(recommendation.reason, t, tWorkouts)}</p>
+          <div className="mb-6 rounded-xl bg-state-active-bg p-4 ring-1 ring-border-default">
+            <p className="text-sm text-state-active-text">{translateReason(recommendation.reason, t as (key: string, opts?: object) => string, tWorkouts)}</p>
           </div>
         )}
 
         {/* Rest / Alternative Activity */}
         {recommendation?.recommendationType === 'RestDay' && (
-          <div className="rounded-xl bg-green-50 p-8 text-center ring-1 ring-green-200">
+          <div className="rounded-xl bg-muted p-8 text-center ring-1 ring-border-default">
             <span className="text-4xl">😴</span>
-            <h2 className="mt-4 text-2xl font-bold text-green-800">{t('restDay')}</h2>
-            <p className="mt-2 text-green-700">{t('restDayDesc')}</p>
+            <h2 className="mt-4 text-2xl font-bold text-primary">{t('restDay')}</h2>
+            <p className="mt-2 text-secondary">{t('restDayDesc')}</p>
           </div>
         )}
 
         {recommendation?.recommendationType === 'AlternativeActivity' && (
-          <div className="rounded-xl bg-amber-50 p-8 text-center ring-1 ring-amber-200">
+          <div className="rounded-xl bg-muted p-8 text-center ring-1 ring-border-default">
             <span className="text-4xl">🚶</span>
-            <h2 className="mt-4 text-2xl font-bold text-amber-800">{t('activeRecovery')}</h2>
-            <p className="mt-2 text-amber-700">{t('activeRecoveryDesc')}</p>
+            <h2 className="mt-4 text-2xl font-bold text-primary">{t('activeRecovery')}</h2>
+            <p className="mt-2 text-secondary">{t('activeRecoveryDesc')}</p>
           </div>
         )}
 
         {/* Recommended Workout */}
         {workout && (
-          <div className="mb-6 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div className="mb-6 rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
             <div className="mb-4 flex items-start justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">{WORKOUT_NAME_KEYS[workout.name] ? tWorkouts(WORKOUT_NAME_KEYS[workout.name]) : workout.name}</h2>
+                <h2 className="text-xl font-bold text-primary">{WORKOUT_NAME_KEYS[workout.name] ? tWorkouts(WORKOUT_NAME_KEYS[workout.name]) : workout.name}</h2>
                 <div className="mt-2 flex gap-2">
-                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${CATEGORY_COLORS[workout.category] || ''}`}>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${CATEGORY_COLORS[workout.category] || 'bg-muted text-primary dark:bg-muted dark:text-primary'}`}>
                     {tWorkouts(CATEGORY_I18N_KEYS[workout.category] ?? 'categoryMixed')}
                   </span>
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
+                  <span className="rounded-full bg-muted px-3 py-1 text-xs text-secondary">
                     {workout.durationMinutes} {tCommon('min')}
                   </span>
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
+                  <span className="rounded-full bg-muted px-3 py-1 text-xs text-secondary">
                     {tCommon('tssLabel')} {workout.estimatedTSS}
                   </span>
                 </div>
@@ -207,20 +207,20 @@ export const TodayWorkoutPage = () => {
               {recommendation.status === 'Pending' && (
                 <div className="flex gap-2">
                   <button onClick={() => handleStatusUpdate('Accepted')}
-                    className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
+                    className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90">
                     {tCommon('accept')}
                   </button>
                   <button onClick={() => handleStatusUpdate('Skipped')}
-                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    className="rounded-lg border border-border-default px-4 py-2 text-sm font-medium text-secondary hover:bg-page">
                     {tCommon('skip')}
                   </button>
                 </div>
               )}
               {recommendation.status !== 'Pending' && (
                 <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  recommendation.status === 'Accepted' ? 'bg-green-100 text-green-800'
-                    : recommendation.status === 'Completed' ? 'bg-blue-100 text-blue-800'
-                    : 'bg-gray-100 text-gray-800'
+                  recommendation.status === 'Accepted' ? 'bg-state-success-bg text-state-success-text'
+                    : recommendation.status === 'Completed' ? 'bg-state-active-bg text-state-active-text'
+                    : 'bg-muted text-primary'
                 }`}>
                   {tWorkouts(STATUS_I18N_KEYS[recommendation.status] ?? recommendation.status)}
                 </span>
@@ -228,14 +228,14 @@ export const TodayWorkoutPage = () => {
             </div>
 
             {workout.description && (
-              <p className="mb-4 text-sm text-gray-600">{workout.description}</p>
+              <p className="mb-4 text-sm text-secondary">{workout.description}</p>
             )}
 
             <IntervalChart steps={workout.steps} height={160} />
 
             <div className="mt-4 text-center">
               <Link to={`/workouts/${workout.id}`}
-                className="text-sm text-blue-600 hover:text-blue-800">
+                className="text-sm text-accent hover:opacity-80">
                 {t('viewFullWorkout')}
               </Link>
             </div>
@@ -244,20 +244,20 @@ export const TodayWorkoutPage = () => {
 
         {/* Alternative Workout */}
         {altWorkout && (
-          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h3 className="mb-3 text-sm font-medium text-gray-500">{t('alternativeOption')}</h3>
+          <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+            <h3 className="mb-3 text-sm font-medium text-tertiary">{t('alternativeOption')}</h3>
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-semibold text-gray-900">{WORKOUT_NAME_KEYS[altWorkout.name] ? tWorkouts(WORKOUT_NAME_KEYS[altWorkout.name]) : altWorkout.name}</p>
+                <p className="font-semibold text-primary">{WORKOUT_NAME_KEYS[altWorkout.name] ? tWorkouts(WORKOUT_NAME_KEYS[altWorkout.name]) : altWorkout.name}</p>
                 <div className="mt-1 flex gap-2">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[altWorkout.category] || ''}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[altWorkout.category] || 'bg-muted text-primary dark:bg-muted dark:text-primary'}`}>
                     {tWorkouts(CATEGORY_I18N_KEYS[altWorkout.category] ?? 'categoryMixed')}
                   </span>
-                  <span className="text-xs text-gray-500">{altWorkout.durationMinutes} {tCommon('min')} / {tCommon('tssLabel')} {altWorkout.estimatedTSS}</span>
+                  <span className="text-xs text-tertiary">{altWorkout.durationMinutes} {tCommon('min')} / {tCommon('tssLabel')} {altWorkout.estimatedTSS}</span>
                 </div>
               </div>
               <Link to={`/workouts/${altWorkout.id}`}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50">
+                className="rounded-lg border border-border-default px-3 py-1.5 text-sm text-primary hover:bg-muted">
                 {t('view')}
               </Link>
             </div>
@@ -270,26 +270,26 @@ export const TodayWorkoutPage = () => {
 
         {/* Quick links */}
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link to="/workout/week" className="flex-1 min-w-[140px] rounded-lg border border-gray-200 p-4 text-center hover:bg-gray-50">
-            <p className="font-medium text-gray-900">{t('weeklyPlan')}</p>
-            <p className="text-sm text-gray-500">{t('seeFullWeek')}</p>
+          <Link to="/workout/week" className="flex-1 min-w-[140px] rounded-lg border border-border-default p-4 text-center hover:bg-page">
+            <p className="font-medium text-primary">{t('weeklyPlan')}</p>
+            <p className="text-sm text-tertiary">{t('seeFullWeek')}</p>
           </Link>
-          <Link to="/workouts" className="flex-1 min-w-[140px] rounded-lg border border-gray-200 p-4 text-center hover:bg-gray-50">
-            <p className="font-medium text-gray-900">{t('browseLibrary')}</p>
-            <p className="text-sm text-gray-500">{t('pickDifferentWorkout')}</p>
+          <Link to="/workouts" className="flex-1 min-w-[140px] rounded-lg border border-border-default p-4 text-center hover:bg-page">
+            <p className="font-medium text-primary">{t('browseLibrary')}</p>
+            <p className="text-sm text-tertiary">{t('pickDifferentWorkout')}</p>
           </Link>
           <button
             type="button"
             onClick={handleRegenerate}
             disabled={regenerating}
-            className="flex-1 min-w-[140px] rounded-lg border border-gray-200 p-4 text-center hover:bg-gray-50 disabled:opacity-50"
+            className="flex-1 min-w-[140px] rounded-lg border border-border-default p-4 text-center hover:bg-page disabled:opacity-50"
           >
-            <p className="font-medium text-gray-900">{regenerating ? t('regenerating') : tCommon('regenerate')}</p>
-            <p className="text-sm text-gray-500">{t('getNewRecommendation')}</p>
+            <p className="font-medium text-primary">{regenerating ? t('regenerating') : tCommon('regenerate')}</p>
+            <p className="text-sm text-tertiary">{t('getNewRecommendation')}</p>
           </button>
-          <Link to="/training-setup" className="flex-1 min-w-[140px] rounded-lg border border-gray-200 p-4 text-center hover:bg-gray-50">
-            <p className="font-medium text-gray-900">{t('adjustPlan')}</p>
-            <p className="text-sm text-gray-500">{t('changePreferences')}</p>
+          <Link to="/training-setup" className="flex-1 min-w-[140px] rounded-lg border border-border-default p-4 text-center hover:bg-page">
+            <p className="font-medium text-primary">{t('adjustPlan')}</p>
+            <p className="text-sm text-tertiary">{t('changePreferences')}</p>
           </Link>
         </div>
       </div>
@@ -299,12 +299,12 @@ export const TodayWorkoutPage = () => {
 
 function MetricCard({ label, value, score }: { label: string; value: string; score: number | null }) {
   return (
-    <div className="rounded-lg bg-gray-50 p-3">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-sm font-semibold text-gray-900">{value}</p>
+    <div className="rounded-lg bg-page p-3">
+      <p className="text-xs text-tertiary">{label}</p>
+      <p className="text-sm font-semibold text-primary">{value}</p>
       {score != null && (
-        <div className="mt-1 h-1.5 w-full rounded-full bg-gray-200">
-          <div className="h-full rounded-full bg-blue-500 transition-all"
+        <div className="mt-1 h-1.5 w-full rounded-full bg-muted">
+          <div className="h-full rounded-full bg-accent transition-all"
             style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
         </div>
       )}

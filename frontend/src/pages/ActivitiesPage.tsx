@@ -134,57 +134,57 @@ export const ActivitiesPage = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-xl font-semibold text-gray-700">{t('loading')}</p>
+      <div className="flex min-h-screen items-center justify-center bg-page">
+        <p className="text-xl font-semibold text-secondary">{t('loading')}</p>
       </div>
     );
   }
 
   return (
-    <div key={i18n.language} className="min-h-screen bg-gray-50 p-8">
+    <div key={i18n.language} className="min-h-screen bg-page p-8">
       <header className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold text-gray-900">{t('title')}</h1>
-        <p className="text-gray-600">{t('subtitle')}</p>
+        <h1 className="mb-2 text-3xl font-bold text-primary">{t('title')}</h1>
+        <p className="text-secondary">{t('subtitle')}</p>
       </header>
 
       {/* Filters – counts from API (all activities), fallback to loaded when counts not available */}
       <div className="mb-6 flex gap-2">
         <button
           onClick={() => setFilter('all')}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
             filter === 'all'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
+              ? 'bg-accent text-accent-foreground'
+              : 'bg-surface text-secondary ring-1 ring-border-default hover:bg-muted'
           }`}
         >
           {t('all')} ({activities.length})
         </button>
         <button
           onClick={() => setFilter('ride')}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
             filter === 'ride'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
+              ? 'bg-accent text-accent-foreground'
+              : 'bg-surface text-secondary ring-1 ring-border-default hover:bg-muted'
           }`}
         >
           {t('rides')} ({activities.filter(a => a.type.toLowerCase().includes('ride')).length})
         </button>
         <button
           onClick={() => setFilter('run')}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
             filter === 'run'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
+              ? 'bg-accent text-accent-foreground'
+              : 'bg-surface text-secondary ring-1 ring-border-default hover:bg-muted'
           }`}
         >
           {t('runs')} ({activities.filter(a => a.type.toLowerCase().includes('run')).length})
         </button>
         <button
           onClick={() => setFilter('walk')}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
             filter === 'walk'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
+              ? 'bg-accent text-accent-foreground'
+              : 'bg-surface text-secondary ring-1 ring-border-default hover:bg-muted'
           }`}
         >
           {t('walks')} ({activities.filter(a => a.type.toLowerCase().includes('walk')).length})
@@ -198,74 +198,74 @@ export const ActivitiesPage = () => {
             <Link
               key={activity.id}
               to={`/activities/${activity.id}`}
-              className="block rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 transition-all hover:shadow-md hover:ring-gray-300"
+              className="block rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default transition-all hover:shadow-md hover:ring-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <div className="flex items-start justify-between">
                 <div className="flex flex-1 gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-2xl">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-state-active-bg text-2xl">
                     {getActivityIcon(activity.type)}
                   </div>
                   
                   <div className="flex-1">
-                    <h3 className="mb-1 text-lg font-semibold text-gray-900">{activity.name}</h3>
-                    <p className="mb-2 text-sm text-gray-500">
+                    <h3 className="mb-1 text-lg font-semibold text-primary">{activity.name}</h3>
+                    <p className="mb-2 text-sm text-tertiary">
                       {formatDate(activity.startDate, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} • {formatTime(activity.startDate)}
                     </p>
                     
                     <div className="flex flex-wrap items-center gap-4 text-sm">
                       <div className="flex items-center gap-1">
-                        <span className="text-gray-600">{t('distance')}</span>
-                        <span className="font-medium text-gray-900">{((activity.distance ?? 0) / 1000).toFixed(2)} km</span>
+                        <span className="text-secondary">{t('distance')}</span>
+                        <span className="font-medium text-primary">{((activity.distance ?? 0) / 1000).toFixed(2)} km</span>
                       </div>
                       
                       <div className="flex items-center gap-1">
-                        <span className="text-gray-600">{t('time')}</span>
-                        <span className="font-medium text-gray-900">
+                        <span className="text-secondary">{t('time')}</span>
+                        <span className="font-medium text-primary">
                           {Math.floor((activity.movingTime ?? 0) / 3600)}h {Math.floor(((activity.movingTime ?? 0) % 3600) / 60)}m
                         </span>
                       </div>
                       
                       <div className="flex items-center gap-1">
-                        <span className="text-gray-600">{t('elevation')}</span>
-                        <span className="font-medium text-gray-900">{(activity.totalElevationGain ?? 0).toFixed(0)} m</span>
+                        <span className="text-secondary">{t('elevation')}</span>
+                        <span className="font-medium text-primary">{(activity.totalElevationGain ?? 0).toFixed(0)} m</span>
                       </div>
 
                       {activity.averageHeartRate && (
                         <div className="flex items-center gap-1">
-                          <span className="text-gray-600">{t('avgHr')}</span>
-                          <span className="font-medium text-red-600">{activity.averageHeartRate.toFixed(0)} bpm</span>
+                          <span className="text-secondary">{t('avgHr')}</span>
+                          <span className="font-medium text-state-danger-text">{activity.averageHeartRate.toFixed(0)} bpm</span>
                         </div>
                       )}
 
                       {activity.averagePower && (
                         <div className="flex items-center gap-1">
-                          <span className="text-gray-600">{t('avgPower')}</span>
-                          <span className="font-medium text-gray-900">{activity.averagePower.toFixed(0)} W</span>
+                          <span className="text-secondary">{t('avgPower')}</span>
+                          <span className="font-medium text-primary">{activity.averagePower.toFixed(0)} W</span>
                         </div>
                       )}
 
                       {activity.trainingStressScore != null && (
                         <div className="flex items-center gap-1">
-                          <span className="text-gray-600">{formatTssLabel(activity) ?? 'TSS'}:</span>
-                          <span className="font-medium text-orange-600">{activity.trainingStressScore.toFixed(0)}</span>
+                          <span className="text-secondary">{formatTssLabel(activity) ?? 'TSS'}:</span>
+                          <span className="font-medium text-accent">{activity.trainingStressScore.toFixed(0)}</span>
                         </div>
                       )}
 
                       {activity.intensityFactor && (
                         <div className="flex items-center gap-1">
-                          <span className="text-gray-600">{t('if')}</span>
-                          <span className="font-medium text-purple-600">{activity.intensityFactor.toFixed(2)}</span>
+                          <span className="text-secondary">{t('if')}</span>
+                          <span className="font-medium text-accent">{activity.intensityFactor.toFixed(2)}</span>
                         </div>
                       )}
 
                       {activity.ftpUsed != null && (
                         <div className="flex items-center gap-1">
-                          <span className="text-gray-600">{t('ftp')}</span>
-                          <span className="font-medium text-gray-900">{activity.ftpUsed} W</span>
+                          <span className="text-secondary">{t('ftp')}</span>
+                          <span className="font-medium text-primary">{activity.ftpUsed} W</span>
                           {(() => {
                             const src = getFtpSourceLabel(activity);
                             return src ? (
-                              <span className="text-[11px] text-gray-500">({t(src)})</span>
+                              <span className="text-[11px] text-tertiary">({t(src)})</span>
                             ) : null;
                           })()}
                         </div>
@@ -273,10 +273,10 @@ export const ActivitiesPage = () => {
 
                       {activity.deviceWatts != null && (
                         <span
-                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
+                          className={`inline-flex items-center rounded-full border border-border-default px-2 py-0.5 text-xs font-medium ${
                             activity.deviceWatts
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                              : 'border-amber-200 bg-amber-50 text-amber-700'
+                              ? 'bg-muted text-state-active-text'
+                              : 'bg-state-danger-bg text-state-danger-text'
                           }`}
                         >
                           {activity.deviceWatts ? t('powerMeter') : t('estimatedOrHr')}
@@ -289,14 +289,14 @@ export const ActivitiesPage = () => {
                 <div className="ml-4 text-right">
                   {activity.normalizedPower && (
                     <div className="mb-1">
-                      <p className="text-xs text-gray-500">{t('np')}</p>
-                      <p className="text-lg font-bold text-blue-600">{activity.normalizedPower.toFixed(0)} W</p>
+                      <p className="text-xs text-tertiary">{t('np')}</p>
+                      <p className="text-lg font-bold text-accent">{activity.normalizedPower.toFixed(0)} W</p>
                     </div>
                   )}
                   {activity.averageSpeed && (
                     <div>
-                      <p className="text-xs text-gray-500">{t('avgSpeed')}</p>
-                      <p className="text-sm font-medium text-gray-900">{activity.averageSpeed.toFixed(1)} km/h</p>
+                      <p className="text-xs text-tertiary">{t('avgSpeed')}</p>
+                      <p className="text-sm font-medium text-primary">{activity.averageSpeed.toFixed(1)} km/h</p>
                     </div>
                   )}
                 </div>
@@ -305,14 +305,14 @@ export const ActivitiesPage = () => {
           ))}
           <div ref={sentinelRef} className="h-4" aria-hidden />
           {loadingMore && (
-            <p className="py-4 text-center text-sm text-gray-500">{t('loadingMore')}</p>
+            <p className="py-4 text-center text-sm text-tertiary">{t('loadingMore')}</p>
           )}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-xl bg-white p-12 text-center">
+        <div className="flex flex-col items-center justify-center rounded-xl bg-surface p-12 text-center ring-1 ring-border-default">
           <div className="mb-4 text-6xl">📭</div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900">{t('noActivities')}</h3>
-          <p className="text-gray-500">
+          <h3 className="mb-2 text-lg font-medium text-primary">{t('noActivities')}</h3>
+          <p className="text-tertiary">
             {filter !== 'all' ? t('noMatchFilter') : t('syncStravaToSee')}
           </p>
         </div>

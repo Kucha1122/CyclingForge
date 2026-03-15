@@ -93,16 +93,16 @@ export const WorkoutLibraryPage = () => {
   const totalPages = Math.ceil(totalCount / 24);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-page p-8">
       <header className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('library')}</h1>
-          <p className="text-gray-600">{t('librarySubtitle')}</p>
+          <h1 className="text-3xl font-bold text-primary">{t('library')}</h1>
+          <p className="text-secondary">{t('librarySubtitle')}</p>
         </div>
         <div className="flex gap-3">
           <Link
             to="/workouts/create"
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             + {t('createWorkout')}
           </Link>
@@ -110,13 +110,13 @@ export const WorkoutLibraryPage = () => {
       </header>
 
       {/* Tabs */}
-      <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1">
+      <div className="mb-6 flex gap-1 rounded-lg bg-muted p-1">
         {(['all', 'system', 'mine'] as const).map((tabKey) => (
           <button
             key={tabKey}
             onClick={() => { setTab(tabKey); setPage(1); }}
-            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              tab === tabKey ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+              tab === tabKey ? 'bg-surface text-primary shadow-sm' : 'text-secondary hover:text-primary'
             }`}
           >
             {tabKey === 'all' ? t('allWorkouts') : tabKey === 'system' ? t('systemLibrary') : t('myWorkouts')}
@@ -132,9 +132,9 @@ export const WorkoutLibraryPage = () => {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder={t('searchPlaceholder')}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
-          <button type="submit" className="rounded-lg bg-gray-200 px-3 py-2 text-sm hover:bg-gray-300">
+          <button type="submit" className="rounded-lg bg-muted px-3 py-2 text-sm text-primary hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
             {t('search')}
           </button>
         </form>
@@ -142,7 +142,7 @@ export const WorkoutLibraryPage = () => {
         <select
           value={category}
           onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         >
           <option value="">{t('allCategories')}</option>
           {WORKOUT_CATEGORIES.map(c => (
@@ -153,7 +153,7 @@ export const WorkoutLibraryPage = () => {
         <select
           value={zone}
           onChange={(e) => { setZone(e.target.value); setPage(1); }}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         >
           <option value="">{t('allZones')}</option>
           {TRAINING_ZONES.map(z => (
@@ -164,7 +164,7 @@ export const WorkoutLibraryPage = () => {
         <select
           value={sortBy}
           onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         >
           {SORT_OPTIONS.map(o => (
             <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
@@ -174,24 +174,24 @@ export const WorkoutLibraryPage = () => {
         {(category || zone || search || sortBy !== 'default') && (
           <button
             onClick={() => { setCategory(''); setZone(''); setSearch(''); setSearchInput(''); setSortBy('default'); setPage(1); }}
-            className="text-sm text-blue-600 hover:text-blue-800"
+            className="text-sm text-accent hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded"
           >
             {t('clearFilters')}
           </button>
         )}
 
-        <span className="ml-auto text-sm text-gray-500">{t('workoutsFound', { count: totalCount })}</span>
+        <span className="ml-auto text-sm text-tertiary">{t('workoutsFound', { count: totalCount })}</span>
       </div>
 
       {/* Grid */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <p className="text-gray-500">{t('loadingWorkouts')}</p>
+          <p className="text-tertiary">{t('loadingWorkouts')}</p>
         </div>
       ) : workouts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20">
-          <p className="text-lg font-medium text-gray-500">{t('noWorkoutsFound')}</p>
-          <p className="text-gray-400">{t('noWorkoutsHint')}</p>
+          <p className="text-lg font-medium text-tertiary">{t('noWorkoutsFound')}</p>
+          <p className="text-tertiary">{t('noWorkoutsHint')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -212,17 +212,17 @@ export const WorkoutLibraryPage = () => {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="rounded-lg border px-3 py-2 text-sm disabled:opacity-50"
+            className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary hover:bg-muted disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             {t('previous')}
           </button>
-          <span className="px-3 text-sm text-gray-600">
+          <span className="px-3 text-sm text-secondary">
             {t('pageOf', { current: page, total: totalPages })}
           </span>
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="rounded-lg border px-3 py-2 text-sm disabled:opacity-50"
+            className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary hover:bg-muted disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             {t('next')}
           </button>
@@ -231,24 +231,24 @@ export const WorkoutLibraryPage = () => {
 
       {/* Delete confirmation modal */}
       {deleteId && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="text-lg font-semibold text-gray-900">{t('deleteWorkout')}</h2>
-            <p className="mt-2 text-sm text-gray-600">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-primary/40">
+          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl ring-1 ring-border-default">
+            <h2 className="text-lg font-semibold text-primary">{t('deleteWorkout')}</h2>
+            <p className="mt-2 text-sm text-secondary">
               {t('deleteWorkoutConfirm', { name: deleteName ?? '' })}
             </p>
             <div className="mt-4 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={handleCancelDelete}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 {t('cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDelete}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                className="rounded-lg bg-state-danger-bg px-4 py-2 text-sm font-medium text-state-danger-text hover:bg-state-danger-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 {t('delete')}
               </button>

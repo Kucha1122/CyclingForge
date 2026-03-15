@@ -83,28 +83,28 @@ export const SleepPage = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <p className="text-xl font-semibold text-gray-700">{t('loadingSleep')}</p>
+      <div className="flex min-h-screen items-center justify-center bg-page">
+        <p className="text-xl font-semibold text-secondary">{t('loadingSleep')}</p>
       </div>
     );
   }
 
   if (!garminStatus?.isConnected) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
+      <div className="min-h-screen bg-page p-8">
         <header className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold text-gray-900">{t('analytics')}</h1>
-          <p className="text-gray-600">{t('analyticsSubtitle')}</p>
+          <h1 className="mb-2 text-3xl font-bold text-primary">{t('analytics')}</h1>
+          <p className="text-secondary">{t('analyticsSubtitle')}</p>
         </header>
         <div className="flex flex-col items-center justify-center py-16">
           <div className="mb-4 text-6xl">🌙</div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900">{t('connectGarminToTrack')}</h3>
-          <p className="mb-6 max-w-md text-center text-gray-500">
+          <h3 className="mb-2 text-lg font-medium text-primary">{t('connectGarminToTrack')}</h3>
+          <p className="mb-6 max-w-md text-center text-tertiary">
             {t('connectGarminDescription')}
           </p>
           <button
             onClick={handleConnect}
-            className="rounded-lg bg-[#007CC3] px-6 py-3 font-medium text-white transition-colors hover:bg-[#006AAF]"
+            className="rounded-lg bg-[#007CC3] px-6 py-3 font-medium text-white transition-colors hover:bg-[#006AAF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             {t('connectWithGarmin')}
           </button>
@@ -130,18 +130,18 @@ export const SleepPage = () => {
     : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-page p-8">
       <header className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="mb-2 text-3xl font-bold text-gray-900">{t('analytics')}</h1>
-            <p className="text-gray-600">{t('analyticsSubtitle')}</p>
+            <h1 className="mb-2 text-3xl font-bold text-primary">{t('analytics')}</h1>
+            <p className="text-secondary">{t('analyticsSubtitle')}</p>
           </div>
           <div className="flex items-center gap-3">
             <select
               value={range}
               onChange={(e) => setRange(Number(e.target.value) as DateRange)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             >
               <option value={7}>{t('last7Days')}</option>
               <option value={30}>{t('last30Days')}</option>
@@ -150,7 +150,7 @@ export const SleepPage = () => {
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="rounded-lg bg-[#007CC3] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#006AAF] disabled:opacity-50"
+              className="rounded-lg bg-[#007CC3] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#006AAF] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               {syncing ? t('syncing') : t('syncGarmin')}
             </button>
@@ -161,28 +161,28 @@ export const SleepPage = () => {
       {sleepData.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="mb-4 text-6xl">📭</div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900">{t('noSleepDataYet')}</h3>
-          <p className="text-gray-500">{t('syncGarminHint')}</p>
+          <h3 className="mb-2 text-lg font-medium text-primary">{t('noSleepDataYet')}</h3>
+          <p className="text-tertiary">{t('syncGarminHint')}</p>
         </div>
       ) : (
         <div className="space-y-6">
           {/* Summary cards */}
           <div className="grid gap-4 md:grid-cols-4">
-            <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 text-center">
-              <p className="text-xs text-gray-500">{t('avgDuration')}</p>
-              <p className="text-2xl font-bold text-gray-900">{formatDuration(avgSleep)}</p>
+            <div className="rounded-xl bg-surface p-5 shadow-sm ring-1 ring-border-default text-center">
+              <p className="text-xs text-tertiary">{t('avgDuration')}</p>
+              <p className="text-2xl font-bold text-primary">{formatDuration(avgSleep)}</p>
             </div>
-            <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 text-center">
-              <p className="text-xs text-gray-500">{t('avgDeep')}</p>
-              <p className="text-2xl font-bold text-indigo-700">{formatDuration(avgDeep)}</p>
+            <div className="rounded-xl bg-surface p-5 shadow-sm ring-1 ring-border-default text-center">
+              <p className="text-xs text-tertiary">{t('avgDeep')}</p>
+              <p className="text-2xl font-bold text-accent">{formatDuration(avgDeep)}</p>
             </div>
-            <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 text-center">
-              <p className="text-xs text-gray-500">{t('avgRem')}</p>
-              <p className="text-2xl font-bold text-violet-600">{formatDuration(avgRem)}</p>
+            <div className="rounded-xl bg-surface p-5 shadow-sm ring-1 ring-border-default text-center">
+              <p className="text-xs text-tertiary">{t('avgRem')}</p>
+              <p className="text-2xl font-bold text-accent">{formatDuration(avgRem)}</p>
             </div>
-            <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 text-center">
-              <p className="text-xs text-gray-500">{t('avgScore')}</p>
-              <p className="text-2xl font-bold text-gray-900">{avgScore ?? '-'}</p>
+            <div className="rounded-xl bg-surface p-5 shadow-sm ring-1 ring-border-default text-center">
+              <p className="text-xs text-tertiary">{t('avgScore')}</p>
+              <p className="text-2xl font-bold text-primary">{avgScore ?? '-'}</p>
             </div>
           </div>
 
@@ -194,7 +194,7 @@ export const SleepPage = () => {
 
           {/* Individual nights */}
           <div>
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('nightDetails')}</h2>
+            <h2 className="mb-4 text-xl font-semibold text-primary">{t('nightDetails')}</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {sleepData.map((d) => (
                 <SleepDetailsCard key={d.date} sleep={d} />

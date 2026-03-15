@@ -68,33 +68,33 @@ export const AnalysisPage = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-xl font-semibold text-gray-700">{t('loadingAnalysis')}</p>
+      <div className="flex min-h-screen items-center justify-center bg-page">
+        <p className="text-xl font-semibold text-secondary">{t('loadingAnalysis')}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-page p-8">
       <header className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold text-gray-900">{t('title')}</h1>
-        <p className="text-gray-600">{t('subtitle')}</p>
+        <h1 className="mb-2 text-3xl font-bold text-primary">{t('title')}</h1>
+        <p className="text-secondary">{t('subtitle')}</p>
       </header>
 
       {pmcData ? (
         <div className="space-y-6">
           {/* Time Range Selector */}
-          <div className="flex items-center gap-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-            <span className="text-sm font-medium text-gray-700">{t('range')}</span>
+          <div className="flex items-center gap-4 rounded-xl bg-surface p-4 shadow-sm ring-1 ring-border-default">
+            <span className="text-sm font-medium text-secondary">{t('range')}</span>
             <div className="flex gap-2">
               {(['7', '30', '42', '90', '180', '365'] as const).map((range) => (
                 <button
                   key={range}
                   onClick={() => setSelectedTimeRange(range)}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                     selectedTimeRange === range
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-accent text-accent-foreground'
+                      : 'bg-muted text-secondary hover:bg-elevated'
                   }`}
                 >
                   {range === '7'
@@ -139,12 +139,12 @@ export const AnalysisPage = () => {
           )}
 
           {pmcData.rampRateCtlPerWeek != null && (
-            <div className={`rounded-xl p-4 shadow-sm ring-1 ${pmcData.rampRateCtlPerWeek > 7 ? 'bg-amber-50 ring-amber-200' : 'bg-white ring-gray-200'}`}>
-              <p className="text-sm font-medium text-gray-700">
+            <div className={`rounded-xl p-4 shadow-sm ring-1 ${pmcData.rampRateCtlPerWeek > 7 ? 'bg-state-danger-bg ring-border-default' : 'bg-surface ring-border-default'}`}>
+              <p className="text-sm font-medium text-primary">
                 {t('rampRate')}: <span className="font-semibold">{pmcData.rampRateCtlPerWeek >= 0 ? '+' : ''}{pmcData.rampRateCtlPerWeek.toFixed(1)}</span> CTL/week
               </p>
               {pmcData.rampRateCtlPerWeek > 7 && (
-                <p className="mt-1 text-xs text-amber-800">{t('rampRateWarning')}</p>
+                <p className="mt-1 text-xs text-state-danger-text">{t('rampRateWarning')}</p>
               )}
             </div>
           )}
@@ -155,21 +155,21 @@ export const AnalysisPage = () => {
           {/* Insights */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Training Load Analysis */}
-            <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-              <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('trainingLoadAnalysis')}</h2>
+            <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+              <h2 className="mb-4 text-xl font-semibold text-primary">{t('trainingLoadAnalysis')}</h2>
               <div className="space-y-4">
                 <div>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm text-gray-600">{t('fitnessCtl')}</span>
-                    <span className="font-semibold text-blue-600">{pmcData.currentCTL.toFixed(1)}</span>
+                    <span className="text-sm text-secondary">{t('fitnessCtl')}</span>
+                    <span className="font-semibold text-accent">{pmcData.currentCTL.toFixed(1)}</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-blue-600"
+                      className="h-full rounded-full bg-accent"
                       style={{ width: `${Math.min((pmcData.currentCTL / 120) * 100, 100)}%` }}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-tertiary">
                     {pmcData.currentCTL > 100
                       ? t('fitnessElite')
                       : pmcData.currentCTL > 80
@@ -184,16 +184,16 @@ export const AnalysisPage = () => {
 
                 <div>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm text-gray-600">{t('fatigueAtl')}</span>
-                    <span className="font-semibold text-orange-600">{pmcData.currentATL.toFixed(1)}</span>
+                    <span className="text-sm text-secondary">{t('fatigueAtl')}</span>
+                    <span className="font-semibold text-accent">{pmcData.currentATL.toFixed(1)}</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div
                       className="h-full rounded-full bg-orange-600"
                       style={{ width: `${Math.min((pmcData.currentATL / 150) * 100, 100)}%` }}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-tertiary">
                     {pmcData.currentATL > 120
                       ? t('fatigueVeryHigh')
                       : pmcData.currentATL > 80
@@ -206,7 +206,7 @@ export const AnalysisPage = () => {
 
                 <div>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm text-gray-600">{t('formTsb')}</span>
+                    <span className="text-sm text-secondary">{t('formTsb')}</span>
                     <span
                       className={`font-semibold ${
                         pmcData.currentTSB < -35
@@ -223,7 +223,7 @@ export const AnalysisPage = () => {
                       {pmcData.currentTSB.toFixed(1)}
                     </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div
                       className={`h-full rounded-full ${
                         pmcData.currentTSB < -35
@@ -239,26 +239,26 @@ export const AnalysisPage = () => {
                       style={{ width: `${Math.min(Math.abs(pmcData.currentTSB / 35) * 100, 100)}%` }}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">{pmcData.formStatus}</p>
+                  <p className="mt-1 text-xs text-tertiary">{pmcData.formStatus}</p>
                 </div>
               </div>
             </div>
 
             {/* Training Recommendations */}
-            <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-              <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('recommendations')}</h2>
+            <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+              <h2 className="mb-4 text-xl font-semibold text-primary">{t('recommendations')}</h2>
               
-              <div className="mb-6 rounded-lg bg-blue-50 p-4 ring-1 ring-blue-200">
-                <p className="text-sm font-medium text-blue-900">{t('currentStatus')}</p>
-                <p className="mt-1 text-sm text-blue-800">{pmcData.recommendation}</p>
+              <div className="mb-6 rounded-lg bg-state-active-bg p-4 ring-1 ring-border-default">
+                <p className="text-sm font-medium text-state-active-text">{t('currentStatus')}</p>
+                <p className="mt-1 text-sm text-secondary">{pmcData.recommendation}</p>
               </div>
 
               <div className="space-y-3 text-sm">
                 <div className="flex gap-3">
                   <span className="text-lg">📊</span>
                   <div>
-                    <p className="font-medium text-gray-900">{t('trainingBalance')}</p>
-                    <p className="text-gray-600">
+                    <p className="font-medium text-primary">{t('trainingBalance')}</p>
+                    <p className="text-secondary">
                       {pmcData.currentTSB < -35
                         ? t('balanceOvertraining')
                         : pmcData.currentTSB < -10
@@ -275,8 +275,8 @@ export const AnalysisPage = () => {
                 <div className="flex gap-3">
                   <span className="text-lg">🎯</span>
                   <div>
-                    <p className="font-medium text-gray-900">{t('nextSteps')}</p>
-                    <p className="text-gray-600">
+                    <p className="font-medium text-primary">{t('nextSteps')}</p>
+                    <p className="text-secondary">
                       {pmcData.currentCTL < 50
                         ? t('nextStepsBase')
                         : pmcData.currentCTL < 80
@@ -289,8 +289,8 @@ export const AnalysisPage = () => {
                 <div className="flex gap-3">
                   <span className="text-lg">⚡</span>
                   <div>
-                    <p className="font-medium text-gray-900">{t('performanceOutlook')}</p>
-                    <p className="text-gray-600">
+                    <p className="font-medium text-primary">{t('performanceOutlook')}</p>
+                    <p className="text-secondary">
                       {pmcData.currentTSB > 5 && pmcData.currentCTL > 70
                         ? t('outlookPeak')
                         : pmcData.currentTSB < -35
@@ -304,24 +304,24 @@ export const AnalysisPage = () => {
           </div>
 
           {/* Understanding Metrics */}
-          <div className="rounded-xl bg-gradient-to-br from-gray-50 to-blue-50 p-6 ring-1 ring-gray-200">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('understandingMetrics')}</h2>
+          <div className="rounded-xl bg-muted p-6 ring-1 ring-border-default">
+            <h2 className="mb-4 text-xl font-semibold text-primary">{t('understandingMetrics')}</h2>
             <div className="grid gap-4 md:grid-cols-3">
               <div>
-                <h3 className="mb-2 font-semibold text-blue-700">{t('fitnessCtl')}</h3>
-                <p className="text-sm text-gray-700">
+                <h3 className="mb-2 font-semibold text-accent">{t('fitnessCtl')}</h3>
+                <p className="text-sm text-secondary">
                   {t('ctlDescription')}
                 </p>
               </div>
               <div>
-                <h3 className="mb-2 font-semibold text-orange-700">{t('fatigueAtl')}</h3>
-                <p className="text-sm text-gray-700">
+                <h3 className="mb-2 font-semibold text-accent">{t('fatigueAtl')}</h3>
+                <p className="text-sm text-secondary">
                   {t('atlDescription')}
                 </p>
               </div>
               <div>
-                <h3 className="mb-2 font-semibold text-green-700">{t('formTsb')}</h3>
-                <p className="text-sm text-gray-700">
+                <h3 className="mb-2 font-semibold text-accent">{t('formTsb')}</h3>
+                <p className="text-sm text-secondary">
                   {t('tsbDescription')}
                 </p>
               </div>
@@ -329,10 +329,10 @@ export const AnalysisPage = () => {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-xl bg-white p-12 text-center">
+        <div className="flex flex-col items-center justify-center rounded-xl bg-surface p-12 text-center ring-1 ring-border-default">
           <div className="mb-4 text-6xl">📊</div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900">{t('noAnalysisData')}</h3>
-          <p className="text-gray-500">
+          <h3 className="mb-2 text-lg font-medium text-primary">{t('noAnalysisData')}</h3>
+          <p className="text-tertiary">
             {t('noAnalysisDataHint')}
           </p>
         </div>

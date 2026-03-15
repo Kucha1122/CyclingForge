@@ -188,27 +188,27 @@ export const NewDashboardPage = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <p className="text-xl font-semibold text-gray-700">{t('loadingDashboard')}</p>
+      <div className="flex min-h-screen items-center justify-center bg-page">
+        <p className="text-xl font-semibold text-secondary">{t('loadingDashboard')}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-page p-8">
       {/* Header */}
       <header className="mb-8">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
-            <p className="text-gray-600">{t('welcomeBack', { email: user?.email ?? '' })}</p>
+            <h1 className="text-3xl font-bold text-primary">{t('title')}</h1>
+            <p className="text-secondary">{t('welcomeBack', { email: user?.email ?? '' })}</p>
           </div>
           
           {stravaProfile && (
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="rounded-lg bg-orange-600 px-4 py-2 font-medium text-white transition-colors hover:bg-orange-700 disabled:opacity-50"
+              className="rounded-lg bg-accent px-4 py-2 font-medium text-accent-foreground transition-colors hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               {syncing ? tCommon('syncing') : t('syncActivities')}
             </button>
@@ -217,15 +217,15 @@ export const NewDashboardPage = () => {
 
         {/* Strava Connection Banner */}
         {!stravaProfile && (
-          <div className="rounded-lg bg-orange-50 p-4 ring-1 ring-orange-200">
+          <div className="rounded-lg bg-muted p-4 ring-1 ring-border-default">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-orange-900">{t('connectStravaTitle')}</h3>
-                <p className="text-sm text-orange-700">{t('connectStravaDesc')}</p>
+                <h3 className="font-semibold text-primary">{t('connectStravaTitle')}</h3>
+                <p className="text-sm text-secondary">{t('connectStravaDesc')}</p>
               </div>
               <button
                 onClick={handleConnectStrava}
-                className="rounded-lg bg-[#FC4C02] px-4 py-2 font-medium text-white transition-colors hover:bg-[#e34402]"
+                className="rounded-lg bg-[#FC4C02] px-4 py-2 font-medium text-white transition-colors hover:bg-[#e34402] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 {t('connectWithStrava')}
               </button>
@@ -247,15 +247,15 @@ export const NewDashboardPage = () => {
 
           {/* Garmin Connect Prompt */}
           {!garminStatus?.isConnected && (
-            <div className="rounded-lg bg-blue-50 p-4 ring-1 ring-blue-200">
+            <div className="rounded-lg bg-state-active-bg p-4 ring-1 ring-border-default">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-blue-900">{t('connectGarminTitle')}</h3>
-                  <p className="text-sm text-blue-700">{t('connectGarminDesc')}</p>
+                  <h3 className="font-semibold text-state-active-text">{t('connectGarminTitle')}</h3>
+                  <p className="text-sm text-secondary">{t('connectGarminDesc')}</p>
                 </div>
                 <button
                   onClick={() => navigate('/profile')}
-                  className="rounded-lg bg-[#007CC3] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#006AAF]"
+                  className="rounded-lg bg-[#007CC3] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#006AAF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   {t('connectGarmin')}
                 </button>
@@ -265,23 +265,23 @@ export const NewDashboardPage = () => {
 
           {/* Today's Workout Card */}
           {todayRecommendation && (
-            <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+            <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
               <div className="flex items-center gap-6">
                 <ReadinessGauge score={todayRecommendation.readinessScore} size="sm" />
                 <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-gray-900">{t('todaysWorkout')}</h2>
+                  <h2 className="text-lg font-semibold text-primary">{t('todaysWorkout')}</h2>
                   {todayRecommendation.recommendationType === 'RestDay' ? (
-                    <p className="text-gray-600">{t('restDayRecommended')}</p>
+                    <p className="text-secondary">{t('restDayRecommended')}</p>
                   ) : todayRecommendation.recommendationType === 'AlternativeActivity' ? (
-                    <p className="text-gray-600">{t('considerLightWalk')}</p>
+                    <p className="text-secondary">{t('considerLightWalk')}</p>
                   ) : todayRecommendation.recommendedWorkout ? (
                     <div className="mt-1">
-                      <p className="font-medium text-gray-900">{todayRecommendation.recommendedWorkout.name}</p>
+                      <p className="font-medium text-primary">{todayRecommendation.recommendedWorkout.name}</p>
                       <div className="mt-1 flex gap-2">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[todayRecommendation.recommendedWorkout.category] || 'bg-gray-100 text-gray-800'}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[todayRecommendation.recommendedWorkout.category] || 'bg-muted text-primary'}`}>
                           {todayRecommendation.recommendedWorkout.category}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-tertiary">
                           {todayRecommendation.recommendedWorkout.durationMinutes} {tCommon('min')} / TSS {todayRecommendation.recommendedWorkout.estimatedTSS}
                         </span>
                       </div>
@@ -289,7 +289,7 @@ export const NewDashboardPage = () => {
                   ) : null}
                 </div>
                 <Link to="/workout/today"
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                  className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
                   {tCommon('viewDetails')}
                 </Link>
               </div>
@@ -324,11 +324,11 @@ export const NewDashboardPage = () => {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">{t('rangeLabel')}</span>
+                    <span className="text-sm text-secondary">{t('rangeLabel')}</span>
                     <select
                       value={pmcHistoryDays}
                       onChange={(e) => setPmcHistoryDays(Number(e.target.value))}
-                      className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="rounded-lg border border-border-default bg-surface px-3 py-1.5 text-sm text-primary shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                     >
                       <option value={7}>{t('days7')}</option>
                       <option value={30}>{t('days30')}</option>
@@ -339,7 +339,7 @@ export const NewDashboardPage = () => {
                     </select>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">{t('ctlAtlConstants')}</span>
+                    <span className="text-sm text-secondary">{t('ctlAtlConstants')}</span>
                     <select
                       value={`${pmcCtlDays}/${pmcAtlDays}`}
                       onChange={(e) => {
@@ -347,7 +347,7 @@ export const NewDashboardPage = () => {
                         setPmcCtlDays(ctl);
                         setPmcAtlDays(atl);
                       }}
-                      className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="rounded-lg border border-border-default bg-surface px-3 py-1.5 text-sm text-primary shadow-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                     >
                       <option value="42/7">{t('days42_7')}</option>
                       <option value="42/14">{t('days42_14')}</option>
@@ -366,15 +366,15 @@ export const NewDashboardPage = () => {
             <div
               className={`rounded-xl p-4 shadow-sm ring-1 ${
                 pmcData.rampRateCtlPerWeek > 7
-                  ? 'bg-amber-50 ring-amber-200'
-                  : 'bg-white ring-gray-200'
+                  ? 'bg-state-danger-bg ring-border-default'
+                  : 'bg-surface ring-border-default'
               }`}
             >
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm font-medium text-primary">
                 {t('rampRate')} <span className="font-semibold">{pmcData.rampRateCtlPerWeek >= 0 ? '+' : ''}{pmcData.rampRateCtlPerWeek.toFixed(1)}</span> {t('ctlPerWeek')}
               </p>
               {pmcData.rampRateCtlPerWeek > 7 && (
-                <p className="mt-1 text-xs text-amber-800">{t('loadRisingQuickly')}</p>
+                <p className="mt-1 text-xs text-state-danger-text">{t('loadRisingQuickly')}</p>
               )}
             </div>
           )}
@@ -407,34 +407,34 @@ export const NewDashboardPage = () => {
           </div>
 
           {/* Quick Actions */}
-          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('quickActions')}</h2>
+          <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+            <h2 className="mb-4 text-xl font-semibold text-primary">{t('quickActions')}</h2>
             <div className="grid gap-4 md:grid-cols-3">
               <button
                 onClick={() => navigate('/activities')}
-                className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4 text-left transition-colors hover:bg-blue-100"
+                className="rounded-lg border-2 border-border-default bg-muted p-4 text-left transition-colors hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <span className="mb-2 block text-2xl">🚴</span>
-                <p className="font-semibold text-blue-900">{t('viewActivities')}</p>
-                <p className="text-sm text-blue-700">{t('browseHistory')}</p>
+                <p className="font-semibold text-primary">{t('viewActivities')}</p>
+                <p className="text-sm text-secondary">{t('browseHistory')}</p>
               </button>
               
               <button
                 onClick={() => navigate('/analysis')}
-                className="rounded-lg border-2 border-purple-200 bg-purple-50 p-4 text-left transition-colors hover:bg-purple-100"
+                className="rounded-lg border-2 border-border-default bg-muted p-4 text-left transition-colors hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <span className="mb-2 block text-2xl">📈</span>
-                <p className="font-semibold text-purple-900">{t('advancedAnalysis')}</p>
-                <p className="text-sm text-purple-700">{t('deepDive')}</p>
+                <p className="font-semibold text-primary">{t('advancedAnalysis')}</p>
+                <p className="text-sm text-secondary">{t('deepDive')}</p>
               </button>
               
               <button
                 onClick={() => navigate('/profile')}
-                className="rounded-lg border-2 border-green-200 bg-green-50 p-4 text-left transition-colors hover:bg-green-100"
+                className="rounded-lg border-2 border-border-default bg-muted p-4 text-left transition-colors hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <span className="mb-2 block text-2xl">⚙️</span>
-                <p className="font-semibold text-green-900">{t('updateProfile')}</p>
-                <p className="text-sm text-green-700">{t('setFtpWeight')}</p>
+                <p className="font-semibold text-primary">{t('updateProfile')}</p>
+                <p className="text-sm text-secondary">{t('setFtpWeight')}</p>
               </button>
             </div>
           </div>
@@ -442,8 +442,8 @@ export const NewDashboardPage = () => {
       ) : (
         <div className="flex flex-col items-center justify-center py-12">
           <div className="mb-4 text-6xl">📭</div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900">{t('noDataYet')}</h3>
-          <p className="text-gray-500">{t('connectStravaToStart')}</p>
+          <h3 className="mb-2 text-lg font-medium text-primary">{t('noDataYet')}</h3>
+          <p className="text-tertiary">{t('connectStravaToStart')}</p>
         </div>
       )}
     </div>

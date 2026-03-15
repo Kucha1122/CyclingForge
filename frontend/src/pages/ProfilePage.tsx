@@ -153,38 +153,38 @@ export const ProfilePage = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-xl font-semibold text-gray-700">{t('loadingProfile')}</p>
+        <p className="text-xl font-semibold text-secondary">{t('loadingProfile')}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-page p-8">
       <header className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold text-gray-900">{t('title')}</h1>
-        <p className="text-gray-600">{t('subtitle')}</p>
+        <h1 className="mb-2 text-3xl font-bold text-primary">{t('title')}</h1>
+        <p className="text-secondary">{t('subtitle')}</p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column - Profile Info */}
         <div className="space-y-6">
           {/* User Info Card */}
-          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('accountInfo')}</h2>
+          <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+            <h2 className="mb-4 text-xl font-semibold text-primary">{t('accountInfo')}</h2>
             <div className="space-y-3 text-sm">
               <div>
-                <p className="text-gray-600">{t('email')}</p>
-                <p className="font-medium text-gray-900">{userProfile?.email}</p>
+                <p className="text-secondary">{t('email')}</p>
+                <p className="font-medium text-primary">{userProfile?.email}</p>
               </div>
               <div>
-                <p className="text-gray-600">{t('name')}</p>
-                <p className="font-medium text-gray-900">
+                <p className="text-secondary">{t('name')}</p>
+                <p className="font-medium text-primary">
                   {userProfile?.firstName} {userProfile?.lastName}
                 </p>
               </div>
               <div>
-                <p className="text-gray-600">{t('memberSince')}</p>
-                <p className="font-medium text-gray-900">
+                <p className="text-secondary">{t('memberSince')}</p>
+                <p className="font-medium text-primary">
                   {userProfile?.createdAt ? formatDate(userProfile.createdAt) : tCommon('nA')}
                 </p>
               </div>
@@ -192,8 +192,8 @@ export const ProfilePage = () => {
           </div>
 
           {/* Strava Connection Card */}
-          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('stravaConnection')}</h2>
+          <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+            <h2 className="mb-4 text-xl font-semibold text-primary">{t('stravaConnection')}</h2>
             {stravaProfile ? (
               <div className="flex items-center gap-3">
                 {stravaProfile.profileImageUrl && (
@@ -204,20 +204,20 @@ export const ProfilePage = () => {
                   />
                 )}
                 <div>
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-primary">
                     {stravaProfile.firstName} {stravaProfile.lastName}
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-secondary">
                     {stravaProfile.city}, {stravaProfile.country}
                   </p>
-                  <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                  <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-state-success-bg px-2 py-0.5 text-xs font-medium text-state-success-text">
                     <span>●</span> {t('connected')}
                   </div>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-secondary">
                   <span className="font-semibold text-red-600">{t('stravaAccountDisconnected')}</span>
                 </p>
                 <button
@@ -231,16 +231,16 @@ export const ProfilePage = () => {
           </div>
 
           {/* Garmin Connect Card */}
-          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('garminConnect')}</h2>
+          <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+            <h2 className="mb-4 text-xl font-semibold text-primary">{t('garminConnect')}</h2>
             {garminStatus?.isConnected ? (
               <div>
                 <div className="mb-3 flex items-center gap-2">
-                  <div className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                  <div className="inline-flex items-center gap-1 rounded-full bg-state-success-bg px-2 py-0.5 text-xs font-medium text-state-success-text">
                     <span>●</span> {t('connected')}
                   </div>
                   {garminStatus.connectedAt && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-tertiary">
                       {t('connectedSince')} {formatDate(garminStatus.connectedAt)}
                     </span>
                   )}
@@ -265,7 +265,7 @@ export const ProfilePage = () => {
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-secondary">
                   {t('connectGarminHint')}
                 </p>
                 <button
@@ -287,9 +287,9 @@ export const ProfilePage = () => {
 
           {/* Strava Training Zones Card */}
           {stravaProfile && (
-            <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+            <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">{t('trainingZones')}</h2>
+                <h2 className="text-xl font-semibold text-primary">{t('trainingZones')}</h2>
                 <span className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
                   {t('fromStrava')}
                 </span>
@@ -297,112 +297,110 @@ export const ProfilePage = () => {
 
               {zonesLoading && (
                 <div className="space-y-3">
-                  <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+                  <div className="h-4 w-32 animate-pulse rounded bg-muted" />
                   <div className="space-y-2">
-                    <div className="h-3 animate-pulse rounded bg-gray-100" />
-                    <div className="h-3 animate-pulse rounded bg-gray-100" />
-                    <div className="h-3 animate-pulse rounded bg-gray-100" />
+                    <div className="h-3 animate-pulse rounded bg-muted" />
+                    <div className="h-3 animate-pulse rounded bg-muted" />
+                    <div className="h-3 animate-pulse rounded bg-muted" />
                   </div>
                 </div>
               )}
 
               {!zonesLoading && !zones && !zonesError && (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-secondary">
                   {t('stravaNoZones')}
                 </p>
               )}
 
               {zonesError && (
-                <p className="text-sm text-red-600">
+                <p className="text-sm text-state-danger-text">
                   {t('failedToLoadZones')}
                 </p>
               )}
 
               {zones && (
                 <div className="mt-2 space-y-6">
-                  {/* Heart Rate Zones */}
-                  {zones.heartRateZones.length > 0 && (
+                  {/* Heart Rate Zones – colors by intensity: Z1 light → Z5+ heavy */}
+                  {zones.heartRateZones.length > 0 && (() => {
+                    const ZONE_INTENSITY_ORDER = [2, 6, 1, 3, 4, 5, 7];
+                    return (
                     <div>
                       <div className="mb-2 flex items-baseline justify-between">
-                        <h3 className="text-sm font-semibold text-gray-900">{t('heartRateZones')}</h3>
-                        <p className="text-xs text-gray-500">
+                        <h3 className="text-sm font-semibold text-primary">{t('heartRateZones')}</h3>
+                        <p className="text-xs text-tertiary">
                           {t('zonesCountBpm', { count: zones.heartRateZones.length })}
                         </p>
                       </div>
                       <div className="space-y-2">
-                        {zones.heartRateZones.map((z, index) => (
-                          <div
-                            key={`hr-zone-${index}`}
-                            className="overflow-hidden rounded-lg bg-gray-50 ring-1 ring-gray-100"
-                          >
+                        {zones.heartRateZones.map((z, index) => {
+                          const chartIdx = ZONE_INTENSITY_ORDER[index] ?? (index + 1);
+                          const chartVar = `var(--chart-${chartIdx})`;
+                          const rangeStr = (z.max <= z.min || z.max <= 1) ? `${z.min}+` : `${z.min}–${z.max}`;
+                          return (
                             <div
-                              className={[
-                                'flex items-center justify-between px-3 py-1.5 text-xs font-medium text-gray-900',
-                                index === 0
-                                  ? 'bg-blue-100'
-                                  : index === 1
-                                  ? 'bg-green-100'
-                                  : index === 2
-                                  ? 'bg-yellow-100'
-                                  : index === 3
-                                  ? 'bg-orange-100'
-                                  : 'bg-red-100',
-                              ].join(' ')}
+                              key={`hr-zone-${index}`}
+                              className="overflow-hidden rounded-lg ring-1 ring-border-default"
+                              style={{ background: `color-mix(in srgb, ${chartVar} 14%, var(--bg-page))` }}
                             >
-                              <span className="uppercase">
-                                HR Z{index + 1}
-                              </span>
-                              <span className="tabular-nums">
-                                {z.min}–{z.max} bpm
-                              </span>
+                              <div
+                                className="flex items-center justify-between border-l-[10px] px-3 py-2 text-xs font-medium text-primary"
+                                style={{ borderLeftColor: chartVar }}
+                              >
+                                <span className="uppercase">
+                                  HR Z{index + 1}
+                                </span>
+                                <span className="tabular-nums">
+                                  {rangeStr} bpm
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
-                  )}
+                    );
+                  })()}
 
-                  {/* Power Zones */}
-                  {zones.powerZones.length > 0 && (
+                  {/* Power Zones – colors by intensity: Z1 light (green) → Z7 heavy (red/pink) */}
+                  {zones.powerZones.length > 0 && (() => {
+                    const ZONE_INTENSITY_ORDER = [2, 6, 1, 3, 4, 5, 7];
+                    return (
                     <div>
                       <div className="mb-2 flex items-baseline justify-between">
-                        <h3 className="text-sm font-semibold text-gray-900">{t('powerZones')}</h3>
-                        <p className="text-xs text-gray-500">
+                        <h3 className="text-sm font-semibold text-primary">{t('powerZones')}</h3>
+                        <p className="text-xs text-tertiary">
                           {t('zonesCountWatts', { count: zones.powerZones.length })}
                         </p>
                       </div>
                       <div className="space-y-2">
-                        {zones.powerZones.map((z, index) => (
-                          <div
-                            key={`power-zone-${index}`}
-                            className="overflow-hidden rounded-lg bg-gray-50 ring-1 ring-gray-100"
-                          >
+                        {zones.powerZones.map((z, index) => {
+                          const chartIdx = ZONE_INTENSITY_ORDER[index] ?? (index + 1);
+                          const chartVar = `var(--chart-${chartIdx})`;
+                          const rangeStr = (z.max <= z.min || z.max <= 1) ? `${z.min}+` : `${z.min}–${z.max}`;
+                          return (
                             <div
-                              className={[
-                                'flex items-center justify-between px-3 py-1.5 text-xs font-medium text-gray-900',
-                                index === 0
-                                  ? 'bg-blue-100'
-                                  : index === 1
-                                  ? 'bg-green-100'
-                                  : index === 2
-                                  ? 'bg-yellow-100'
-                                  : index === 3
-                                  ? 'bg-orange-100'
-                                  : 'bg-red-100',
-                              ].join(' ')}
+                              key={`power-zone-${index}`}
+                              className="overflow-hidden rounded-lg ring-1 ring-border-default"
+                              style={{ background: `color-mix(in srgb, ${chartVar} 14%, var(--bg-page))` }}
                             >
-                              <span className="uppercase">
-                                PWR Z{index + 1}
-                              </span>
-                              <span className="tabular-nums">
-                                {z.min}–{z.max} W
-                              </span>
+                              <div
+                                className="flex items-center justify-between border-l-[10px] px-3 py-2 text-xs font-medium text-primary"
+                                style={{ borderLeftColor: chartVar }}
+                              >
+                                <span className="uppercase">
+                                  PWR Z{index + 1}
+                                </span>
+                                <span className="tabular-nums">
+                                  {rangeStr} W
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -411,15 +409,15 @@ export const ProfilePage = () => {
 
         {/* Middle Column - Training Settings */}
         <div className="lg:col-span-2">
-          <form onSubmit={handleSubmit} className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-            <h2 className="mb-6 text-xl font-semibold text-gray-900">{t('trainingMetrics')}</h2>
+          <form onSubmit={handleSubmit} className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+            <h2 className="mb-6 text-xl font-semibold text-primary">{t('trainingMetrics')}</h2>
 
             {message && (
               <div
-                className={`mb-6 rounded-lg p-4 ${
+                className={`mb-6 rounded-lg p-4 ring-1 ring-border-default ${
                   message.type === 'success'
-                    ? 'bg-green-50 text-green-800 ring-1 ring-green-200'
-                    : 'bg-red-50 text-red-800 ring-1 ring-red-200'
+                    ? 'bg-state-success-bg text-state-success-text'
+                    : 'bg-state-danger-bg text-state-danger-text'
                 }`}
               >
                 {message.text}
@@ -429,10 +427,10 @@ export const ProfilePage = () => {
             <div className="space-y-6">
               {/* FTP Input */}
               <div>
-                <label htmlFor="ftp" className="mb-1 block text-sm font-medium text-gray-900">
+                <label htmlFor="ftp" className="mb-1 block text-sm font-medium text-primary">
                   {t('ftpLabel')}
                 </label>
-                <p className="mb-2 text-xs text-gray-600">
+                <p className="mb-2 text-xs text-secondary">
                   {t('ftpHint')}
                 </p>
                 <div className="relative">
@@ -442,14 +440,14 @@ export const ProfilePage = () => {
                     value={ftp}
                     onChange={(e) => setFtp(e.target.value)}
                     placeholder={t('placeholderFtp')}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-16 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-4 py-3 pr-16 text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
                     min="0"
                     step="1"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('watts')}</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-tertiary">{t('watts')}</span>
                 </div>
                 {!ftp && (
-                  <p className="mt-1 text-xs text-orange-600">
+                  <p className="mt-1 text-xs text-state-active-text">
                     ⚠️ {t('ftpRequiredWarning')}
                   </p>
                 )}
@@ -457,10 +455,10 @@ export const ProfilePage = () => {
 
               {/* eFTP min duration */}
               <div>
-                <label htmlFor="eftpMinMinutes" className="mb-1 block text-sm font-medium text-gray-900">
+                <label htmlFor="eftpMinMinutes" className="mb-1 block text-sm font-medium text-primary">
                   {t('eftpMinLabel')}
                 </label>
-                <p className="mb-2 text-xs text-gray-600">
+                <p className="mb-2 text-xs text-secondary">
                   {t('eftpMinHint')}
                 </p>
                 <div className="relative">
@@ -471,18 +469,18 @@ export const ProfilePage = () => {
                     onChange={(e) => setEftpMinMinutes(Math.min(30, Math.max(3, parseInt(e.target.value, 10) || 5)))}
                     min={3}
                     max={30}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-4 py-3 pr-12 text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('min')}</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-tertiary">{t('min')}</span>
                 </div>
               </div>
 
               {/* Weight Input */}
               <div>
-                <label htmlFor="weight" className="mb-1 block text-sm font-medium text-gray-900">
+                <label htmlFor="weight" className="mb-1 block text-sm font-medium text-primary">
                   {t('weightLabel')}
                 </label>
-                <p className="mb-2 text-xs text-gray-600">
+                <p className="mb-2 text-xs text-secondary">
                   {t('weightHint')}
                 </p>
                 <div className="relative">
@@ -492,20 +490,20 @@ export const ProfilePage = () => {
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
                     placeholder={t('placeholderWeight')}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-4 py-3 pr-12 text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
                     min="0"
                     step="0.1"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('kg')}</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-tertiary">{t('kg')}</span>
                 </div>
               </div>
 
               {/* LTHR Input */}
               <div>
-                <label htmlFor="lthr" className="mb-1 block text-sm font-medium text-gray-900">
+                <label htmlFor="lthr" className="mb-1 block text-sm font-medium text-primary">
                   {t('lthrLabel')}
                 </label>
-                <p className="mb-2 text-xs text-gray-600">
+                <p className="mb-2 text-xs text-secondary">
                   {t('lthrHint')}
                 </p>
                 <div className="relative">
@@ -515,21 +513,21 @@ export const ProfilePage = () => {
                     value={lthr}
                     onChange={(e) => setLthr(e.target.value)}
                     placeholder={t('placeholderBpm')}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-4 py-3 pr-12 text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
                     min="0"
                     max="250"
                     step="1"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('bpm')}</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-tertiary">{t('bpm')}</span>
                 </div>
               </div>
 
               {/* Max HR */}
               <div>
-                <label htmlFor="maxHeartRate" className="mb-1 block text-sm font-medium text-gray-900">
+                <label htmlFor="maxHeartRate" className="mb-1 block text-sm font-medium text-primary">
                   {t('maxHrLabel')}
                 </label>
-                <p className="mb-2 text-xs text-gray-600">
+                <p className="mb-2 text-xs text-secondary">
                   {t('maxHrHint')}
                 </p>
                 <div className="relative">
@@ -539,21 +537,21 @@ export const ProfilePage = () => {
                     value={maxHeartRate}
                     onChange={(e) => setMaxHeartRate(e.target.value)}
                     placeholder={t('placeholderMaxHr')}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-4 py-3 pr-12 text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
                     min="0"
                     max="250"
                     step="1"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('bpm')}</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-tertiary">{t('bpm')}</span>
                 </div>
               </div>
 
               {/* Resting HR */}
               <div>
-                <label htmlFor="restingHeartRate" className="mb-1 block text-sm font-medium text-gray-900">
+                <label htmlFor="restingHeartRate" className="mb-1 block text-sm font-medium text-primary">
                   {t('restingHrLabel')}
                 </label>
-                <p className="mb-2 text-xs text-gray-600">
+                <p className="mb-2 text-xs text-secondary">
                   {t('restingHrHint')}
                 </p>
                 <div className="relative">
@@ -563,28 +561,28 @@ export const ProfilePage = () => {
                     value={restingHeartRate}
                     onChange={(e) => setRestingHeartRate(e.target.value)}
                     placeholder={t('placeholderRestingHr')}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-4 py-3 pr-12 text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
                     min="0"
                     max="120"
                     step="1"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">{t('bpm')}</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-tertiary">{t('bpm')}</span>
                 </div>
               </div>
 
               {/* Gender */}
               <div>
-                <label htmlFor="gender" className="mb-1 block text-sm font-medium text-gray-900">
+                <label htmlFor="gender" className="mb-1 block text-sm font-medium text-primary">
                   {t('genderLabel')}
                 </label>
-                <p className="mb-2 text-xs text-gray-600">
+                <p className="mb-2 text-xs text-secondary">
                   {t('genderHint')}
                 </p>
                 <select
                   id="gender"
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-border-default bg-surface px-4 py-3 text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
                 >
                   <option value="male">{t('male')}</option>
                   <option value="female">{t('female')}</option>
@@ -593,10 +591,10 @@ export const ProfilePage = () => {
 
               {/* Calculated Metrics */}
               {calculateWattsPerKg() && (
-                <div className="rounded-lg bg-blue-50 p-4 ring-1 ring-blue-200">
-                  <p className="mb-1 text-sm font-medium text-blue-900">{t('powerToWeight')}</p>
-                  <p className="text-3xl font-bold text-blue-700">{calculateWattsPerKg()} W/kg</p>
-                  <p className="mt-2 text-xs text-blue-700">
+                <div className="rounded-lg bg-state-active-bg p-4 ring-1 ring-border-default">
+                  <p className="mb-1 text-sm font-medium text-state-active-text">{t('powerToWeight')}</p>
+                  <p className="text-3xl font-bold text-state-active-text">{calculateWattsPerKg()} W/kg</p>
+                  <p className="mt-2 text-xs text-state-active-text">
                     {parseFloat(calculateWattsPerKg()!) > 4.5
                       ? t('pwrExcellent')
                       : parseFloat(calculateWattsPerKg()!) > 3.5
@@ -612,7 +610,7 @@ export const ProfilePage = () => {
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                className="w-full rounded-lg bg-accent px-4 py-3 font-medium text-accent-foreground transition-colors hover:opacity-90 disabled:opacity-50"
               >
                 {saving ? t('saving') : t('saveProfile')}
               </button>
@@ -620,9 +618,9 @@ export const ProfilePage = () => {
           </form>
 
           {/* Info Card */}
-          <div className="mt-6 rounded-xl bg-gradient-to-br from-purple-50 to-blue-50 p-6 ring-1 ring-purple-200">
-            <h3 className="mb-2 font-semibold text-purple-900">💡 {t('proTip')}</h3>
-            <p className="text-sm text-purple-800">
+          <div className="mt-6 rounded-xl bg-muted p-6 ring-1 ring-border-default">
+            <h3 className="mb-2 font-semibold text-primary">💡 {t('proTip')}</h3>
+            <p className="text-sm text-secondary">
               {t('proTipText')}
             </p>
           </div>
