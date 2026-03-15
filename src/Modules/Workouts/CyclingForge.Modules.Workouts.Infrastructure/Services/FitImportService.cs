@@ -81,9 +81,9 @@ internal sealed class FitImportService : IFitImportService
             var stepMsg = workoutStepMessages[i];
             if (IsRepeatMarker(stepMsg))
             {
-                // Zwift: repeat marker means "repeat the previous 2 steps (on/off pair)" N times → one Intervals step
+                // Zwift: repeat marker means "repeat the previous 2 steps (on/off pair)" N times → one Intervals step.
                 var repeatCount = (int)(stepMsg.GetRepeatSteps() ?? stepMsg.GetTargetValue() ?? 1);
-                if (repeatCount < 1) repeatCount = 1;
+                repeatCount = Math.Clamp(repeatCount, 1, 1000);
                 if (stepsToAdd.Count >= 2)
                 {
                     var s1 = stepsToAdd[stepsToAdd.Count - 2];
@@ -98,7 +98,8 @@ internal sealed class FitImportService : IFitImportService
                     var merged = WorkoutStep.Create(
                         workout.Id, order, StepType.Intervals,
                         totalDur, offPow, onPow, null,
-                        repeatCount, onDur, offDur, onPow, offPow);
+                        repeatCount, onDur, offDur, onPow, offPow,
+                        null, null);
                     stepsToAdd.Add(merged);
                 }
                 continue;
@@ -117,7 +118,8 @@ internal sealed class FitImportService : IFitImportService
         {
             var s = stepsToAdd[i];
             s.Update(i + 1, s.Type, s.DurationSeconds, s.PowerLow, s.PowerHigh, s.Cadence,
-                s.Repeat, s.OnDurationSeconds, s.OffDurationSeconds, s.OnPower, s.OffPower);
+                s.Repeat, s.OnDurationSeconds, s.OffDurationSeconds, s.OnPower, s.OffPower,
+                s.OnCadence, s.OffCadence);
             workout.AddStep(s);
         }
 
@@ -137,16 +139,16 @@ internal sealed class FitImportService : IFitImportService
 
     /// <summary>
     /// Converts FIT power target value to fraction of FTP (0–1).
-    /// Supports: percent 0–100, Garmin scale 0–1000 (e.g. 950 = 95%), raw 0–10000.
+    /// Supports: percent 0–2000 (e.g. 114 → 1.14, 300 → 3.0), Garmin scale &gt;2000 (e.g. 9500 → 0.95), raw.
     /// </summary>
     private static decimal PowerValueToFraction(uint value)
     {
         if (value <= 0) return 0m;
-        if (value <= 100)
-            return Math.Clamp(value / 100m, 0m, 2m);       // percent 0–100 (65 → 0.65)
-        if (value <= 1000)
-            return Math.Clamp(value / 1000m, 0m, 2m);        // Garmin 0–1000 (950 → 0.95)
-        return Math.Clamp(value / 10000m, 0m, 2m);         // raw (6500 → 0.65)
+        if (value <= 2000)
+            return Math.Clamp(value / 100m, 0m, 20m);      // percent 0–2000% (65 → 0.65, 114 → 1.14, 300 → 3.0)
+        if (value <= 10000)
+            return Math.Clamp(value / 1000m, 0m, 2m);     // Garmin 0–1000 (9500 → 9.5 would be wrong; 2500+ rare as percent)
+        return Math.Clamp(value / 10000m, 0m, 2m);       // raw (6500 → 0.65)
     }
 
     /// <summary>
@@ -187,6 +189,10 @@ internal sealed class FitImportService : IFitImportService
                 var zwiftFraction = ZwiftCustomTargetToFraction(rawNum);
                 if (zwiftFraction.HasValue)
                     return zwiftFraction.Value;
+
+                // Our export writes percent directly (114 = 114%). FIT profile scale would turn 114 into 11.4 or 0.114 — treat 1–2000 as percent.
+                if (rawNum >= 1 && rawNum <= 2000)
+                    return Math.Clamp(rawNum / 100m, 0m, 20m);
 
                 var scaleProp = f.GetType().GetProperty("Scale", BindingFlags.Public | BindingFlags.Instance);
                 var scale = scaleProp?.GetValue(f);
@@ -402,8 +408,12 @@ internal sealed class FitImportService : IFitImportService
             case WktStepDuration.RepetitionTime:
                 var onTime = (int)(durationTimeF ?? 0);
                 var offTime = (int)(repeatTimeF ?? 0);
-                var reps = (int)(durationValueU ?? repeatStepsF ?? 1);
+                // Some SDKs return repeat_time in ms; if > 1h in "seconds", treat as ms
+                if (offTime > 3600) offTime /= 1000;
+                // Use repeat_steps for count (we write it in export). duration_value can be in other units (e.g. ms) and must not be used as reps.
+                var reps = (int)(repeatStepsF ?? 1);
                 if (reps < 1) reps = 1;
+                if (reps > 1000) reps = 1000;
                 durationSeconds = reps * (onTime + offTime);
                 onDuration = onTime;
                 offDuration = offTime;
@@ -418,8 +428,10 @@ internal sealed class FitImportService : IFitImportService
                 if (repeatTimeF.HasValue && repeatTimeF.Value > 0)
                 {
                     onDuration = (int)(durationTimeF ?? 0);
-                    offDuration = (int)repeatTimeF.Value;
-                    repeat = (int)(durationValueU ?? 1);
+                    var offRaw = (int)repeatTimeF.Value;
+                    if (offRaw > 3600) offRaw /= 1000; // repeat_time in ms
+                    offDuration = offRaw;
+                    repeat = Math.Clamp((int)(repeatStepsF ?? 1), 1, 1000);
                     onPower = powerHigh;
                     offPower = (repeatPowerU.HasValue && repeatPowerU.Value > 0) ? PowerValueToFraction(repeatPowerU.Value) : 0.5m;
                     stepType = StepType.Intervals;
@@ -427,7 +439,6 @@ internal sealed class FitImportService : IFitImportService
                 break;
             default:
                 durationSeconds = (int)(durationTimeF ?? durationValueU ?? durationDistanceF ?? 0);
-                if (durationSeconds <= 0) durationSeconds = 60;
                 break;
         }
 
@@ -458,7 +469,8 @@ internal sealed class FitImportService : IFitImportService
             ? WorkoutStep.Create(
                 workoutId, order, stepType,
                 durationSeconds, offPowerVal, onPowerVal, null,
-                repeat, onDuration, offDuration, onPowerVal, offPowerVal)
+                repeat, onDuration, offDuration, onPowerVal, offPowerVal,
+                null, null)
             : WorkoutStep.Create(
                 workoutId, order, stepType,
                 durationSeconds, powerLow, powerHigh, null);
