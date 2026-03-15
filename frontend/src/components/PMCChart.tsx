@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import type { FtpChangeDto, PmcActivitySummaryDto } from '../services/api';
 import { formatDate } from '../utils/format';
 import i18n from '../i18n';
+import { useTheme } from '../context/ThemeContext';
 
 interface PMCData {
   date: string;
@@ -53,6 +54,7 @@ const TSB_Y_DOMAIN: [number, number] = [-55, 55];
 
 export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 42, atlDays = 7, chartId = '' }) => {
   const { t } = useTranslation('charts');
+  const { chartColors } = useTheme();
 
   const TSB_ZONES = useMemo(
     () => [
@@ -190,49 +192,49 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
     const dateStr = point.dateLabelFull ?? String(label ?? point.date ?? '');
 
     return (
-      <div className="max-w-md rounded-lg border border-gray-200 bg-white p-3 text-xs shadow-md">
-        <p className="mb-2 text-sm font-medium text-gray-900">{dateStr}</p>
+      <div className="max-w-md rounded-lg border border-border-default bg-surface p-3 text-xs shadow-md text-primary">
+        <p className="mb-2 text-sm font-medium text-primary">{dateStr}</p>
 
         <ul className="space-y-1 text-sm">
           <li className="flex items-center justify-between">
             <span className="flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
+              <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: chartColors[0] }} />
               <span>{t('ctl')}</span>
             </span>
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-primary">
               {typeof point.ctl === 'number' ? point.ctl.toFixed(1) : '–'}
             </span>
           </li>
           <li className="flex items-center justify-between">
             <span className="flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+              <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: chartColors[1] }} />
               <span>{t('atl')}</span>
             </span>
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-primary">
               {typeof point.atl === 'number' ? point.atl.toFixed(1) : '–'}
             </span>
           </li>
           <li className="flex items-center justify-between">
             <span className="flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: chartColors[2] }} />
               <span>{t('tsb')}</span>
             </span>
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-primary">
               {typeof tsb === 'number' ? tsb.toFixed(1) : '–'}
             </span>
           </li>
         </ul>
 
         {typeof tsb === 'number' && (
-          <p className="mt-2 border-t border-gray-100 pt-2 text-[11px] text-gray-600">
+          <p className="mt-2 border-t border-border-default pt-2 text-[11px] text-secondary">
             {t('tsbZoneLabel')} {t(getTsbZoneLabelKey(tsb))}
           </p>
         )}
 
         {ftpChangesForDay.length > 0 && (
-          <div className="mt-2 border-t border-gray-100 pt-2">
-            <p className="mb-1 text-[11px] font-semibold text-gray-700">{t('ftpChanges')}</p>
-            <ul className="space-y-0.5 text-[11px] text-gray-700">
+          <div className="mt-2 border-t border-border-default pt-2">
+            <p className="mb-1 text-[11px] font-semibold text-secondary">{t('ftpChanges')}</p>
+            <ul className="space-y-0.5 text-[11px] text-secondary">
               {ftpChangesForDay.map((fc, idx) => (
                 <li key={idx}>{formatFtpChangeLabel(fc)}</li>
               ))}
@@ -241,22 +243,22 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
         )}
 
         {activitiesForDay.length > 0 && (
-          <div className="mt-2 border-t border-gray-100 pt-2">
-            <p className="mb-1 text-[11px] font-semibold text-gray-700">
+          <div className="mt-2 border-t border-border-default pt-2">
+            <p className="mb-1 text-[11px] font-semibold text-secondary">
               {t('activitiesCount', { count: activitiesForDay.length })}
             </p>
-            <ul className="max-h-32 space-y-0.5 overflow-y-auto text-[11px] text-gray-700">
+            <ul className="max-h-32 space-y-0.5 overflow-y-auto text-[11px] text-secondary">
               {activitiesForDay.slice(0, 5).map((act) => (
                 <li key={act.activityId}>
                   <span className="font-medium">{act.name}</span>{' '}
-                  <span className="text-[11px] text-gray-500">
+                  <span className="text-[11px] text-tertiary">
                     ({act.sportType}, {Math.round(act.movingTimeSeconds / 60)} min, TSS:{' '}
                     {act.trainingStressScore != null ? act.trainingStressScore.toFixed(0) : '–'})
                   </span>
                 </li>
               ))}
               {activitiesForDay.length > 5 && (
-                <li className="text-[11px] text-gray-500">
+                <li className="text-[11px] text-tertiary">
                   +{activitiesForDay.length - 5} {t('more')}
                 </li>
               )}
@@ -268,12 +270,12 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
   };
 
   return (
-    <div className="relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-      <h2 className="mb-4 text-xl font-semibold text-gray-900">{t('pmcTitle')}</h2>
+    <div className="relative rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+      <h2 className="mb-4 text-xl font-semibold text-primary">{t('pmcTitle')}</h2>
 
       {/* Obciążenie treningowe (CTL + ATL) */}
       <div className="mb-4">
-        <h3 className="mb-2 text-sm font-medium text-gray-700">{t('trainingLoadTitle')}</h3>
+        <h3 className="mb-2 text-sm font-medium text-secondary">{t('trainingLoadTitle')}</h3>
         <ResponsiveContainer width="100%" height={200}>
           <LineChart
             data={formattedData}
@@ -300,7 +302,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
             <Line
               type="linear"
               dataKey="ctl"
-              stroke="#3b82f6"
+              stroke={chartColors[0]}
               strokeWidth={2}
               name={t('ctl')}
               dot={false}
@@ -309,7 +311,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
             <Line
               type="linear"
               dataKey="atl"
-              stroke="#f59e0b"
+              stroke={chartColors[1]}
               strokeWidth={2}
               name={t('atl')}
               dot={false}
@@ -321,7 +323,7 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
 
       {/* Forma (TSB) */}
       <div>
-        <h3 className="mb-2 text-sm font-medium text-gray-700">{t('tsb')}</h3>
+        <h3 className="mb-2 text-sm font-medium text-secondary">{t('tsb')}</h3>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart
             data={formattedData}
@@ -395,19 +397,19 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
 
       <div className="mt-4 grid grid-cols-3 gap-4 text-center text-sm">
         <div>
-          <p className="text-gray-600">CTL ({t('ctl')})</p>
-          <p className="text-xs text-gray-500">{t('ctlDaysAverage', { days: ctlDays })}</p>
+          <p className="text-secondary">CTL ({t('ctl')})</p>
+          <p className="text-xs text-tertiary">{t('ctlDaysAverage', { days: ctlDays })}</p>
         </div>
         <div>
-          <p className="text-gray-600">ATL ({t('atl')})</p>
-          <p className="text-xs text-gray-500">{t('atlDaysAverage', { days: atlDays })}</p>
+          <p className="text-secondary">ATL ({t('atl')})</p>
+          <p className="text-xs text-tertiary">{t('atlDaysAverage', { days: atlDays })}</p>
         </div>
         <div>
-          <p className="text-gray-600">TSB ({t('tsb')})</p>
-          <p className="text-xs text-gray-500">{t('tsbFormula')}</p>
+          <p className="text-secondary">TSB ({t('tsb')})</p>
+          <p className="text-xs text-tertiary">{t('tsbFormula')}</p>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-gray-500">
+      <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-tertiary">
         {TSB_ZONES.map((zone, i) => (
           <span key={i} className="flex items-center gap-1">
             <span

@@ -46,22 +46,22 @@ export const MonthlySummaryCard: FC<MonthlySummaryProps> = ({
   };
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+    <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
       <div className="mb-4 flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {onPrevMonth && (
             <button
               type="button"
               onClick={onPrevMonth}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border-default bg-surface text-secondary transition-colors hover:bg-muted"
               aria-label={t('prevMonth')}
             >
               ←
             </button>
           )}
           <div className="min-w-0 flex-1">
-            <h2 className="text-xl font-semibold text-gray-900">{monthName}</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-xl font-semibold text-primary">{monthName}</h2>
+            <p className="text-sm text-tertiary">
               {isCurrentMonth ? t('monthSummary') : t('archive')}
             </p>
           </div>
@@ -69,7 +69,7 @@ export const MonthlySummaryCard: FC<MonthlySummaryProps> = ({
             <button
               type="button"
               onClick={onNextMonth}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border-default bg-surface text-secondary transition-colors hover:bg-muted"
               aria-label={t('nextMonth')}
             >
               →
@@ -80,37 +80,37 @@ export const MonthlySummaryCard: FC<MonthlySummaryProps> = ({
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
         <div>
-          <p className="text-sm text-gray-600">{t('totalActivities')}</p>
-          <p className="text-xl font-bold text-gray-900">{totalActivities}</p>
-          <p className="text-xs text-gray-500">{t('rideRunCount', { rideCount, runCount })}</p>
+          <p className="text-sm text-secondary">{t('totalActivities')}</p>
+          <p className="text-xl font-bold text-primary">{totalActivities}</p>
+          <p className="text-xs text-tertiary">{t('rideRunCount', { rideCount, runCount })}</p>
         </div>
 
         <div>
-          <p className="text-sm text-gray-600">{t('distance')}</p>
-          <p className="text-xl font-bold text-gray-900">{totalDistance.toFixed(1)} km</p>
+          <p className="text-sm text-secondary">{t('distance')}</p>
+          <p className="text-xl font-bold text-primary">{totalDistance.toFixed(1)} km</p>
         </div>
 
         <div>
-          <p className="text-sm text-gray-600">{t('movingTime')}</p>
-          <p className="text-xl font-bold text-gray-900">{formatTime(totalMovingTime)}</p>
+          <p className="text-sm text-secondary">{t('movingTime')}</p>
+          <p className="text-xl font-bold text-primary">{formatTime(totalMovingTime)}</p>
         </div>
 
         <div>
-          <p className="text-sm text-gray-600">{t('elevationGain')}</p>
-          <p className="text-xl font-bold text-gray-900">{totalElevationGain.toFixed(0)} m</p>
+          <p className="text-sm text-secondary">{t('elevationGain')}</p>
+          <p className="text-xl font-bold text-primary">{totalElevationGain.toFixed(0)} m</p>
         </div>
 
         {totalTSS !== null && (
           <div>
-            <p className="text-sm text-gray-600">{t('totalTSS')}</p>
-            <p className="text-xl font-bold text-gray-900">{totalTSS.toFixed(0)}</p>
+            <p className="text-sm text-secondary">{t('totalTSS')}</p>
+            <p className="text-xl font-bold text-primary">{totalTSS.toFixed(0)}</p>
           </div>
         )}
 
         {averageCTL !== null && (
           <div>
-            <p className="text-sm text-gray-600">{t('avgFitnessCtl')}</p>
-            <p className="text-xl font-bold text-gray-900">{averageCTL.toFixed(1)}</p>
+            <p className="text-sm text-secondary">{t('avgFitnessCtl')}</p>
+            <p className="text-xl font-bold text-primary">{averageCTL.toFixed(1)}</p>
           </div>
         )}
       </div>

@@ -62,7 +62,7 @@ export const ReadinessGauge = ({ score, size = 'md' }: ReadinessGaugeProps) => {
         <span className={`font-bold ${textSize}`} style={{ color }}>
           {Math.round(score)}
         </span>
-        <span className={`font-medium text-gray-500 ${labelSize}`}>{label}</span>
+        <span className={`font-medium text-tertiary ${labelSize}`}>{label}</span>
       </div>
     </div>
   );

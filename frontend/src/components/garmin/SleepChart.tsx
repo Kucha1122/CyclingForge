@@ -21,8 +21,8 @@ export const SleepChart = ({ data }: Props) => {
     }));
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">{t('sleepDurationChart')}</h3>
+    <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+      <h3 className="mb-4 text-lg font-semibold text-primary">{t('sleepDurationChart')}</h3>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />

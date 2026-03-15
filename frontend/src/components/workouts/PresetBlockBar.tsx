@@ -20,17 +20,17 @@ export const PresetBlockBar = ({ onAdd }: PresetBlockBarProps) => {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-gray-700">{t('quickBlocks')}</h3>
+      <h3 className="text-sm font-semibold text-secondary">{t('quickBlocks')}</h3>
       <div className="flex flex-wrap gap-2">
         {PRESET_BLOCKS.map((preset) => (
           <div
             key={preset.id}
-            className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+            className="flex items-center gap-1 rounded-lg border border-border-default bg-surface shadow-sm transition-shadow hover:shadow-md"
           >
             <button
               type="button"
               onClick={() => handleAdd(preset)}
-              className="flex flex-1 items-center gap-2 rounded-l-lg px-3 py-2.5 text-left text-sm font-medium text-gray-800 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+              className="flex flex-1 items-center gap-2 rounded-l-lg px-3 py-2.5 text-left text-sm font-medium text-primary hover:bg-muted focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 focus:ring-offset-surface"
               title={t('addBlock', { label: t(`presets.${preset.id}Short`) })}
             >
               <span
@@ -38,7 +38,7 @@ export const PresetBlockBar = ({ onAdd }: PresetBlockBarProps) => {
                 style={{ backgroundColor: preset.zoneColor }}
               />
               <span>{t(`presets.${preset.id}`)}</span>
-              <PlusIcon className="h-4 w-4 shrink-0 text-gray-400" />
+              <PlusIcon className="h-4 w-4 shrink-0 text-tertiary" />
             </button>
             <select
               value={multipliers[preset.id] ?? 1}
@@ -49,7 +49,7 @@ export const PresetBlockBar = ({ onAdd }: PresetBlockBarProps) => {
                 }))
               }
               onClick={(e) => e.stopPropagation()}
-              className="border-l border-gray-200 bg-gray-50 px-2 py-1.5 pr-6 text-xs font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded-r-lg"
+              className="border-l border-border-default bg-muted px-2 py-1.5 pr-6 text-xs font-medium text-secondary focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 rounded-r-lg focus:ring-offset-surface"
               title={t('repeatCount')}
             >
               {PRESET_MULTIPLIERS.map((n) => (

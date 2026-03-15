@@ -18,14 +18,14 @@ export const WellnessStatsRow = ({ wellness }: Props) => {
   ];
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-      <h3 className="mb-3 text-sm font-semibold text-gray-700">{t('dailyWellness')}</h3>
+    <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+      <h3 className="mb-3 text-sm font-semibold text-secondary">{t('dailyWellness')}</h3>
       <div className="grid grid-cols-4 gap-4">
         {stats.map((s) => (
           <div key={s.labelKey} className="text-center">
-            <p className="text-xs text-gray-500">{t(s.labelKey)}</p>
-            <p className="text-lg font-bold text-gray-900">{s.value}</p>
-            {s.unit && <p className="text-xs text-gray-400">{s.unit}</p>}
+            <p className="text-xs text-tertiary">{t(s.labelKey)}</p>
+            <p className="text-lg font-bold text-primary">{s.value}</p>
+            {s.unit && <p className="text-xs text-tertiary">{s.unit}</p>}
           </div>
         ))}
       </div>

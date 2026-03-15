@@ -28,11 +28,11 @@ export const SleepDetailsCard = ({ sleep }: Props) => {
   ];
 
   return (
-    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+    <div className="rounded-xl bg-surface p-5 shadow-sm ring-1 ring-border-default">
       <div className="mb-3 flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-gray-900">{sleep.date}</h4>
+        <h4 className="text-sm font-semibold text-primary">{sleep.date}</h4>
         {sleep.sleepScore != null && (
-          <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700">
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-secondary">
             {t('scoreLabel')}: {sleep.sleepScore}
           </span>
         )}
@@ -52,20 +52,20 @@ export const SleepDetailsCard = ({ sleep }: Props) => {
         {stages.map((s) => (
           <div key={s.labelKey} className="text-center">
             <div className={`mx-auto mb-1 h-2 w-2 rounded-full ${s.color}`} />
-            <p className="text-gray-600">{t(s.labelKey)}</p>
-            <p className="font-semibold text-gray-900">{formatDuration(s.seconds)}</p>
+            <p className="text-secondary">{t(s.labelKey)}</p>
+            <p className="font-semibold text-primary">{formatDuration(s.seconds)}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-3 flex justify-between text-xs text-gray-500">
+      <div className="mt-3 flex justify-between text-xs text-tertiary">
         <span>{t('bedtime')}: {formatTime(sleep.sleepStartTime)}</span>
         <span>{t('wake')}: {formatTime(sleep.sleepEndTime)}</span>
         <span>{t('total')}: {formatDuration(sleep.totalSleepSeconds)}</span>
       </div>
 
       {(sleep.averageSpO2 != null || sleep.averageRespirationRate != null) && (
-        <div className="mt-3 flex gap-4 text-xs text-gray-600">
+        <div className="mt-3 flex gap-4 text-xs text-secondary">
           {sleep.averageSpO2 != null && (
             <span>SpO2: <strong>{sleep.averageSpO2.toFixed(1)}%</strong></span>
           )}

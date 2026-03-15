@@ -1,4 +1,5 @@
 import { type FC } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface TrendsCardProps {
   currentCTL: number;
@@ -13,14 +14,14 @@ interface TrendsCardProps {
   previousATL?: number;
 }
 
-function TrendIndicator({ value }: { value: number }) {
+function TrendIndicator({ value, t }: { value: number; t: (key: string) => string }) {
   if (Math.abs(value) < 0.5) {
-    return <span className="text-gray-600">→ Stable</span>;
+    return <span className="text-secondary">{t('trendStable')}</span>;
   }
   if (value > 0) {
-    return <span className="text-green-600">↑ +{value.toFixed(1)}%</span>;
+    return <span className="text-state-success-text">↑ +{value.toFixed(1)}%</span>;
   }
-  return <span className="text-red-600">↓ {value.toFixed(1)}%</span>;
+  return <span className="text-state-danger-text">↓ {value.toFixed(1)}%</span>;
 }
 
 export const TrendsCard: FC<TrendsCardProps> = ({
@@ -33,6 +34,8 @@ export const TrendsCard: FC<TrendsCardProps> = ({
   previousCTL,
   previousATL,
 }) => {
+  const { t } = useTranslation('charts');
+
   const calculateTrend = (current: number, previous?: number) => {
     if (previous === undefined || previous === 0) return 0;
     return ((current - previous) / previous) * 100;
@@ -45,68 +48,66 @@ export const TrendsCard: FC<TrendsCardProps> = ({
     ? ((currentWeekAvgAtl - previousWeekAvgAtl) / previousWeekAvgAtl) * 100
     : calculateTrend(currentATL, previousATL);
 
+  const fitnessLevelText = currentCTL > 80 ? t('fitnessLevelExcellent')
+    : currentCTL > 60 ? t('fitnessLevelGood')
+    : currentCTL > 40 ? t('fitnessLevelModerate') : t('fitnessLevelBuilding');
+
+  const fatigueText = currentATL > 100 ? t('fatigueHighLoad')
+    : currentATL > 60 ? t('fatigueModerate')
+    : currentATL > 30 ? t('fatigueFresh') : t('fatigueVeryFresh');
+
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-      <h2 className="mb-4 text-xl font-semibold text-gray-900">Form Trends</h2>
-      
+    <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+      <h2 className="mb-4 text-xl font-semibold text-primary">{t('formTrendsTitle')}</h2>
+
       <div className="space-y-4">
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <div className="rounded-lg border border-border-default bg-state-active-bg p-4">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-sm font-medium text-blue-900">Fitness (CTL)</span>
-            <TrendIndicator value={ctlTrend} />
+            <span className="text-sm font-medium text-state-active-text">{t('ctl')}</span>
+            <TrendIndicator value={ctlTrend} t={t} />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-blue-700">{currentCTL.toFixed(1)}</span>
+            <span className="text-3xl font-bold text-state-active-text">{currentCTL.toFixed(1)}</span>
             {(previousWeekAvgCtl !== undefined || previousCTL !== undefined) && (
-              <span className="text-sm text-blue-600">
-                was {previousWeekAvgCtl?.toFixed(1) ?? previousCTL?.toFixed(1)}
+              <span className="text-sm text-accent">
+                {t('trendWas')} {previousWeekAvgCtl?.toFixed(1) ?? previousCTL?.toFixed(1)}
               </span>
             )}
           </div>
-          <p className="mt-2 text-xs text-blue-700">
-            {currentCTL > 80 ? 'Excellent fitness level' : 
-             currentCTL > 60 ? 'Good fitness level' :
-             currentCTL > 40 ? 'Moderate fitness' : 'Building fitness'}
-          </p>
+          <p className="mt-2 text-xs text-state-active-text">{fitnessLevelText}</p>
         </div>
 
-        <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+        <div className="rounded-lg border border-border-default bg-muted p-4">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-sm font-medium text-orange-900">Fatigue (ATL)</span>
-            <TrendIndicator value={atlTrend} />
+            <span className="text-sm font-medium text-primary">{t('atl')}</span>
+            <TrendIndicator value={atlTrend} t={t} />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-orange-700">{currentATL.toFixed(1)}</span>
+            <span className="text-3xl font-bold text-secondary">{currentATL.toFixed(1)}</span>
             {(previousWeekAvgAtl !== undefined || previousATL !== undefined) && (
-              <span className="text-sm text-orange-600">
-                was {previousWeekAvgAtl?.toFixed(1) ?? previousATL?.toFixed(1)}
+              <span className="text-sm text-secondary">
+                {t('trendWas')} {previousWeekAvgAtl?.toFixed(1) ?? previousATL?.toFixed(1)}
               </span>
             )}
           </div>
-          <p className="mt-2 text-xs text-orange-700">
-            {currentATL > 100 ? 'High acute load - recovery needed' :
-             currentATL > 60 ? 'Moderate fatigue' :
-             currentATL > 30 ? 'Fresh - can handle more load' : 'Very fresh'}
-          </p>
+          <p className="mt-2 text-xs text-secondary">{fatigueText}</p>
         </div>
 
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+        <div className="rounded-lg border border-border-default bg-state-success-bg p-4">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-sm font-medium text-green-900">Form (TSB)</span>
-            <span className="text-2xl font-bold text-green-700">{(currentCTL - currentATL).toFixed(1)}</span>
+            <span className="text-sm font-medium text-state-success-text">{t('tsb')}</span>
+            <span className="text-2xl font-bold text-state-success-text">{(currentCTL - currentATL).toFixed(1)}</span>
           </div>
-          <p className="mt-1 text-xs text-green-700">
-            Balance between fitness and fatigue
-          </p>
+          <p className="mt-1 text-xs text-state-success-text">{t('tsbBalance')}</p>
         </div>
       </div>
 
-      <div className="mt-4 rounded-lg bg-gray-50 p-3 text-xs text-gray-600">
-        <p className="font-medium">Understanding Trends:</p>
+      <div className="mt-4 rounded-lg bg-muted p-3 text-xs text-secondary">
+        <p className="font-medium">{t('understandingTrends')}</p>
         <ul className="mt-1 space-y-1 pl-4">
-          <li>• Rising CTL = Building fitness gradually</li>
-          <li>• High ATL = Recent hard training or racing</li>
-          <li>• Positive TSB = Fresh and ready to perform</li>
+          <li>• {t('trendRisingCtl')}</li>
+          <li>• {t('trendHighAtl')}</li>
+          <li>• {t('trendPositiveTsb')}</li>
         </ul>
       </div>
     </div>

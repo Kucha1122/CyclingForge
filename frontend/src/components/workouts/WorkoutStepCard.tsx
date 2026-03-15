@@ -85,19 +85,19 @@ export const WorkoutStepCard = ({
 
   return (
     <div
-      className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+      className="overflow-hidden rounded-lg border border-border-default bg-surface shadow-sm transition-shadow hover:shadow-md"
       style={{ borderLeftWidth: '4px', borderLeftColor: zoneColor }}
     >
       {/* Collapsed header */}
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset"
       >
-        <span className="text-xs font-medium text-gray-500 tabular-nums">
+        <span className="text-xs font-medium text-tertiary tabular-nums">
           {t('stepNumber', { num: index + 1 })}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-primary">
           {collapsedSummary}
         </span>
         <div className="flex shrink-0 items-center gap-1">
@@ -109,7 +109,7 @@ export const WorkoutStepCard = ({
             }}
             disabled={isFirst}
             title={t('stepMoveUp')}
-            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-30 disabled:hover:bg-transparent"
+            className="rounded p-1.5 text-tertiary hover:bg-muted focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-30 disabled:hover:bg-transparent"
           >
             <ArrowUpIcon className="h-4 w-4" />
           </button>
@@ -121,7 +121,7 @@ export const WorkoutStepCard = ({
             }}
             disabled={isLast}
             title="Przesuń w dół"
-            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-30 disabled:hover:bg-transparent"
+            className="rounded p-1.5 text-tertiary hover:bg-muted focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-30 disabled:hover:bg-transparent"
           >
             <ArrowDownIcon className="h-4 w-4" />
           </button>
@@ -132,28 +132,28 @@ export const WorkoutStepCard = ({
               onRemove(step.tempId);
             }}
             title={t('stepRemove')}
-            className="rounded p-1.5 text-red-500 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="rounded p-1.5 text-state-danger-text hover:bg-state-danger-bg focus:outline-none focus:ring-2 focus:ring-accent"
           >
             <TrashIcon className="h-4 w-4" />
           </button>
         </div>
         {expanded ? (
-          <ChevronUpIcon className="h-5 w-5 shrink-0 text-gray-400" />
+          <ChevronUpIcon className="h-5 w-5 shrink-0 text-tertiary" />
         ) : (
-          <ChevronDownIcon className="h-5 w-5 shrink-0 text-gray-400" />
+          <ChevronDownIcon className="h-5 w-5 shrink-0 text-tertiary" />
         )}
       </button>
 
       {/* Expanded editor */}
       {expanded && (
-        <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-4">
+        <div className="border-t border-border-default bg-muted/50 px-4 py-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">Type</label>
+              <label className="mb-1 block text-xs font-medium text-tertiary">Type</label>
               <select
                 value={step.type}
                 onChange={(e) => onUpdate(step.tempId, { type: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               >
                 {STEP_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -165,7 +165,7 @@ export const WorkoutStepCard = ({
             {step.type !== 'Intervals' ? (
               <>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                  <label className="mb-1 block text-xs font-medium text-tertiary">
                     {t('stepLabelDuration')}
                   </label>
                   <input
@@ -174,11 +174,11 @@ export const WorkoutStepCard = ({
                     onChange={(e) =>
                       onUpdate(step.tempId, { durationSeconds: +e.target.value })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                  <label className="mb-1 block text-xs font-medium text-tertiary">
                     Power Low (% FTP)
                   </label>
                   <input
@@ -188,11 +188,11 @@ export const WorkoutStepCard = ({
                     onChange={(e) =>
                       onUpdate(step.tempId, { powerLow: +e.target.value })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                  <label className="mb-1 block text-xs font-medium text-tertiary">
                     {t('stepLabelPowerHigh')}
                   </label>
                   <input
@@ -202,14 +202,14 @@ export const WorkoutStepCard = ({
                     onChange={(e) =>
                       onUpdate(step.tempId, { powerHigh: +e.target.value })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
               </>
             ) : (
               <>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                  <label className="mb-1 block text-xs font-medium text-tertiary">
                     Repeat
                   </label>
                   <input
@@ -218,11 +218,11 @@ export const WorkoutStepCard = ({
                     onChange={(e) =>
                       onUpdate(step.tempId, { repeat: +e.target.value })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                  <label className="mb-1 block text-xs font-medium text-tertiary">
                     {t('stepLabelOnSec')}
                   </label>
                   <input
@@ -233,11 +233,11 @@ export const WorkoutStepCard = ({
                         onDurationSeconds: +e.target.value,
                       })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                  <label className="mb-1 block text-xs font-medium text-tertiary">
                     Off (sec)
                   </label>
                   <input
@@ -248,11 +248,11 @@ export const WorkoutStepCard = ({
                         offDurationSeconds: +e.target.value,
                       })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                  <label className="mb-1 block text-xs font-medium text-tertiary">
                     {t('stepLabelOnPower')}
                   </label>
                   <input
@@ -262,11 +262,11 @@ export const WorkoutStepCard = ({
                     onChange={(e) =>
                       onUpdate(step.tempId, { onPower: +e.target.value })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                  <label className="mb-1 block text-xs font-medium text-tertiary">
                     Off Power (% FTP)
                   </label>
                   <input
@@ -276,13 +276,13 @@ export const WorkoutStepCard = ({
                     onChange={(e) =>
                       onUpdate(step.tempId, { offPower: +e.target.value })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
               </>
             )}
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">
+              <label className="mb-1 block text-xs font-medium text-tertiary">
                 {t('stepLabelCadence')}
               </label>
               <input
@@ -293,7 +293,7 @@ export const WorkoutStepCard = ({
                     cadence: e.target.value ? +e.target.value : null,
                   })
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 placeholder="–"
               />
             </div>

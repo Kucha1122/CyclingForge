@@ -22,7 +22,7 @@ export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps
   const tCommon = useTranslation('common').t;
   const navigate = useNavigate();
   const [copying, setCopying] = useState(false);
-  const categoryColor = CATEGORY_COLORS[workout.category] || 'bg-gray-100 text-gray-800';
+  const categoryColor = CATEGORY_COLORS[workout.category] || 'bg-muted text-primary dark:bg-muted dark:text-primary';
   const isUserWorkout = workout.source === 'UserCreated' || workout.source === 'Imported';
 
   const handleCopy = async () => {
@@ -38,12 +38,12 @@ export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps
   };
 
   return (
-    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 transition-shadow hover:shadow-md">
+    <div className="rounded-xl bg-surface p-5 shadow-sm ring-1 ring-border-default transition-shadow hover:shadow-md">
       <div className="mb-3 flex items-start justify-between">
         <div className="flex-1">
           <Link
             to={`/workouts/${workout.id}`}
-            className="text-lg font-semibold text-gray-900 hover:text-blue-600"
+            className="text-lg font-semibold text-primary hover:text-accent"
           >
             {workout.name}
           </Link>
@@ -51,11 +51,11 @@ export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps
             <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${categoryColor}`}>
               {t(CATEGORY_I18N_KEYS[workout.category] ?? 'categoryMixed')}
             </span>
-            <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+            <span className="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-secondary">
               {workout.targetZone}
             </span>
             {isUserWorkout && (
-              <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
+              <span className="inline-flex rounded-full bg-state-active-bg px-2.5 py-0.5 text-xs font-medium text-state-active-text">
                 {workout.source === 'Imported' ? t('imported') : t('custom')}
               </span>
             )}
@@ -63,7 +63,7 @@ export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps
         </div>
       </div>
 
-      <div className="flex items-center gap-4 text-sm text-gray-500">
+      <div className="flex items-center gap-4 text-sm text-tertiary">
         <div className="flex items-center gap-1">
           <span>⏱</span>
           <span>{workout.durationMinutes} {tCommon('min')}</span>
@@ -77,7 +77,7 @@ export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps
       {workout.tags && (
         <div className="mt-2 flex flex-wrap gap-1">
           {workout.tags.split(',').map(tag => (
-            <span key={tag} className="rounded bg-gray-50 px-1.5 py-0.5 text-xs text-gray-500">
+            <span key={tag} className="rounded bg-muted px-1.5 py-0.5 text-xs text-tertiary">
               {tag.trim()}
             </span>
           ))}
@@ -85,11 +85,11 @@ export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps
       )}
 
       {showActions && (
-        <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
+        <div className="mt-3 flex gap-2 border-t border-border-default pt-3">
           {isUserWorkout && (
             <Link
               to={`/workouts/${workout.id}/edit`}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
+              className="rounded-lg px-3 py-1.5 text-xs font-medium text-accent hover:bg-state-active-bg"
             >
               {t('edit')}
             </Link>
@@ -97,14 +97,14 @@ export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps
           <button
             onClick={handleCopy}
             disabled={copying}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium text-green-600 hover:bg-green-50 disabled:opacity-50"
+            className="rounded-lg px-3 py-1.5 text-xs font-medium text-state-success-text hover:bg-state-success-bg disabled:opacity-50"
           >
             {copying ? t('copying') : t('copy')}
           </button>
           {onDelete && isUserWorkout && (
             <button
               onClick={() => onDelete(workout.id)}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+              className="rounded-lg px-3 py-1.5 text-xs font-medium text-state-danger-text hover:bg-state-danger-bg"
             >
               {t('delete')}
             </button>

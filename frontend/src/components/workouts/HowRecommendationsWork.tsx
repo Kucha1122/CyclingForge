@@ -6,17 +6,17 @@ export const HowRecommendationsWork = () => {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white">
+    <div className="rounded-xl border border-border-default bg-surface">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between p-4 text-left text-sm font-medium text-gray-700 hover:bg-gray-50"
+        className="flex w-full items-center justify-between p-4 text-left text-sm font-medium text-primary hover:bg-muted"
       >
         <span>{t('howRecommended')}</span>
-        <span className="text-gray-400">{open ? '▼' : '▶'}</span>
+        <span className="text-tertiary">{open ? '▼' : '▶'}</span>
       </button>
       {open && (
-        <div className="border-t border-gray-200 p-4 text-sm text-gray-600">
+        <div className="border-t border-border-default p-4 text-sm text-secondary">
           <p className="mb-3">
             {t('howRecommendedIntro')}
           </p>
