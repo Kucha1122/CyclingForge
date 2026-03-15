@@ -50,6 +50,7 @@ for (int i = 0; i < steps.Count; i++)
     Console.WriteLine($"  GetTargetType={step.GetTargetType()}, GetTargetValue={step.GetTargetValue()}");
     Console.WriteLine($"  GetCustomTargetPowerLow={step.GetCustomTargetPowerLow()}, GetCustomTargetPowerHigh={step.GetCustomTargetPowerHigh()}");
     Console.WriteLine($"  GetRepeatTime={step.GetRepeatTime()}, GetRepeatSteps={step.GetRepeatSteps()}, GetRepeatPower={step.GetRepeatPower()}");
+    Console.WriteLine($"  GetCustomTargetCadenceLow={step.GetCustomTargetCadenceLow()}, GetCustomTargetCadenceHigh={step.GetCustomTargetCadenceHigh()}");
     Console.WriteLine();
 }
 
