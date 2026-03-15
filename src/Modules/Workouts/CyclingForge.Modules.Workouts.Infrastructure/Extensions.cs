@@ -29,6 +29,7 @@ public static class Extensions
         services.AddScoped<IDailyRecommendationRepository, DailyRecommendationRepository>();
         services.AddScoped<IZwoImportService, ZwoImportService>();
         services.AddScoped<IFitImportService, FitImportService>();
+        services.AddScoped<IFitExportService, FitExportService>();
         services.AddScoped<IZwiftSeedService, ZwiftSeedService>();
 
         return services;

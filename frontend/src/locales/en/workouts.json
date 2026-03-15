@@ -52,6 +52,7 @@
   "copying": "Copying…",
   "copyWorkout": "Copy Workout",
   "exportZwo": "Export .zwo",
+  "exportFit": "Export .fit",
   "importZwoFile": "Import .zwo file",
   "importZwoOrFitFile": "Import file (.zwo or .fit)",
   "importFitFile": "Import .fit",

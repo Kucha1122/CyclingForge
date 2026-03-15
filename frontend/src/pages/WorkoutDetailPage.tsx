@@ -59,7 +59,9 @@ export const WorkoutDetailPage = () => {
     }
   };
 
-  const handleExport = async () => {
+  const safeFileName = (name: string) => name.replace(/[/\\:*?"<>|]/g, '').trim() || 'workout';
+
+  const handleExportZwo = async () => {
     if (!id) return;
     try {
       const { data } = await workoutsApi.exportZwo(id);
@@ -67,7 +69,22 @@ export const WorkoutDetailPage = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${workout?.name || 'workout'}.zwo`;
+      a.download = `${safeFileName(workout?.name ?? '')}.zwo`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleExportFit = async () => {
+    if (!id) return;
+    try {
+      const { data } = await workoutsApi.exportFit(id);
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safeFileName(workout?.name ?? '')}.fit`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -119,10 +136,16 @@ export const WorkoutDetailPage = () => {
                 {copying ? t('copying') : t('copyWorkout')}
               </button>
               <button
-                onClick={handleExport}
+                onClick={handleExportZwo}
                 className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-muted"
               >
                 {t('exportZwo')}
+              </button>
+              <button
+                onClick={handleExportFit}
+                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-muted"
+              >
+                {t('exportFit')}
               </button>
             </div>
           </div>

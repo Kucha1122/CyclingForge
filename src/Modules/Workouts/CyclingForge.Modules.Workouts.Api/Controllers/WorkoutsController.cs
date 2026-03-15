@@ -6,6 +6,7 @@ using CyclingForge.Modules.Workouts.Application.Commands.ImportWorkout;
 using CyclingForge.Modules.Workouts.Application.Commands.ImportWorkoutsFromZip;
 using CyclingForge.Modules.Workouts.Application.Commands.UpdateWorkout;
 using CyclingForge.Modules.Workouts.Application.DTOs;
+using CyclingForge.Modules.Workouts.Application.Queries.ExportWorkoutToFit;
 using CyclingForge.Modules.Workouts.Application.Queries.ExportWorkoutToZwo;
 using CyclingForge.Modules.Workouts.Application.Queries.GetWorkoutDetails;
 using CyclingForge.Modules.Workouts.Application.Queries.GetWorkouts;
@@ -188,6 +189,16 @@ public sealed class WorkoutsController : ControllerBase
         var result = await _mediator.Send(new ExportWorkoutToZwoQuery(id), cancellationToken);
         if (result is null) return NotFound();
         return Content(result, "application/xml");
+    }
+
+    [HttpGet("{id:guid}/export/fit")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ExportFit(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new ExportWorkoutToFitQuery(id), cancellationToken);
+        if (result is null) return NotFound();
+        return File(result, "application/octet-stream", "workout.fit");
     }
 
     [HttpPost("seed-zwift")]

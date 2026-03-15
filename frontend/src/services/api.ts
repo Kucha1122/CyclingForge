@@ -210,6 +210,7 @@ export const workoutsApi = {
     return api.post<BulkImportZwoResult>('/workouts/import-zip', formData, { timeout: 120000 });
   },
   exportZwo: (id: string) => api.get<string>(`/workouts/${id}/export`, { responseType: 'text' as never }),
+  exportFit: (id: string) => api.get<Blob>(`/workouts/${id}/export/fit`, { responseType: 'blob' }),
 };
 
 export const trainingPreferenceApi = {
