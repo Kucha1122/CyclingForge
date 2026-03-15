@@ -7,6 +7,7 @@ interface IntervalChartProps {
   steps: WorkoutStepDto[];
   height?: number;
   ftp?: number;
+  highlightedStepOrder?: number | null;
 }
 
 interface SegmentMeta {
@@ -15,6 +16,7 @@ interface SegmentMeta {
   label: string;
   powerLow: number;
   powerHigh: number;
+  isRamp?: boolean;
 }
 
 interface TooltipState {
@@ -24,6 +26,8 @@ interface TooltipState {
   zone: string;
 }
 
+const ZONE_BOUNDS = [0, 0.56, 0.76, 0.91, 1.06, 1.21, 2] as const;
+
 function powerToZone(power: number): string {
   if (power < 0.56) return 'Z1';
   if (power < 0.76) return 'Z2';
@@ -31,6 +35,30 @@ function powerToZone(power: number): string {
   if (power < 1.06) return 'Z4';
   if (power < 1.21) return 'Z5';
   return 'Z6';
+}
+
+/** For a ramp from powerLow to powerHigh over duration: return zone slices (time in seconds, power at edges, zone). */
+function getRampZoneSlices(powerLow: number, powerHigh: number, duration: number): { tStart: number; tEnd: number; powerStart: number; powerEnd: number; zone: string }[] {
+  if (duration <= 0) return [];
+  if (powerLow === powerHigh) {
+    return [{ tStart: 0, tEnd: duration, powerStart: powerLow, powerEnd: powerLow, zone: powerToZone(powerLow) }];
+  }
+  const minP = Math.min(powerLow, powerHigh);
+  const maxP = Math.max(powerLow, powerHigh);
+  const boundaries = ZONE_BOUNDS.filter((b) => b > minP && b < maxP);
+  const points = [minP, ...boundaries, maxP].sort((a, b) => a - b);
+  const powerToT = (p: number) => ((p - powerLow) / (powerHigh - powerLow)) * duration;
+
+  const slices: { tStart: number; tEnd: number; powerStart: number; powerEnd: number; zone: string }[] = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const powerStart = points[i];
+    const powerEnd = points[i + 1];
+    const tStart = powerToT(powerStart);
+    const tEnd = powerToT(powerEnd);
+    const zone = powerToZone((powerStart + powerEnd) / 2);
+    slices.push({ tStart, tEnd, powerStart, powerEnd, zone });
+  }
+  return slices;
 }
 
 const ZONE_I18N_KEYS: Record<string, string> = {
@@ -67,21 +95,17 @@ function getStepSegments(step: WorkoutStepDto): SegmentMeta[] {
     return segments;
   }
 
-  // Show ramp whenever powerLow !== powerHigh (any step type)
+  // Show ramp whenever powerLow !== powerHigh (any step type) – single segment for smooth trapezoid
   const isRamp = step.powerLow !== step.powerHigh;
   if (isRamp || step.type === 'Ramp' || step.type === 'Warmup' || step.type === 'Cooldown') {
-    const numSegments = Math.max(2, Math.ceil(step.durationSeconds / 30));
-    const segDuration = step.durationSeconds / numSegments;
-    return Array.from({ length: numSegments }, (_, i) => {
-      const power = step.powerLow + (step.powerHigh - step.powerLow) * (i / (numSegments - 1));
-      return {
-        duration: segDuration,
-        power,
-        label: step.type,
-        powerLow: step.powerLow,
-        powerHigh: step.powerHigh,
-      };
-    });
+    return [{
+      duration: step.durationSeconds,
+      power: step.powerHigh,
+      label: step.type,
+      powerLow: step.powerLow,
+      powerHigh: step.powerHigh,
+      isRamp: true,
+    }];
   }
 
   return [{
@@ -100,9 +124,36 @@ function formatSeconds(totalSeconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-export const IntervalChart = ({ steps, height = 160, ftp }: IntervalChartProps) => {
+function formatAxisTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins >= 60) return `${Math.floor(mins / 60)}:${(mins % 60).toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+const Y_AXIS_WIDTH = 40;
+const X_AXIS_HEIGHT = 32;
+const CHART_PADDING_LEFT = 0.02;
+const CHART_PADDING_RIGHT = 0.045;
+const CHART_SCALE_X = 1 - CHART_PADDING_LEFT - CHART_PADDING_RIGHT;
+
+/** Nice tick steps in seconds (5min, 10min, 15min, 20min, 30min, 1h) for readable X-axis. */
+const NICE_X_STEPS = [300, 600, 900, 1200, 1800, 3600];
+const MAX_X_TICKS = 6;
+/** Min share of chart width between last tick and end label to avoid overlap (e.g. "2:20" vs "2:28"). */
+const MIN_END_GAP_FRACTION = 0.14;
+
+function getXTickStep(totalDuration: number): number {
+  if (totalDuration <= 0) return 600;
+  const desiredStep = totalDuration / MAX_X_TICKS;
+  const step = NICE_X_STEPS.find((s) => s >= desiredStep) ?? NICE_X_STEPS[NICE_X_STEPS.length - 1];
+  return step;
+}
+
+export const IntervalChart = ({ steps, height = 160, ftp, highlightedStepOrder = null }: IntervalChartProps) => {
   const { t } = useTranslation('workouts');
   const containerRef = useRef<HTMLDivElement>(null);
+  const chartAreaRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
@@ -116,7 +167,12 @@ export const IntervalChart = ({ steps, height = 160, ftp }: IntervalChartProps) 
   };
 
   const sortedSteps = [...steps].sort((a, b) => a.order - b.order);
-  const allSegments = sortedSteps.flatMap(getStepSegments);
+  const stepOrderBySegmentIndex: number[] = [];
+  const allSegments = sortedSteps.flatMap((step) => {
+    const segs = getStepSegments(step);
+    segs.forEach(() => stepOrderBySegmentIndex.push(step.order));
+    return segs;
+  });
 
   const segmentStarts: number[] = [];
   let cumulative = 0;
@@ -129,14 +185,27 @@ export const IntervalChart = ({ steps, height = 160, ftp }: IntervalChartProps) 
 
   if (totalDuration === 0) return null;
 
+  const yTicks = maxPower > 1.2 ? [0, 25, 50, 75, 100, 125] : [0, 25, 50, 75, 100];
+  const xTickStep = getXTickStep(totalDuration);
+  const xTicks: number[] = [];
+  for (let t = 0; t < totalDuration; t += xTickStep) xTicks.push(t);
+  const lastTick = xTicks[xTicks.length - 1] ?? 0;
+  const minGapSeconds = totalDuration * MIN_END_GAP_FRACTION;
+  if (totalDuration - lastTick >= minGapSeconds) xTicks.push(totalDuration);
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    const chartRect = chartAreaRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
 
-    setContainerWidth(rect.width);
+    setContainerWidth(containerRect.width);
 
+    const rect = chartRect ?? containerRect;
     const relX = (e.clientX - rect.left) / rect.width;
-    const svgX = relX * totalDuration;
+    const svgX = Math.max(
+      0,
+      Math.min(totalDuration, (totalDuration * (relX - CHART_PADDING_LEFT)) / CHART_SCALE_X)
+    );
 
     let idx = allSegments.length - 1;
     for (let i = 0; i < allSegments.length; i++) {
@@ -147,9 +216,10 @@ export const IntervalChart = ({ steps, height = 160, ftp }: IntervalChartProps) 
     }
 
     const seg = allSegments[idx];
+    const tooltipParentRect = chartRect ?? containerRect;
     setTooltip({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: e.clientX - tooltipParentRect.left,
+      y: e.clientY - tooltipParentRect.top,
       segment: seg,
       zone: powerToZone(seg.power),
     });
@@ -157,8 +227,9 @@ export const IntervalChart = ({ steps, height = 160, ftp }: IntervalChartProps) 
 
   const handleMouseLeave = () => setTooltip(null);
 
+  const chartWidth = containerWidth > 0 ? containerWidth - Y_AXIS_WIDTH : 0;
   const tooltipLeft = tooltip
-    ? tooltip.x > containerWidth * 0.65
+    ? tooltip.x > chartWidth * 0.65
       ? tooltip.x - 168
       : tooltip.x + 12
     : 0;
@@ -166,32 +237,83 @@ export const IntervalChart = ({ steps, height = 160, ftp }: IntervalChartProps) 
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-lg bg-gray-900"
+      className="relative flex w-full overflow-hidden rounded-lg bg-gray-900"
       style={{ height }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      <svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${totalDuration} ${maxPower * 100}`}
-        preserveAspectRatio="none"
-      >
+      <div className="flex shrink-0 flex-col" style={{ width: Y_AXIS_WIDTH }}>
+        <div className="relative min-h-0 flex-1 pb-2 pt-1.5 pr-1.5 pl-1" aria-hidden>
+          {yTicks.filter((p) => p > 0).map((p) => (
+            <span
+              key={p}
+              className="absolute right-0 text-right text-xs text-gray-400"
+              style={{
+                top: `${((maxPower * 100 - p) / (maxPower * 100)) * 100}%`,
+                transform: 'translateY(-50%)',
+              }}
+            >
+              {p}%
+            </span>
+          ))}
+        </div>
+        <div style={{ height: X_AXIS_HEIGHT, minHeight: X_AXIS_HEIGHT }} />
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div ref={chartAreaRef} className="relative min-h-0 flex-1">
+          <svg
+            className="absolute inset-0 h-full w-full"
+            viewBox={`0 0 ${totalDuration} ${maxPower * 100}`}
+            preserveAspectRatio="none"
+          >
+            <g transform={`translate(${totalDuration * CHART_PADDING_LEFT}, 0) scale(${CHART_SCALE_X}, 1)`}>
         {allSegments.reduce<{ x: number; elements: React.ReactElement[] }>(
           (acc, seg, i) => {
-            const barHeight = seg.power * 100;
+            const maxY = maxPower * 100;
             const zone = powerToZone(seg.power);
-            acc.elements.push(
-              <rect
-                key={i}
-                x={acc.x}
-                y={(maxPower * 100) - barHeight}
-                width={seg.duration}
-                height={barHeight}
-                fill={ZONE_COLORS[zone]}
-                opacity={0.85}
-              />
-            );
+            const isHighlighted = highlightedStepOrder != null && Number(stepOrderBySegmentIndex[i]) === Number(highlightedStepOrder);
+            const opacity = highlightedStepOrder == null ? 0.85 : isHighlighted ? 1 : 0.35;
+            const stroke = isHighlighted ? 'rgba(255,255,255,0.8)' : undefined;
+            const strokeWidth = isHighlighted ? 1 : 0;
+
+            if (seg.isRamp) {
+              const x = acc.x;
+              const slices = getRampZoneSlices(seg.powerLow, seg.powerHigh, seg.duration);
+              slices.forEach((slice, si) => {
+                const x1 = x + slice.tStart;
+                const x2 = x + slice.tEnd;
+                const y1Top = maxY - slice.powerStart * 100;
+                const y2Top = maxY - slice.powerEnd * 100;
+                const pts = `${x1},${maxY} ${x1},${y1Top} ${x2},${y2Top} ${x2},${maxY}`;
+                acc.elements.push(
+                  <polygon
+                    key={`${i}-${si}`}
+                    points={pts}
+                    fill={ZONE_COLORS[slice.zone]}
+                    opacity={opacity}
+                    stroke={stroke}
+                    strokeWidth={strokeWidth}
+                    style={{ transition: 'opacity 0.2s ease-out' }}
+                  />
+                );
+              });
+            } else {
+              const barHeight = seg.power * 100;
+              acc.elements.push(
+                <rect
+                  key={i}
+                  x={acc.x}
+                  y={maxY - barHeight}
+                  width={seg.duration}
+                  height={barHeight}
+                  fill={ZONE_COLORS[zone]}
+                  opacity={opacity}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                  style={{ transition: 'opacity 0.2s ease-out' }}
+                />
+              );
+            }
             return { x: acc.x + seg.duration, elements: acc.elements };
           },
           { x: 0, elements: [] }
@@ -204,9 +326,10 @@ export const IntervalChart = ({ steps, height = 160, ftp }: IntervalChartProps) 
           strokeDasharray="4,4"
           strokeWidth={1}
         />
-      </svg>
+            </g>
+          </svg>
 
-      {tooltip && (
+          {tooltip && (
         <div
           className="pointer-events-none absolute z-10 w-44 rounded-lg bg-gray-800 px-3 py-2 text-xs text-white shadow-lg ring-1 ring-white/10"
           style={{ left: tooltipLeft, top: Math.max(4, tooltip.y - 80) }}
@@ -234,7 +357,26 @@ export const IntervalChart = ({ steps, height = 160, ftp }: IntervalChartProps) 
             {getZoneLabel(tooltip.zone)}
           </p>
         </div>
-      )}
+          )}
+        </div>
+        <div
+          className="relative mt-2 shrink-0 pl-2 pr-1 pt-1 pb-0.5 text-xs text-gray-400"
+          style={{ height: X_AXIS_HEIGHT }}
+          aria-hidden
+        >
+          {xTicks.filter((t) => t > 0).map((t) => (
+            <span
+              key={t}
+              className="absolute -translate-x-1/2"
+              style={{
+                left: `${(CHART_PADDING_LEFT + (t / totalDuration) * CHART_SCALE_X) * 100}%`,
+              }}
+            >
+              {formatAxisTime(t)}
+            </span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
