@@ -18,6 +18,7 @@ Modularny monolit zbudowany w .NET i React: Clean Architecture, Domain-Driven De
 ### Frontend
 
 - **React 18**, TypeScript, **Vite 7**, **Tailwind v4**, Material Tailwind, **Recharts**, react-router-dom v7, axios, **i18next** (pl/en).
+- **Internacjonalizacja i motyw**: Aplikacja obsługuje języki **polski** i **angielski** (i18next, fallback `pl`, zapis w localStorage; przełącznik w [`frontend/src/components/Layout.tsx`](frontend/src/components/Layout.tsx)); namespace'y dla wszystkich stron – pliki w [`frontend/src/locales/pl/`](frontend/src/locales/pl/) i [`frontend/src/locales/en/`](frontend/src/locales/en/). Tryb **jasny/ciemny** (ThemeContext w [`frontend/src/context/ThemeContext.tsx`](frontend/src/context/ThemeContext.tsx)): zapis w localStorage, respektowanie `prefers-color-scheme`; przełącznik w nawigacji; osobne palety kolorów dla wykresów.
 - Wejście: [`frontend/src/main.tsx`](frontend/src/main.tsx), routing w [`frontend/src/App.tsx`](frontend/src/App.tsx).
 - Stan: AuthContext (localStorage), brak globalnego store; strony używają `useState` + API przez [`frontend/src/services/api.ts`](frontend/src/services/api.ts) (proxy `/api` + Bearer token).
 
@@ -35,7 +36,7 @@ Modularny monolit zbudowany w .NET i React: Clean Architecture, Domain-Driven De
 | **Strava** | `api/Strava` | OAuth 2.0, zarządzanie tokenami, synchronizacja aktywności. |
 | **Activities** | `api/Activities`, `api/Metrics` | Lista i detale aktywności, strumienie; PMC, dzienne TSS, podsumowania tygodniowe i miesięczne. |
 | **Garmin** | `api/Garmin` | Połączenie (OAuth), wellness, sen, Body Battery, Training Readiness, stres. |
-| **Workouts** | `api/Workouts`, `api/Recommendations`, `api/training-preference` | Biblioteka treningów (CRUD, import ZWO), rekomendacje dzienne/tydzień/plan, preferencje treningowe. |
+| **Workouts** | `api/Workouts`, `api/Recommendations`, `api/training-preference`; `api/Workouts/{id}/export` (ZWO), `api/Workouts/{id}/export/fit` (FIT), `api/Workouts/import-zip` | Biblioteka treningów (CRUD). **Import**: pojedynczy plik ZWO (XML) lub FIT; archiwum ZIP z plikami .zwo/.fit (zbiorczy import). **Eksport**: trening do pliku .zwo (XML) lub .fit. Rekomendacje dzienne/tydzień/plan, preferencje treningowe. |
 
 - **Users**: kontroler [`CyclingForge.Modules.Users.Api/Controllers/UsersController.cs`](src/Modules/Users/CyclingForge.Modules.Users.Api/Controllers/UsersController.cs).
 - **Strava**: [`CyclingForge.Modules.Strava.Api/Controllers/StravaController.cs`](src/Modules/Strava/CyclingForge.Modules.Strava.Api/Controllers/StravaController.cs).
@@ -174,9 +175,9 @@ flowchart LR
 | `/workout/today` | `TodayWorkoutPage.tsx` | Rekomendacja na dziś: readiness, karta treningu, akceptacja/pominięcie/wykonanie, regeneracja. |
 | `/workout/week` | `WeeklyPlanPage.tsx` | Plan tygodnia (7 dni). |
 | `/workout/plan` | `FullPlanPage.tsx` | Plan wielotygodniowy. |
-| `/workouts` | `WorkoutLibraryPage.tsx` | Biblioteka treningów: wyszukiwanie, filtry (kategoria, strefa), sortowanie, paginacja. |
+| `/workouts` | `WorkoutLibraryPage.tsx` | Biblioteka treningów: wyszukiwanie, filtry (kategoria, strefa), sortowanie, paginacja; **import**: pojedynczy ZWO/FIT lub archiwum ZIP (ZWO/FIT). |
 | `/workouts/create`, `/workouts/:id/edit` | `WorkoutCreatorPage.tsx` | Tworzenie/edycja treningu, opcjonalny import ZWO. |
-| `/workouts/:id` | `WorkoutDetailPage.tsx` | Szczegóły treningu, kopiowanie. |
+| `/workouts/:id` | `WorkoutDetailPage.tsx` | Szczegóły treningu, kopiowanie; **eksport** treningu do .zwo lub .fit. |
 | `/activities` | `ActivitiesPage.tsx` | Lista aktywności (paginated). |
 | `/activities/:id` | `ActivityDetailsPage.tsx` | Detale aktywności, strumienie (HR, moc, wysokość, prędkość, kadencja), wykresy. |
 | `/analysis` | `AnalysisPage.tsx` | Analiza PMC (zakres 7–365 dni), statystyki (śr/max CTL, TSB). |
