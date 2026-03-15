@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { workoutsApi } from '../services/api';
 import { WorkoutCard } from '../components/workouts/WorkoutCard';
@@ -26,11 +26,14 @@ const SORT_OPTIONS: { value: string; labelKey: string }[] = [
 
 export const WorkoutLibraryPage = () => {
   const { t } = useTranslation('workouts');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const tab: TabFilter = (tabParam === 'mine' || tabParam === 'system' || tabParam === 'all') ? tabParam : 'all';
+
   const [workouts, setWorkouts] = useState<WorkoutSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [tab, setTab] = useState<TabFilter>('all');
   const [category, setCategory] = useState('');
   const [zone, setZone] = useState('');
   const [search, setSearch] = useState('');
@@ -121,7 +124,7 @@ export const WorkoutLibraryPage = () => {
         const text = await file.text();
         await workoutsApi.importZwo(text);
       }
-      setTab('mine');
+      setSearchParams({ tab: 'mine' });
       setPage(1);
       setListRefreshKey((k) => k + 1);
     } catch (err: unknown) {
@@ -159,7 +162,7 @@ export const WorkoutLibraryPage = () => {
         failed: data.failedCount,
         errors: data.errors,
       });
-      setTab('mine');
+      setSearchParams({ tab: 'mine' });
       setPage(1);
       setListRefreshKey((k) => k + 1);
     } catch {
@@ -273,7 +276,7 @@ export const WorkoutLibraryPage = () => {
         {(['all', 'system', 'mine'] as const).map((tabKey) => (
           <button
             key={tabKey}
-            onClick={() => { setTab(tabKey); setPage(1); }}
+            onClick={() => { setSearchParams({ tab: tabKey }); setPage(1); }}
             className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
               tab === tabKey ? 'bg-surface text-primary shadow-sm' : 'text-secondary hover:text-primary'
             }`}

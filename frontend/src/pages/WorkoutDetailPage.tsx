@@ -30,6 +30,8 @@ export const WorkoutDetailPage = () => {
   const [ftp, setFtp] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [copying, setCopying] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -50,12 +52,26 @@ export const WorkoutDetailPage = () => {
     if (!id) return;
     setCopying(true);
     try {
-      const { data: newId } = await workoutsApi.copy(id);
-      navigate(`/workouts/${newId}/edit`);
+      await workoutsApi.copy(id);
+      navigate('/workouts?tab=mine');
     } catch {
       // ignore
     } finally {
       setCopying(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!id) return;
+    setDeleting(true);
+    try {
+      await workoutsApi.delete(id);
+      setDeleteConfirmOpen(false);
+      navigate('/workouts?tab=mine');
+    } catch {
+      // ignore
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -101,6 +117,7 @@ export const WorkoutDetailPage = () => {
   }
 
   const categoryColor = CATEGORY_COLORS[workout.category] || 'bg-muted text-primary dark:bg-muted dark:text-primary';
+  const isUserWorkout = workout.source === 'UserCreated' || workout.source === 'Imported';
 
   return (
     <div className="min-h-screen bg-page p-8">
@@ -127,7 +144,15 @@ export const WorkoutDetailPage = () => {
                 </span>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {isUserWorkout && (
+                <Link
+                  to={`/workouts/${id}/edit`}
+                  className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-muted"
+                >
+                  {t('edit')}
+                </Link>
+              )}
               <button
                 onClick={handleCopy}
                 disabled={copying}
@@ -135,6 +160,14 @@ export const WorkoutDetailPage = () => {
               >
                 {copying ? t('copying') : t('copyWorkout')}
               </button>
+              {isUserWorkout && (
+                <button
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  className="rounded-lg border border-border-default bg-state-danger-bg px-4 py-2 text-sm font-medium text-state-danger-text hover:opacity-90"
+                >
+                  {t('delete')}
+                </button>
+              )}
               <button
                 onClick={handleExportZwo}
                 className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-muted"
@@ -248,6 +281,36 @@ export const WorkoutDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {deleteConfirmOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-primary/40">
+          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl ring-1 ring-border-default">
+            <h2 className="text-lg font-semibold text-primary">{t('deleteWorkout')}</h2>
+            <p className="mt-2 text-sm text-secondary">
+              {t('deleteWorkoutConfirm', { name: workout.name })}
+            </p>
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmOpen(false)}
+                disabled={deleting}
+                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="rounded-lg bg-state-danger-bg px-4 py-2 text-sm font-medium text-state-danger-text hover:bg-state-danger-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+              >
+                {t('delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
