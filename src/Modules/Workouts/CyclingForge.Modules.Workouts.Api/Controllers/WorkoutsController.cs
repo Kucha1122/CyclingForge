@@ -10,6 +10,7 @@ using CyclingForge.Modules.Workouts.Application.Queries.ExportWorkoutToFit;
 using CyclingForge.Modules.Workouts.Application.Queries.ExportWorkoutToZwo;
 using CyclingForge.Modules.Workouts.Application.Queries.GetWorkoutDetails;
 using CyclingForge.Modules.Workouts.Application.Queries.GetWorkouts;
+using CyclingForge.Modules.Workouts.Application.Queries.ParseZwo;
 using CyclingForge.Modules.Workouts.Application.Services;
 using CyclingForge.Modules.Workouts.Infrastructure.Configuration;
 using CyclingForge.Shared.Abstractions.Auth;
@@ -132,6 +133,28 @@ public sealed class WorkoutsController : ControllerBase
         var command = new ImportWorkoutFromZwoCommand(_currentUser.UserId, request.ZwoXmlContent);
         var id = await _mediator.Send(command, cancellationToken);
         return CreatedAtAction(nameof(GetWorkout), new { id }, id);
+    }
+
+    /// <summary>
+    /// Parses ZWO XML and returns workout data without saving. Used by the designer to fill the form.
+    /// </summary>
+    [HttpPost("parse-zwo")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ParseZwoResultDto>> ParseZwo(
+        [FromBody] ImportZwoRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var query = new ParseZwoQuery(request.ZwoXmlContent);
+            var result = await _mediator.Send(query, cancellationToken);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPost("import-fit")]

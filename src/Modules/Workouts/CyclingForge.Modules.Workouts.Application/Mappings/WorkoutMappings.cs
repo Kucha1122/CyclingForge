@@ -36,6 +36,30 @@ public static class WorkoutMappings
             step.OnPower,
             step.OffPower);
 
+    public static ParseZwoStepDto ToParseZwoStepDto(this WorkoutStep step)
+        => new(
+            step.Order,
+            step.Type.ToString(),
+            step.DurationSeconds,
+            step.PowerLow,
+            step.PowerHigh,
+            step.Cadence,
+            step.Repeat,
+            step.OnDurationSeconds,
+            step.OffDurationSeconds,
+            step.OnPower,
+            step.OffPower);
+
+    public static ParseZwoResultDto ToParseZwoResultDto(this Workout workout)
+        => new(
+            workout.Name,
+            workout.Description,
+            workout.Category.ToString(),
+            workout.TargetZone.ToString(),
+            workout.IsPublic,
+            workout.Tags,
+            workout.Steps.OrderBy(s => s.Order).Select(s => s.ToParseZwoStepDto()).ToList());
+
     public static WorkoutSummaryDto ToSummaryDto(this Workout workout)
         => new(
             workout.Id,

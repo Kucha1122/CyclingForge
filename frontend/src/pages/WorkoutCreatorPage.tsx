@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { workoutsApi } from '../services/api';
@@ -13,6 +13,10 @@ const CATEGORY_I18N_KEYS: Record<string, string> = {
   Recovery: 'categoryRecovery', Endurance: 'categoryEndurance', Tempo: 'categoryTempo',
   SweetSpot: 'categorySweetSpot', Threshold: 'categoryThreshold', VO2Max: 'categoryVO2Max',
   Anaerobic: 'categoryAnaerobic', Sprint: 'categorySprint', Mixed: 'categoryMixed',
+};
+const STEP_TYPE_I18N_KEYS: Record<string, string> = {
+  Warmup: 'stepWarmup', Cooldown: 'stepCooldown', SteadyState: 'stepSteadyState',
+  Ramp: 'stepRamp', Intervals: 'stepIntervals', FreeRide: 'stepFreeRide',
 };
 
 interface EditableStep extends CreateWorkoutStepDto {
@@ -73,6 +77,29 @@ export const WorkoutCreatorPage = () => {
   const [saving, setSaving] = useState(false);
   const [zwoImport, setZwoImport] = useState('');
   const [showImport, setShowImport] = useState(false);
+  const [highlightedStepOrder, setHighlightedStepOrder] = useState<number | null>(null);
+  const highlightClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const setHighlight = (order: number | null) => {
+    if (highlightClearRef.current) {
+      clearTimeout(highlightClearRef.current);
+      highlightClearRef.current = null;
+    }
+    setHighlightedStepOrder(order);
+  };
+
+  const scheduleClearHighlight = () => {
+    highlightClearRef.current = setTimeout(() => {
+      setHighlightedStepOrder(null);
+      highlightClearRef.current = null;
+    }, 150);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (highlightClearRef.current) clearTimeout(highlightClearRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -189,10 +216,24 @@ export const WorkoutCreatorPage = () => {
   const handleImport = async () => {
     if (!zwoImport.trim()) return;
     try {
-      const newId = (await workoutsApi.importZwo(zwoImport)).data;
-      navigate(`/workouts/${newId}`);
+      const { data } = await workoutsApi.parseZwo(zwoImport);
+      setName(data.name);
+      setDescription(data.description ?? '');
+      setCategory(data.category);
+      setTargetZone(data.targetZone);
+      setIsPublic(data.isPublic);
+      setTags(data.tags ?? '');
+      setSteps(
+        data.steps.map((s, i) => ({
+          ...s,
+          tempId: crypto.randomUUID(),
+          order: i + 1,
+        }))
+      );
+      setZwoImport('');
+      setShowImport(false);
     } catch {
-      // ignore
+      // leave textarea as is on error
     }
   };
 
@@ -258,10 +299,22 @@ export const WorkoutCreatorPage = () => {
             {/* Sticky chart */}
             <div className="lg:sticky lg:top-24">
               <div className="rounded-xl bg-surface p-4 shadow-sm ring-1 ring-border-default">
-                <h2 className="mb-2 text-sm font-semibold text-secondary">
-                  {t('creatorZonePreview')}
-                </h2>
-                <IntervalChart steps={stepsForChart} height={200} />
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <h2 className="text-sm font-semibold text-secondary">
+                    {t('creatorZonePreview')}
+                  </h2>
+                  <span
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium transition-opacity duration-200 ${highlightedStepOrder != null ? 'bg-accent/15 text-accent' : 'invisible'}`}
+                    role="status"
+                    aria-hidden={highlightedStepOrder == null}
+                  >
+                    {highlightedStepOrder != null ? (() => {
+                      const step = steps.find((s) => Number(s.order) === highlightedStepOrder);
+                      return step ? t('stepHighlightLabel', { order: step.order, type: t(STEP_TYPE_I18N_KEYS[step.type] ?? step.type) }) : '';
+                    })() : t('stepHighlightLabel', { order: 1, type: t('stepWarmup') })}
+                  </span>
+                </div>
+                <IntervalChart steps={stepsForChart} height={200} highlightedStepOrder={highlightedStepOrder} />
               </div>
             </div>
 
@@ -307,16 +360,22 @@ export const WorkoutCreatorPage = () => {
 
               <div className="space-y-2">
                 {steps.map((step, idx) => (
-                  <WorkoutStepCard
+                  <div
                     key={step.tempId}
-                    step={step}
-                    index={idx}
-                    isFirst={idx === 0}
-                    isLast={idx === steps.length - 1}
-                    onUpdate={updateStep}
-                    onRemove={removeStep}
-                    onMove={moveStep}
-                  />
+                    className={`rounded-lg transition-[box-shadow] duration-200 ease-out ${Number(step.order) === highlightedStepOrder ? 'ring-2 ring-accent/70 ring-offset-2 ring-offset-page' : ''}`}
+                    onMouseEnter={() => setHighlight(Number(step.order))}
+                    onMouseLeave={scheduleClearHighlight}
+                  >
+                    <WorkoutStepCard
+                      step={step}
+                      index={idx}
+                      isFirst={idx === 0}
+                      isLast={idx === steps.length - 1}
+                      onUpdate={updateStep}
+                      onRemove={removeStep}
+                      onMove={moveStep}
+                    />
+                  </div>
                 ))}
               </div>
             </div>

@@ -82,6 +82,31 @@ export interface CreateWorkoutRequest {
   steps: CreateWorkoutStepDto[];
 }
 
+/** Result of parsing ZWO XML without saving (for designer). */
+export interface ParseZwoResultDto {
+  name: string;
+  description: string;
+  category: string;
+  targetZone: string;
+  isPublic: boolean;
+  tags: string | null;
+  steps: ParseZwoStepDto[];
+}
+
+export interface ParseZwoStepDto {
+  order: number;
+  type: string;
+  durationSeconds: number;
+  powerLow: number;
+  powerHigh: number;
+  cadence?: number | null;
+  repeat?: number | null;
+  onDurationSeconds?: number | null;
+  offDurationSeconds?: number | null;
+  onPower?: number | null;
+  offPower?: number | null;
+}
+
 export const PLAN_MODES = ['DailyRecommendations', 'FullPlan'] as const;
 
 export interface TrainingPreferenceDto {

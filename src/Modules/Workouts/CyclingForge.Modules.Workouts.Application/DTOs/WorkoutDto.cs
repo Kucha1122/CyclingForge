@@ -51,3 +51,28 @@ public sealed record BulkImportZwoResult(
     IReadOnlyList<BulkImportZwoError> Errors);
 
 public sealed record BulkImportZwoError(string FileName, string Message);
+
+/// <summary>
+/// Result of parsing ZWO XML without saving. Used to fill the designer form.
+/// </summary>
+public sealed record ParseZwoResultDto(
+    string Name,
+    string Description,
+    string Category,
+    string TargetZone,
+    bool IsPublic,
+    string? Tags,
+    IReadOnlyList<ParseZwoStepDto> Steps);
+
+public sealed record ParseZwoStepDto(
+    int Order,
+    string Type,
+    int DurationSeconds,
+    decimal PowerLow,
+    decimal PowerHigh,
+    int? Cadence,
+    int? Repeat,
+    int? OnDurationSeconds,
+    int? OffDurationSeconds,
+    decimal? OnPower,
+    decimal? OffPower);
