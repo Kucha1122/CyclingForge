@@ -19,63 +19,63 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-lg">
-        <h2 className="text-center text-2xl font-bold text-blue-gray-900">
+    <div className="flex min-h-screen items-center justify-center bg-page">
+      <div className="w-full max-w-md rounded-xl bg-surface p-8 shadow-lg ring-1 ring-border-default">
+        <h2 className="text-center text-2xl font-bold text-primary">
           {t('signUp')}
         </h2>
-        <p className="mt-2 text-center text-gray-600">
+        <p className="mt-2 text-center text-secondary">
           {t('enterDetailsRegister')}
         </p>
         <form className="mt-8 mb-2" onSubmit={handleSubmit(onSubmit)}>
           <div className="mb-4 flex flex-col gap-6">
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-700">{t('firstName')}</label>
+              <label className="text-sm font-medium text-primary">{t('firstName')}</label>
               <input
-                className="rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 placeholder={t('placeholderFirstName')}
                 {...register("firstName", { required: true })}
               />
-              {errors.firstName && <span className="text-sm text-red-500">{t('firstNameRequired')}</span>}
+              {errors.firstName && <span className="text-sm text-state-danger-text">{t('firstNameRequired')}</span>}
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-700">{t('lastName')}</label>
+              <label className="text-sm font-medium text-primary">{t('lastName')}</label>
               <input
-                className="rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 placeholder={t('placeholderLastName')}
                 {...register("lastName", { required: true })}
               />
-              {errors.lastName && <span className="text-sm text-red-500">{t('lastNameRequired')}</span>}
+              {errors.lastName && <span className="text-sm text-state-danger-text">{t('lastNameRequired')}</span>}
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-700">{t('email')}</label>
+              <label className="text-sm font-medium text-primary">{t('email')}</label>
               <input
-                className="rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 placeholder={t('placeholderEmail')}
                 {...register("email", { required: true })}
               />
-              {errors.email && <span className="text-sm text-red-500">{t('emailRequired')}</span>}
+              {errors.email && <span className="text-sm text-state-danger-text">{t('emailRequired')}</span>}
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-700">{t('password')}</label>
+              <label className="text-sm font-medium text-primary">{t('password')}</label>
               <input
                 type="password"
-                className="rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 placeholder={t('placeholderPassword')}
                 {...register("password", { required: true })}
               />
-              {errors.password && <span className="text-sm text-red-500">{t('passwordRequired')}</span>}
+              {errors.password && <span className="text-sm text-state-danger-text">{t('passwordRequired')}</span>}
             </div>
           </div>
           <button
-            className="mt-6 w-full rounded-lg bg-black py-3 font-bold text-white transition-colors hover:bg-gray-800"
+            className="mt-6 w-full rounded-lg bg-accent py-3 font-bold text-accent-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
             type="submit"
           >
             {t('signUp')}
           </button>
-          <p className="mt-4 text-center text-gray-600">
+          <p className="mt-4 text-center text-secondary">
             {t('alreadyHaveAccount')}{" "}
-            <Link to="/login" className="font-medium text-blue-500 transition-colors hover:text-blue-700">
+            <Link to="/login" className="font-medium text-accent transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 rounded">
               {t('signIn')}
             </Link>
           </p>

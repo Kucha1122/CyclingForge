@@ -35,10 +35,10 @@ export const GarminCallbackPage = () => {
   }, [searchParams, navigate]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
+    <div className="flex min-h-screen items-center justify-center bg-page">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900">{t('connectingGarmin')}</h2>
-        <p className="mt-2 text-gray-600">{t('connectingStravaHint')}</p>
+        <h2 className="text-2xl font-bold text-primary">{t('connectingGarmin')}</h2>
+        <p className="mt-2 text-secondary">{t('connectingStravaHint')}</p>
       </div>
     </div>
   );
