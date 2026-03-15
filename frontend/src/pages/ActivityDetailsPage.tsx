@@ -130,15 +130,15 @@ interface StatCardProps {
   sub?: string;
 }
 
-function StatCard({ label, value, unit, accent = 'text-gray-900', sub }: StatCardProps) {
+function StatCard({ label, value, unit, accent = 'text-primary', sub }: StatCardProps) {
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200 flex flex-col gap-1">
-      <span className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</span>
+    <div className="rounded-xl bg-surface p-4 shadow-sm ring-1 ring-border-default flex flex-col gap-1">
+      <span className="text-xs font-medium uppercase tracking-wide text-tertiary">{label}</span>
       <div className="flex items-baseline gap-1">
         <span className={`text-2xl font-bold ${accent}`}>{value}</span>
-        {unit && <span className="text-sm text-gray-500">{unit}</span>}
+        {unit && <span className="text-sm text-tertiary">{unit}</span>}
       </div>
-      {sub && <span className="text-xs text-gray-400">{sub}</span>}
+      {sub && <span className="text-xs text-tertiary">{sub}</span>}
     </div>
   );
 }
@@ -147,10 +147,10 @@ function StatCard({ label, value, unit, accent = 'text-gray-900', sub }: StatCar
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-gray-500">
-      <span className="h-px flex-1 bg-gray-200" />
+    <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-tertiary">
+      <span className="h-px flex-1 bg-border-default" />
       {children}
-      <span className="h-px flex-1 bg-gray-200" />
+      <span className="h-px flex-1 bg-border-default" />
     </h2>
   );
 }
@@ -160,13 +160,13 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-lg text-xs">
-      <p className="mb-1 font-semibold text-gray-600">{Number(label).toFixed(2)} km</p>
+    <div className="rounded-lg border border-border-default bg-surface p-3 shadow-lg text-xs text-primary">
+      <p className="mb-1 font-semibold text-secondary">{Number(label).toFixed(2)} km</p>
       {payload.map((entry: any) => (
         <div key={entry.dataKey} className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full" style={{ background: entry.color }} />
-          <span className="text-gray-500">{entry.name}:</span>
-          <span className="font-medium text-gray-800">
+          <span className="text-tertiary">{entry.name}:</span>
+          <span className="font-medium text-primary">
             {entry.value != null ? Number(entry.value).toFixed(1) : '—'} {entry.unit}
           </span>
         </div>
@@ -178,7 +178,7 @@ function ChartTooltip({ active, payload, label }: any) {
 // ─── Skeleton Loader ──────────────────────────────────────────────────────────
 
 function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-gray-200 ${className}`} />;
+  return <div className={`animate-pulse rounded-lg bg-muted ${className}`} />;
 }
 
 function LoadingSkeleton() {
@@ -223,19 +223,31 @@ function PowerBestRow({ label, watts, ftp }: PowerBestProps) {
       : pct >= 75
       ? 'bg-yellow-500'
       : 'bg-blue-500';
+  const textColor =
+    pct == null
+      ? 'text-blue-600 dark:text-blue-300'
+      : pct >= 120
+      ? 'text-purple-600 dark:text-purple-300'
+      : pct >= 105
+      ? 'text-red-600 dark:text-red-300'
+      : pct >= 90
+      ? 'text-orange-600 dark:text-orange-300'
+      : pct >= 75
+      ? 'text-yellow-600 dark:text-yellow-300'
+      : 'text-blue-600 dark:text-blue-300';
 
   return (
     <div className="grid grid-cols-[7rem_1fr_5rem_4rem] items-center gap-3 py-2">
-      <span className="text-sm font-medium text-gray-600">{label}</span>
-      <div className="h-2 flex-1 rounded-full bg-gray-100 overflow-hidden">
+      <span className="text-sm font-medium text-secondary">{label}</span>
+      <div className="h-2 flex-1 rounded-full bg-muted overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${barColor}`}
           style={{ width: `${barPct}%` }}
         />
       </div>
-      <span className="text-right text-sm font-bold text-gray-800">{Math.round(watts)} W</span>
+      <span className="text-right text-sm font-bold text-primary">{Math.round(watts)} W</span>
       {pct != null ? (
-        <span className={`text-right text-xs font-semibold ${barColor.replace('bg-', 'text-')}`}>
+        <span className={`text-right text-xs font-semibold ${textColor}`}>
           {pct}% FTP
         </span>
       ) : (
@@ -284,7 +296,7 @@ export default function ActivityDetailsPage() {
   if (loading) return <LoadingSkeleton />;
   if (error || !activity)
     return (
-      <div className="flex min-h-64 items-center justify-center text-gray-500">
+      <div className="flex min-h-64 items-center justify-center text-tertiary">
         {error ?? tErr('activityNotFound')}
       </div>
     );
@@ -323,28 +335,28 @@ export default function ActivityDetailsPage() {
       <div>
         <Link
           to="/activities"
-          className="mb-4 inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-tertiary hover:text-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded"
         >
           {tAd('backToActivities')}
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-3xl shadow-sm ring-1 ring-blue-100">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-state-active-bg text-3xl shadow-sm ring-1 ring-border-default">
               {sportIcon(activity.type)}
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 leading-tight">{activity.name}</h1>
+              <h1 className="text-2xl font-bold text-primary leading-tight">{activity.name}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                <span className="rounded-full bg-state-active-bg px-2.5 py-0.5 text-xs font-semibold text-state-active-text">
                   {tAd(getSportLabelKey(activity.type))}
                 </span>
                 {activity.deviceWatts === true && (
-                  <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
+                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-state-active-text">
                     ⚡ {tAd('powerMeter')}
                   </span>
                 )}
                 {activity.deviceWatts === false && (
-                  <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                  <span className="rounded-full bg-state-danger-bg px-2.5 py-0.5 text-xs font-semibold text-state-danger-text">
                     ~ {tAd('powerEstimated')}
                   </span>
                 )}
@@ -352,8 +364,8 @@ export default function ActivityDetailsPage() {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm font-medium text-gray-700 capitalize">{formatDateUtil(activity.startDate, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-            <p className="text-sm text-gray-400">{formatTimeUtil(activity.startDate)}</p>
+            <p className="text-sm font-medium text-secondary capitalize">{formatDateUtil(activity.startDate, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="text-sm text-tertiary">{formatTimeUtil(activity.startDate)}</p>
           </div>
         </div>
       </div>
@@ -371,12 +383,12 @@ export default function ActivityDetailsPage() {
           <StatCard
             label={tAd('rideTime')}
             value={formatDuration(activity.movingTime)}
-            accent="text-gray-900"
+            accent="text-primary"
           />
           <StatCard
             label={tAd('elapsedTime')}
             value={formatDuration(activity.elapsedTime)}
-            accent="text-gray-700"
+            accent="text-secondary"
           />
           <StatCard
             label={tAd('elevation')}
@@ -445,7 +457,7 @@ export default function ActivityDetailsPage() {
                 label={tAd('ftpUsed')}
                 value={activity.ftpUsed}
                 unit="W"
-                accent="text-gray-700"
+                accent="text-secondary"
               />
             )}
           </div>
@@ -482,9 +494,9 @@ export default function ActivityDetailsPage() {
 
           {/* Elevation Profile */}
           {hasAltitude && (
-            <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-              <h3 className="mb-1 text-sm font-semibold text-gray-700">{tAd('elevationProfile')}</h3>
-              <p className="mb-4 text-xs text-gray-400">{tAd('elevationProfileDesc')}</p>
+            <div className="rounded-xl bg-surface p-5 shadow-sm ring-1 ring-border-default">
+              <h3 className="mb-1 text-sm font-semibold text-secondary">{tAd('elevationProfile')}</h3>
+              <p className="mb-4 text-xs text-tertiary">{tAd('elevationProfileDesc')}</p>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={chartData} margin={{ top: 5, right: 20, bottom: 20, left: 10 }}>
                   <defs>
@@ -528,9 +540,9 @@ export default function ActivityDetailsPage() {
 
           {/* Power & Heart Rate */}
           {(hasPowerStream || hasHRStream) && (
-            <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-              <h3 className="mb-1 text-sm font-semibold text-gray-700">{tAd('powerAndHeartrate')}</h3>
-              <p className="mb-4 text-xs text-gray-400">
+            <div className="rounded-xl bg-surface p-5 shadow-sm ring-1 ring-border-default">
+              <h3 className="mb-1 text-sm font-semibold text-secondary">{tAd('powerAndHeartrate')}</h3>
+              <p className="mb-4 text-xs text-tertiary">
                 {hasPowerStream && hasHRStream
                   ? tAd('powerAndHrVsDist')
                   : hasPowerStream
@@ -624,9 +636,9 @@ export default function ActivityDetailsPage() {
 
           {/* Speed & Cadence */}
           {(hasSpeed || hasCadence) && (
-            <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-              <h3 className="mb-1 text-sm font-semibold text-gray-700">{tAd('speedAndCadence')}</h3>
-              <p className="mb-4 text-xs text-gray-400">
+            <div className="rounded-xl bg-surface p-5 shadow-sm ring-1 ring-border-default">
+              <h3 className="mb-1 text-sm font-semibold text-secondary">{tAd('speedAndCadence')}</h3>
+              <p className="mb-4 text-xs text-tertiary">
                 {hasSpeed && hasCadence
                   ? tAd('speedAndCadenceVsDist')
                   : hasSpeed
@@ -713,27 +725,27 @@ export default function ActivityDetailsPage() {
       {hasPowerBests && (
         <div>
           <SectionHeading>{tAd('powerBests')}</SectionHeading>
-          <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-            <p className="mb-4 text-xs text-gray-400">
+          <div className="rounded-xl bg-surface p-5 shadow-sm ring-1 ring-border-default">
+            <p className="mb-4 text-xs text-tertiary">
               {tAd('powerBestsDesc')}
             </p>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border-default">
               <PowerBestRow label={tAd('best5min')} watts={activity.best5MinPower} ftp={ftp} />
               <PowerBestRow label={tAd('best20min')} watts={activity.best20MinPower} ftp={ftp} />
               <PowerBestRow label={tAd('best60min')} watts={activity.best60MinPower} ftp={ftp} />
             </div>
             {activity.estimatedFtpFromActivity != null && (
-              <div className="mt-4 rounded-lg bg-blue-50 px-4 py-3 ring-1 ring-blue-100">
+              <div className="mt-4 rounded-lg bg-state-active-bg px-4 py-3 ring-1 ring-border-default">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-state-active-text">
                       {tAd('estimatedFtpFromActivity')}
                     </p>
-                    <p className="text-xs text-blue-400 mt-0.5">
+                    <p className="text-xs text-tertiary mt-0.5">
                       {tAd('estimatedFtpFromActivityHint')}
                     </p>
                   </div>
-                  <span className="text-2xl font-bold text-blue-700">
+                  <span className="text-2xl font-bold text-state-active-text">
                     {activity.estimatedFtpFromActivity} W
                   </span>
                 </div>
@@ -744,7 +756,7 @@ export default function ActivityDetailsPage() {
       )}
 
       {/* ── Footer meta ── */}
-      <div className="border-t border-gray-100 pt-4 text-xs text-gray-300 text-right">
+      <div className="border-t border-border-default pt-4 text-xs text-tertiary text-right">
         {tAd('syncedAt')}: {formatDateTime(activity.syncedAt)}
       </div>
     </div>
