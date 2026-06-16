@@ -225,6 +225,16 @@ internal sealed class UserFtpProvider : IUserFtpProvider
             _cachedChanges.Add(change);
     }
 
+    public async Task ClearEstimatedFtpChangesAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        await _ftpChangeRepository.DeleteEstimatedFromActivityAsync(userId, cancellationToken);
+
+        // Invalidate the in-memory timeline so subsequent reads (and eFTP registrations during the
+        // same recompute) reflect the cleared state instead of the stale cached list.
+        if (_cachedChangesUserId == userId && _cachedChanges is not null)
+            _cachedChanges.RemoveAll(c => c.Source == SourceEstimatedFromActivity);
+    }
+
     private bool ShouldAcceptAutomaticChange(int fromFtp, int toFtp)
     {
         if (fromFtp <= 0 || toFtp <= 0 || fromFtp == toFtp)

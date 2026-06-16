@@ -61,6 +61,12 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
             }
         }
 
+        // A forced recompute rebuilds the eFTP timeline from scratch: clear previously estimated
+        // changes first so the monotonic "eFTP can only increase vs previous eFTP" rule does not
+        // pin the timeline to stale values computed by the old estimator. Manual changes are kept.
+        if (request.ForceRecompute)
+            await _ftpProvider.ClearEstimatedFtpChangesAsync(request.UserId, cancellationToken);
+
         var stravaActivities = await _stravaService.FetchActivitiesAsync(request.UserId, afterUtc, beforeUtc, cancellationToken);
         var userLthr = await _lthrProvider.GetLthrAsync(request.UserId, cancellationToken);
         var syncedCount = 0;
@@ -94,7 +100,7 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
                     now,
                     deviceWatts);
 
-                await ApplyTssIfPossibleAsync(request.UserId, existingActivity, stravaActivity, userLthr, cancellationToken);
+                await ApplyTssIfPossibleAsync(request.UserId, existingActivity, stravaActivity, userLthr, request.ForceRecompute, cancellationToken);
                 await _activityRepository.UpdateAsync(existingActivity, cancellationToken);
             }
             else
@@ -117,7 +123,7 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
                     now,
                     deviceWatts);
 
-                await ApplyTssIfPossibleAsync(request.UserId, activity, stravaActivity, userLthr, cancellationToken);
+                await ApplyTssIfPossibleAsync(request.UserId, activity, stravaActivity, userLthr, request.ForceRecompute, cancellationToken);
                 await _activityRepository.AddAsync(activity, cancellationToken);
                 syncedCount++;
             }
@@ -126,7 +132,7 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
         return syncedCount;
     }
 
-    private async Task ApplyTssIfPossibleAsync(Guid userId, Activity activity, StravaActivityDto dto, int? userLthr, CancellationToken cancellationToken)
+    private async Task ApplyTssIfPossibleAsync(Guid userId, Activity activity, StravaActivityDto dto, int? userLthr, bool forceRecompute, CancellationToken cancellationToken)
     {
         List<float>? powerData = null;
         if (!string.IsNullOrEmpty(dto.StreamsJson) && TryParseWattsFromStreams(dto.StreamsJson, out var parsed))
@@ -135,7 +141,10 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
         // When activity already has fully computed power-based metrics (NP, TSS, FTP used),
         // avoid recomputing them on subsequent sync runs to keep persisted values stable.
         // Still fix MaxPower from power stream when available (it may have been stored wrong as average before).
-        if (activity.TrainingStressScore.HasValue &&
+        // A forced recompute bypasses this short-circuit so eFTP and TSS are re-derived with the
+        // current estimator and FTP timeline.
+        if (!forceRecompute &&
+            activity.TrainingStressScore.HasValue &&
             activity.NormalizedPower.HasValue &&
             activity.FtpUsed.HasValue)
         {
@@ -176,6 +185,26 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
                 await _ftpProvider.RegisterEftpChangeIfNeededAsync(userId, dto.StartDate, estimatedFtpFromActivity.Value, cancellationToken);
             }
         }
+        else if (activity.Best5MinPower.HasValue || activity.Best20MinPower.HasValue || activity.Best60MinPower.HasValue)
+        {
+            // No streams in this fetch (typical for a bulk re-sync), but the activity already has
+            // mean-maximal power stored from its original import. Re-estimate eFTP from those stored
+            // bests so a forced recompute can rebuild the FTP timeline (incl. ramp-test bumps) without
+            // re-downloading every stream from Strava.
+            var profile = new PowerProfile
+            {
+                FiveMinutePower = activity.Best5MinPower,
+                TwentyMinutePower = activity.Best20MinPower,
+                OneHourPower = activity.Best60MinPower
+            };
+            var minDuration = await _ftpProvider.GetEftpMinDurationSecondsAsync(userId, cancellationToken);
+            var eftp = _eftpEstimator.EstimateFtpFromPowerProfile(profile, minDuration);
+            if (eftp.HasValue && eftp.Value > 0)
+            {
+                estimatedFtpFromActivity = (int)Math.Round(eftp.Value);
+                await _ftpProvider.RegisterEftpChangeIfNeededAsync(userId, dto.StartDate, estimatedFtpFromActivity.Value, cancellationToken);
+            }
+        }
 
         var ftpForDate = await _ftpProvider.GetFtpForDateAsync(userId, dto.StartDate, cancellationToken);
         var manualFtp = await _ftpProvider.GetFtpAsync(userId, cancellationToken);
@@ -187,6 +216,10 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
             float? np = null;
             if (powerData != null && powerData.Count > 0)
                 np = _metricsCalculator.CalculateNormalizedPower(powerData);
+            // No fresh stream (e.g. a forced recompute without re-downloading streams): keep the
+            // Normalized Power computed at the original import rather than degrading it to average power.
+            if (!np.HasValue && activity.NormalizedPower.HasValue && activity.NormalizedPower.Value > 0)
+                np = activity.NormalizedPower.Value;
             if (!np.HasValue && dto.AveragePower.HasValue && dto.AveragePower.Value > 0)
                 np = (float)dto.AveragePower.Value;
 

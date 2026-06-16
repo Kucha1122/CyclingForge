@@ -29,9 +29,11 @@ public sealed class ActivitiesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<int>> SyncActivities(
         [FromQuery] bool quickSync = false,
+        [FromQuery] bool force = false,
         CancellationToken cancellationToken = default)
     {
-        var command = new SyncActivitiesCommand(_currentUser.UserId, quickSync);
+        // force=true rebuilds eFTP/TSS for existing activities (one-time backfill); implies a full sync.
+        var command = new SyncActivitiesCommand(_currentUser.UserId, quickSync && !force, force);
         var syncedCount = await _mediator.Send(command, cancellationToken);
         return Ok(new { syncedCount });
     }

@@ -35,4 +35,19 @@ internal sealed class UserFtpChangeRepository : IUserFtpChangeRepository
             .OrderByDescending(x => x.EffectiveDate)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<int> DeleteEstimatedFromActivityAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        const string estimatedSource = "EstimatedFromActivity";
+        var rows = await _dbContext.UserFtpChanges
+            .Where(x => x.UserId == userId && x.Source == estimatedSource)
+            .ToListAsync(cancellationToken);
+
+        if (rows.Count == 0)
+            return 0;
+
+        _dbContext.UserFtpChanges.RemoveRange(rows);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return rows.Count;
+    }
 }

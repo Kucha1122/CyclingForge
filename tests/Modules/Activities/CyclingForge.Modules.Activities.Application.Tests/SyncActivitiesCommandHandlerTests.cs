@@ -156,6 +156,81 @@ public class SyncActivitiesCommandHandlerTests
         metricsCalculator.Verify(
             m => m.CalculateTrainingStressScore(It.IsAny<float?>(), It.IsAny<float?>(), It.IsAny<int>(), It.IsAny<int?>()),
             Times.Never);
+
+        ftpProvider.Verify(p => p.ClearEstimatedFtpChangesAsync(userId, It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_With_ForceRecompute_Clears_Eftp_Timeline_And_Recomputes_Existing_Activity()
+    {
+        var userId = Guid.NewGuid();
+        var stravaId = 987654321L;
+        var startDate = DateTime.UtcNow.Date.AddDays(-1);
+
+        var existingActivity = Activity.Create(
+            userId, stravaId, "Test ride", ActivityType.FromString("Ride"), startDate,
+            new Distance(20000), new Duration(3600), new Duration(3700),
+            200, 30, 60, 140, 180, 200, DateTime.UtcNow, deviceWatts: true);
+
+        // Fully computed already -> a normal sync would short-circuit; a forced recompute must not.
+        existingActivity.UpdateMetrics(
+            maxPower: 250, normalizedPower: 220, intensityFactor: 0.9f, trainingStressScore: 80,
+            ftpUsed: 240, best20MinPower: null, best5MinPower: null, best60MinPower: null,
+            estimatedFtpFromActivity: null);
+
+        var activityRepo = new Mock<IActivityRepository>();
+        activityRepo.Setup(r => r.GetLatestActivityStartDateAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DateTime?)null);
+        activityRepo.Setup(r => r.GetByStravaIdAsync(stravaId, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingActivity);
+        activityRepo.Setup(r => r.UpdateAsync(existingActivity, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var dto = new StravaActivityDto(
+            StravaId: stravaId, Name: "Test ride", Type: "Ride", StartDate: startDate,
+            Distance: 20000, MovingTime: 3600, ElapsedTime: 3700, TotalElevationGain: 200,
+            AverageSpeed: 5, MaxSpeed: 10, AverageHeartRate: 140, MaxHeartRate: 180,
+            AveragePower: 200, DeviceWatts: true, StreamsJson: null);
+
+        var stravaService = new Mock<IStravaActivitiesService>();
+        stravaService
+            .Setup(s => s.FetchActivitiesAsync(userId, It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<StravaActivityDto> { dto });
+
+        var ftpProvider = new Mock<IUserFtpProvider>();
+        ftpProvider.Setup(p => p.GetFtpForDateAsync(userId, startDate, It.IsAny<CancellationToken>())).ReturnsAsync(240);
+        ftpProvider.Setup(p => p.GetFtpAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync(240);
+
+        var lthrProvider = new Mock<IUserLthrProvider>();
+        lthrProvider.Setup(p => p.GetLthrAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync((int?)170);
+
+        var metricsCalculator = new Mock<ITrainingMetricsCalculator>();
+        metricsCalculator
+            .Setup(m => m.CalculateIntensityFactor(It.IsAny<float?>(), It.IsAny<int?>()))
+            .Returns(0.83f);
+        metricsCalculator
+            .Setup(m => m.CalculateTrainingStressScore(It.IsAny<float?>(), It.IsAny<float?>(), It.IsAny<int>(), It.IsAny<int?>()))
+            .Returns(85f);
+
+        var clock = new Mock<IClock>();
+        clock.Setup(c => c.CurrentDate()).Returns(DateTime.UtcNow.Date);
+
+        var handler = new SyncActivitiesCommandHandler(
+            activityRepo.Object, stravaService.Object, ftpProvider.Object, lthrProvider.Object,
+            metricsCalculator.Object, new Mock<IActivityLoadCalculator>().Object,
+            new Mock<IPowerProfileAnalyzer>().Object, new Mock<IEftpEstimator>().Object, clock.Object);
+
+        var command = new SyncActivitiesCommand(userId, QuickSync: false, ForceRecompute: true);
+
+        await handler.Handle(command, CancellationToken.None);
+
+        // eFTP timeline is cleared once before the rebuild...
+        ftpProvider.Verify(p => p.ClearEstimatedFtpChangesAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
+        // ...and TSS is recomputed despite the activity already having metrics (short-circuit bypassed).
+        metricsCalculator.Verify(
+            m => m.CalculateTrainingStressScore(It.IsAny<float?>(), It.IsAny<float?>(), It.IsAny<int>(), It.IsAny<int?>()),
+            Times.Once);
+        existingActivity.TrainingStressScore.Should().Be(85f);
     }
 }
 
