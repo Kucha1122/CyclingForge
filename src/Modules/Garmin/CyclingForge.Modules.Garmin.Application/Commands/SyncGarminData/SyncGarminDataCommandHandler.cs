@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CyclingForge.Modules.Garmin.Application.Services;
 using CyclingForge.Modules.Garmin.Domain.Entities;
 using CyclingForge.Modules.Garmin.Domain.Exceptions;
@@ -13,6 +14,7 @@ internal sealed class SyncGarminDataCommandHandler : IRequestHandler<SyncGarminD
     private readonly IGarminTokenRepository _tokenRepository;
     private readonly IGarminSleepRepository _sleepRepository;
     private readonly IGarminWellnessRepository _wellnessRepository;
+    private readonly IGarminHrvRepository _hrvRepository;
     private readonly IClock _clock;
 
     public SyncGarminDataCommandHandler(
@@ -20,12 +22,14 @@ internal sealed class SyncGarminDataCommandHandler : IRequestHandler<SyncGarminD
         IGarminTokenRepository tokenRepository,
         IGarminSleepRepository sleepRepository,
         IGarminWellnessRepository wellnessRepository,
+        IGarminHrvRepository hrvRepository,
         IClock clock)
     {
         _garminApiService = garminApiService;
         _tokenRepository = tokenRepository;
         _sleepRepository = sleepRepository;
         _wellnessRepository = wellnessRepository;
+        _hrvRepository = hrvRepository;
         _clock = clock;
     }
 
@@ -40,16 +44,21 @@ internal sealed class SyncGarminDataCommandHandler : IRequestHandler<SyncGarminD
 
         await SyncSleepDataAsync(token, request.UserId, startDate, endDate, now, cancellationToken);
         await SyncWellnessDataAsync(token, request.UserId, startDate, endDate, now, cancellationToken);
+        await SyncHrvDataAsync(token, request.UserId, startDate, endDate, now, cancellationToken);
     }
 
     private async Task SyncSleepDataAsync(
         GarminToken token, Guid userId, DateOnly startDate, DateOnly endDate, DateTime now, CancellationToken ct)
     {
         var sleepEntries = await _garminApiService.GetSleepDataAsync(
-            token.Token, token.TokenSecret, startDate, endDate, ct);
+            token.Token, startDate, endDate, ct);
 
         foreach (var entry in sleepEntries)
         {
+            var levelsJson = entry.SleepLevels.Count > 0
+                ? JsonSerializer.Serialize(entry.SleepLevels)
+                : null;
+
             var existing = await _sleepRepository.GetByUserIdAndDateAsync(userId, entry.Date, ct);
             if (existing is not null)
             {
@@ -57,7 +66,7 @@ internal sealed class SyncGarminDataCommandHandler : IRequestHandler<SyncGarminD
                     entry.TotalSleepSeconds, entry.DeepSleepSeconds, entry.LightSleepSeconds,
                     entry.RemSleepSeconds, entry.AwakeSeconds, entry.SleepScore,
                     entry.AverageSpO2, entry.AverageRespirationRate,
-                    entry.SleepStartTime, entry.SleepEndTime, now);
+                    entry.SleepStartTime, entry.SleepEndTime, levelsJson, now);
                 await _sleepRepository.UpdateAsync(existing, ct);
             }
             else
@@ -67,7 +76,7 @@ internal sealed class SyncGarminDataCommandHandler : IRequestHandler<SyncGarminD
                     entry.TotalSleepSeconds, entry.DeepSleepSeconds, entry.LightSleepSeconds,
                     entry.RemSleepSeconds, entry.AwakeSeconds, entry.SleepScore,
                     entry.AverageSpO2, entry.AverageRespirationRate,
-                    entry.SleepStartTime, entry.SleepEndTime, now);
+                    entry.SleepStartTime, entry.SleepEndTime, levelsJson, now);
                 await _sleepRepository.AddAsync(sleep, ct);
             }
         }
@@ -79,7 +88,7 @@ internal sealed class SyncGarminDataCommandHandler : IRequestHandler<SyncGarminD
         for (var date = startDate; date <= endDate; date = date.AddDays(1))
         {
             var wellness = await _garminApiService.GetDailyWellnessAsync(
-                token.Token, token.TokenSecret, date, ct);
+                token.Token, date, ct);
             if (wellness is null) continue;
 
             var existing = await _wellnessRepository.GetByUserIdAndDateAsync(userId, date, ct);
@@ -101,6 +110,29 @@ internal sealed class SyncGarminDataCommandHandler : IRequestHandler<SyncGarminD
                     wellness.BodyBatteryMax, wellness.AverageStressLevel,
                     wellness.StepsCount, now);
                 await _wellnessRepository.AddAsync(entity, ct);
+            }
+        }
+    }
+
+    private async Task SyncHrvDataAsync(
+        GarminToken token, Guid userId, DateOnly startDate, DateOnly endDate, DateTime now, CancellationToken ct)
+    {
+        for (var date = startDate; date <= endDate; date = date.AddDays(1))
+        {
+            var hrv = await _garminApiService.GetHrvDataAsync(token.Token, date, ct);
+            if (hrv is null) continue;
+
+            var existing = await _hrvRepository.GetByUserIdAndDateAsync(userId, date, ct);
+            if (existing is not null)
+            {
+                existing.Update(hrv.LastNightAvgMs, hrv.LastNight5MinHighMs, hrv.Status, now);
+                await _hrvRepository.UpdateAsync(existing, ct);
+            }
+            else
+            {
+                var entity = GarminHrvData.Create(
+                    userId, date, hrv.LastNightAvgMs, hrv.LastNight5MinHighMs, hrv.Status, now);
+                await _hrvRepository.AddAsync(entity, ct);
             }
         }
     }

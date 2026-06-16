@@ -1,3 +1,8 @@
+## Local / scratch
+da
+.claude/
+services/garmin-python/.venv/
+
 ## .NET
 *.swp
 *.*~

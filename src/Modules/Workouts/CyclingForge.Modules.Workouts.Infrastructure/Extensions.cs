@@ -31,6 +31,8 @@ public static class Extensions
         services.AddScoped<IFitImportService, FitImportService>();
         services.AddScoped<IFitExportService, FitExportService>();
         services.AddScoped<IZwiftSeedService, ZwiftSeedService>();
+        services.AddSingleton<IPlanPeriodizationService, PlanPeriodizationService>();
+        services.AddSingleton<IWorkoutGeneratorService, WorkoutGeneratorService>();
 
         return services;
     }

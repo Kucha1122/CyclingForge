@@ -24,6 +24,21 @@
     <Project Path="src/Modules/Activities/CyclingForge.Modules.Activities.Infrastructure/CyclingForge.Modules.Activities.Infrastructure.csproj" />
     <Project Path="src/Modules/Activities/CyclingForge.Modules.Activities.Api/CyclingForge.Modules.Activities.Api.csproj" />
   </Folder>
+  <Folder Name="/Modules/Garmin/">
+    <Project Path="src/Modules/Garmin/CyclingForge.Modules.Garmin.Domain/CyclingForge.Modules.Garmin.Domain.csproj" />
+    <Project Path="src/Modules/Garmin/CyclingForge.Modules.Garmin.Application/CyclingForge.Modules.Garmin.Application.csproj" />
+    <Project Path="src/Modules/Garmin/CyclingForge.Modules.Garmin.Infrastructure/CyclingForge.Modules.Garmin.Infrastructure.csproj" />
+    <Project Path="src/Modules/Garmin/CyclingForge.Modules.Garmin.Api/CyclingForge.Modules.Garmin.Api.csproj" />
+  </Folder>
+  <Folder Name="/Modules/Workouts/">
+    <Project Path="src/Modules/Workouts/CyclingForge.Modules.Workouts.Domain/CyclingForge.Modules.Workouts.Domain.csproj" />
+    <Project Path="src/Modules/Workouts/CyclingForge.Modules.Workouts.Application/CyclingForge.Modules.Workouts.Application.csproj" />
+    <Project Path="src/Modules/Workouts/CyclingForge.Modules.Workouts.Infrastructure/CyclingForge.Modules.Workouts.Infrastructure.csproj" />
+    <Project Path="src/Modules/Workouts/CyclingForge.Modules.Workouts.Api/CyclingForge.Modules.Workouts.Api.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Shared/">
+    <Project Path="tests/Shared/CyclingForge.Shared.Tests/CyclingForge.Shared.Tests.csproj" />
+  </Folder>
   <Folder Name="/Tests/Users/">
     <Project Path="tests/Modules/Users/CyclingForge.Modules.Users.Domain.Tests/CyclingForge.Modules.Users.Domain.Tests.csproj" />
     <Project Path="tests/Modules/Users/CyclingForge.Modules.Users.Application.Tests/CyclingForge.Modules.Users.Application.Tests.csproj" />
@@ -39,7 +54,7 @@
     <Project Path="tests/Modules/Activities/CyclingForge.Modules.Activities.Application.Tests/CyclingForge.Modules.Activities.Application.Tests.csproj" />
     <Project Path="tests/Modules/Activities/CyclingForge.Modules.Activities.Integration.Tests/CyclingForge.Modules.Activities.Integration.Tests.csproj" />
   </Folder>
-  <Folder Name="/Tests/Shared/">
-    <Project Path="tests/Shared/CyclingForge.Shared.Tests/CyclingForge.Shared.Tests.csproj" />
+  <Folder Name="/Tools/">
+    <Project Path="tools/FitWorkoutDump/FitWorkoutDump.csproj" />
   </Folder>
 </Solution>
