@@ -54,7 +54,9 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
             if (latestStart.HasValue)
             {
                 var todayEnd = _clock.CurrentDate().Date.AddDays(1);
-                afterUtc = latestStart.Value;
+                // Cofamy okno o 1 dzień (overlap), żeby nie zgubić aktywności dodanych
+                // z opóźnieniem lub edytowanych. Dedup po StravaId chroni przed duplikatami.
+                afterUtc = latestStart.Value.AddDays(-1);
                 beforeUtc = todayEnd;
             }
         }
@@ -268,7 +270,17 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
 public interface IStravaActivitiesService
 {
     Task<IReadOnlyList<StravaActivityDto>> FetchActivitiesAsync(Guid userId, DateTime? afterUtc = null, DateTime? beforeUtc = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns time-in-HR-zone breakdowns (seconds per zone) keyed by Strava activity id for the
+    /// user's activities in [afterUtc, beforeUtc). Empty list when the user has no Strava data.
+    /// </summary>
+    Task<IReadOnlyList<HrZoneBreakdownDto>> GetHrTimeInZonesAsync(Guid userId, DateTime afterUtc, DateTime beforeUtc, CancellationToken cancellationToken = default);
 }
+
+public sealed record HrZoneBreakdownDto(
+    long StravaId,
+    IReadOnlyList<int> SecondsPerZone);
 
 public sealed record StravaActivityDto(
     long StravaId,

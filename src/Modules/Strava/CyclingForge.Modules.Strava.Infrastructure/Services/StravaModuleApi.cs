@@ -1,5 +1,7 @@
+using System.Text.Json;
 using CyclingForge.Modules.Strava.Application.Contracts;
 using CyclingForge.Modules.Strava.Application.Commands.RefreshToken;
+using CyclingForge.Modules.Strava.Application.Services;
 using CyclingForge.Modules.Strava.Domain.Repositories;
 using CyclingForge.Shared.Abstractions.Time;
 using MediatR;
@@ -11,6 +13,7 @@ internal sealed class StravaModuleApi : IStravaModuleApi
     private readonly IStravaTokenRepository _tokenRepository;
     private readonly IStravaAthleteRepository _athleteRepository;
     private readonly IStravaActivityRepository _activityRepository;
+    private readonly IStravaAthleteZonesRepository _zonesRepository;
     private readonly IMediator _mediator;
     private readonly IClock _clock;
 
@@ -18,12 +21,14 @@ internal sealed class StravaModuleApi : IStravaModuleApi
         IStravaTokenRepository tokenRepository,
         IStravaAthleteRepository athleteRepository,
         IStravaActivityRepository activityRepository,
+        IStravaAthleteZonesRepository zonesRepository,
         IMediator mediator,
         IClock clock)
     {
         _tokenRepository = tokenRepository;
         _athleteRepository = athleteRepository;
         _activityRepository = activityRepository;
+        _zonesRepository = zonesRepository;
         _mediator = mediator;
         _clock = clock;
     }
@@ -77,4 +82,42 @@ internal sealed class StravaModuleApi : IStravaModuleApi
                 a.StreamsJson))
             .ToList();
     }
+
+    public async Task<IReadOnlyList<ActivityHrZonesDto>?> GetHrTimeInZonesForUserAsync(Guid userId, DateTime afterUtc, DateTime beforeUtc, CancellationToken cancellationToken = default)
+    {
+        var athlete = await _athleteRepository.GetByUserIdAsync(userId, cancellationToken);
+        if (athlete is null)
+            return null;
+
+        var zones = ParseHrZones(await _zonesRepository.GetByUserIdAsync(userId, cancellationToken));
+
+        var activities = await _activityRepository.GetByAthleteIdAndDateRangeAsync(
+            athlete.Id, afterUtc, beforeUtc, cancellationToken);
+
+        return activities
+            .Select(a => new ActivityHrZonesDto(
+                a.ExternalId,
+                zones.Count == 0 ? Array.Empty<int>() : HrTimeInZoneCalculator.Compute(a.StreamsJson, zones)))
+            .ToList();
+    }
+
+    private static IReadOnlyList<HrTimeInZoneCalculator.HrZone> ParseHrZones(Domain.Entities.StravaAthleteZones? zones)
+    {
+        if (zones?.HeartRateZonesJson is not { } json || string.IsNullOrWhiteSpace(json))
+            return Array.Empty<HrTimeInZoneCalculator.HrZone>();
+
+        try
+        {
+            var ranges = JsonSerializer.Deserialize<List<ZoneRange>>(json);
+            return ranges is null
+                ? Array.Empty<HrTimeInZoneCalculator.HrZone>()
+                : ranges.Select(r => new HrTimeInZoneCalculator.HrZone(r.Min, r.Max)).ToList();
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<HrTimeInZoneCalculator.HrZone>();
+        }
+    }
+
+    private sealed record ZoneRange(int Min, int Max);
 }

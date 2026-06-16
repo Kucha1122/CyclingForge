@@ -38,13 +38,22 @@ internal sealed class StravaActivitiesService : IStravaActivitiesService
         var accessToken = await _stravaModuleApi.GetAccessTokenAsync(userId, cancellationToken)
             ?? throw new NotFoundException("StravaToken", userId);
 
+        // Honor the requested date window so we don't pull the entire history when only
+        // newer activities are needed (e.g. quick sync). Strava expects epoch seconds.
+        long? afterEpoch = afterUtc.HasValue
+            ? new DateTimeOffset(DateTime.SpecifyKind(afterUtc.Value, DateTimeKind.Utc)).ToUnixTimeSeconds()
+            : null;
+        long? beforeEpoch = beforeUtc.HasValue
+            ? new DateTimeOffset(DateTime.SpecifyKind(beforeUtc.Value, DateTimeKind.Utc)).ToUnixTimeSeconds()
+            : null;
+
         const int perPage = 200;
         var page = 1;
         var allActivities = new List<StravaActivityDto>();
         while (true)
         {
             var pageActivities = await _stravaApiService.GetActivitiesAsync(
-                accessToken, page, perPage, after: null, before: null, cancellationToken);
+                accessToken, page, perPage, after: afterEpoch, before: beforeEpoch, cancellationToken);
             if (pageActivities is null || pageActivities.Count == 0)
                 break;
             foreach (var a in pageActivities)
@@ -59,5 +68,17 @@ internal sealed class StravaActivitiesService : IStravaActivitiesService
         }
 
         return allActivities;
+    }
+
+    public async Task<IReadOnlyList<HrZoneBreakdownDto>> GetHrTimeInZonesAsync(
+        Guid userId, DateTime afterUtc, DateTime beforeUtc, CancellationToken cancellationToken = default)
+    {
+        var breakdowns = await _stravaModuleApi.GetHrTimeInZonesForUserAsync(userId, afterUtc, beforeUtc, cancellationToken);
+        if (breakdowns is null)
+            return Array.Empty<HrZoneBreakdownDto>();
+
+        return breakdowns
+            .Select(b => new HrZoneBreakdownDto(b.StravaId, b.SecondsPerZone))
+            .ToList();
     }
 }

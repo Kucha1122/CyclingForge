@@ -50,6 +50,17 @@ internal sealed class DailyRecommendationRepository : IDailyRecommendationReposi
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<int>> GetRecentRpeAsync(Guid userId, int daysBack, int take, CancellationToken cancellationToken = default)
+    {
+        var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-daysBack));
+        return await _dbContext.DailyRecommendations
+            .Where(r => r.UserId == userId && r.Date >= cutoff && r.Rpe.HasValue)
+            .OrderByDescending(r => r.Date)
+            .Select(r => r.Rpe!.Value)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(DailyRecommendation recommendation, CancellationToken cancellationToken = default)
     {
         await _dbContext.DailyRecommendations.AddAsync(recommendation, cancellationToken);

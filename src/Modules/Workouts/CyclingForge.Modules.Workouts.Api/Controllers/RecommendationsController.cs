@@ -1,5 +1,7 @@
 using CyclingForge.Modules.Workouts.Api.Requests;
+using CyclingForge.Modules.Workouts.Application.Commands.AdjustPlanDay;
 using CyclingForge.Modules.Workouts.Application.Commands.RegenerateTodayRecommendation;
+using CyclingForge.Modules.Workouts.Application.Commands.SubmitSessionFeedback;
 using CyclingForge.Modules.Workouts.Application.Commands.UpdateRecommendationStatus;
 using CyclingForge.Modules.Workouts.Application.DTOs;
 using CyclingForge.Modules.Workouts.Application.Queries.GetDailyRecommendation;
@@ -59,9 +61,7 @@ public sealed class RecommendationsController : ControllerBase
         [FromQuery] string? weekStart,
         CancellationToken cancellationToken)
     {
-        var start = weekStart is not null
-            ? DateOnly.Parse(weekStart)
-            : GetMondayOfCurrentWeek();
+        DateOnly? start = weekStart is not null ? DateOnly.Parse(weekStart) : null;
 
         var result = await _mediator.Send(
             new GetWeeklyPlanQuery(_currentUser.UserId, start), cancellationToken);
@@ -108,10 +108,29 @@ public sealed class RecommendationsController : ControllerBase
         return Ok();
     }
 
-    private static DateOnly GetMondayOfCurrentWeek()
+    [HttpPut("{id:guid}/plan-adjust")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<AdjustPlanResultDto>> AdjustPlanDay(
+        Guid id,
+        [FromBody] AdjustPlanDayRequest request,
+        CancellationToken cancellationToken)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var daysFromMonday = ((int)today.DayOfWeek + 6) % 7;
-        return today.AddDays(-daysFromMonday);
+        var command = new AdjustPlanDayCommand(_currentUser.UserId, id, request.Action, request.TargetDate);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:guid}/feedback")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> SubmitFeedback(
+        Guid id,
+        [FromBody] SubmitSessionFeedbackRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new SubmitSessionFeedbackCommand(
+            _currentUser.UserId, id, request.Rpe, request.LegsFeel, request.SessionQuality, request.Note);
+
+        await _mediator.Send(command, cancellationToken);
+        return Ok();
     }
 }

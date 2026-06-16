@@ -68,8 +68,10 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
             // Brak aktywności → sync tylko z dzisiaj
             var todayStart = _clock.CurrentDate().Date;
             var todayEnd = todayStart.AddDays(1);
+            // Cofamy okno o 1 dzień (overlap) względem ostatniej aktywności, żeby nie zgubić
+            // wpisów dodanych z opóźnieniem; upsert po ExternalId chroni przed duplikatami.
             afterUnix = latestStart.HasValue
-                ? new DateTimeOffset(latestStart.Value, TimeSpan.Zero).ToUnixTimeSeconds()
+                ? new DateTimeOffset(latestStart.Value.AddDays(-1), TimeSpan.Zero).ToUnixTimeSeconds()
                 : new DateTimeOffset(todayStart, TimeSpan.Zero).ToUnixTimeSeconds();
             beforeUnix = new DateTimeOffset(todayEnd, TimeSpan.Zero).ToUnixTimeSeconds();
         }

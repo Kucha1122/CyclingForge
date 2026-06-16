@@ -36,21 +36,58 @@ internal sealed class UserFtpProvider : IUserFtpProvider
 
     private const int DefaultEftpMinDurationSeconds = 300;
 
+    // Per-instance caches. UserFtpProvider is registered scoped, so during a single sync request
+    // (which processes many activities) the user row and the FTP-change timeline are read from the
+    // database only once instead of several times per activity. This removes the N+1 query storm.
+    private Guid? _cachedUserId;
+    private User? _cachedUser;
+    private Guid? _cachedChangesUserId;
+    private List<UserFtpChange>? _cachedChanges;
+
+    private async Task<User?> GetUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        if (_cachedUserId == userId)
+            return _cachedUser;
+
+        _cachedUser = await _userRepository.GetByIdAsync(new UserId(userId), cancellationToken);
+        _cachedUserId = userId;
+        return _cachedUser;
+    }
+
+    // Loads the full FTP-change timeline for the user once, then serves all reads from memory.
+    // RegisterEftpChangeIfNeededAsync keeps this list in sync by appending newly persisted changes.
+    private async Task<List<UserFtpChange>> GetAllChangesAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        if (_cachedChangesUserId == userId && _cachedChanges is not null)
+            return _cachedChanges;
+
+        var all = await _ftpChangeRepository.GetByUserIdOnOrBeforeAsync(userId, DateTime.MaxValue, cancellationToken);
+        _cachedChanges = all.ToList();
+        _cachedChangesUserId = userId;
+        return _cachedChanges;
+    }
+
     public async Task<int?> GetFtpAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var user = await _userRepository.GetByIdAsync(new UserId(userId), cancellationToken);
+        var user = await GetUserAsync(userId, cancellationToken);
         return user?.FunctionalThresholdPower;
     }
 
     public async Task<(int? lthr, int? maxHr, int? restingHr, string gender)> GetHeartRateZonesAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var user = await _userRepository.GetByIdAsync(new UserId(userId), cancellationToken);
+        var user = await GetUserAsync(userId, cancellationToken);
         return (user?.LactateThresholdHeartRate, user?.MaxHeartRate, user?.RestingHeartRate, user?.Gender ?? "male");
+    }
+
+    public async Task<float?> GetWeightKgAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await GetUserAsync(userId, cancellationToken);
+        return user?.WeightKg;
     }
 
     public async Task<int> GetEftpMinDurationSecondsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var user = await _userRepository.GetByIdAsync(new UserId(userId), cancellationToken);
+        var user = await GetUserAsync(userId, cancellationToken);
         var value = user?.EftpMinDurationSeconds ?? DefaultEftpMinDurationSeconds;
         return value;
     }
@@ -62,8 +99,9 @@ internal sealed class UserFtpProvider : IUserFtpProvider
         // Calendar FTP is driven solely by persisted changes in UserFtpChanges (manual and eFTP).
         // Manual changes always have priority over eFTP: for any date on or after the first manual FTP,
         // we use the latest manual value; before that we use the latest eFTP (if any).
-        var changes = await _ftpChangeRepository.GetByUserIdOnOrBeforeAsync(userId, targetDate, cancellationToken);
-        if (changes == null || changes.Count == 0)
+        var all = await GetAllChangesAsync(userId, cancellationToken);
+        var changes = all.Where(c => c.EffectiveDate <= targetDate).ToList();
+        if (changes.Count == 0)
             return null;
 
         var lastManual = changes
@@ -85,7 +123,8 @@ internal sealed class UserFtpProvider : IUserFtpProvider
         var end = endDate.Date;
         var result = new List<FtpChangeDto>();
 
-        var changesInRange = await _ftpChangeRepository.GetByUserIdInRangeAsync(userId, start, end, cancellationToken);
+        var all = await GetAllChangesAsync(userId, cancellationToken);
+        var changesInRange = all.Where(c => c.EffectiveDate >= start && c.EffectiveDate <= end).ToList();
 
         // Track last known eFTP value before each EstimatedFromActivity change so that
         // chart deltas for eFTP are computed vs previous eFTP, not vs manual FTP.
@@ -94,8 +133,7 @@ internal sealed class UserFtpProvider : IUserFtpProvider
             if (c.Source == SourceEstimatedFromActivity)
             {
                 var dayBefore = c.EffectiveDate.Date.AddDays(-1);
-                var changesUpToDay = await _ftpChangeRepository.GetByUserIdOnOrBeforeAsync(userId, dayBefore, cancellationToken);
-                var lastEftpChange = changesUpToDay
+                var lastEftpChange = all.Where(x => x.EffectiveDate <= dayBefore)
                     .Where(x => x.Source == SourceEstimatedFromActivity)
                     .OrderBy(x => x.EffectiveDate)
                     .LastOrDefault();
@@ -143,15 +181,14 @@ internal sealed class UserFtpProvider : IUserFtpProvider
 
         var date = activityDate.Date;
 
+        var all = await GetAllChangesAsync(userId, cancellationToken);
+
         // Avoid duplicate eFTP changes for the same day and value.
-        var existingOnDay = await _ftpChangeRepository.GetByUserIdInRangeAsync(userId, date, date, cancellationToken);
-        if (existingOnDay.Any(c => c.FtpValue == estimatedFtp && c.Source == SourceEstimatedFromActivity))
+        if (all.Any(c => c.EffectiveDate.Date == date && c.FtpValue == estimatedFtp && c.Source == SourceEstimatedFromActivity))
             return;
 
-        var changesUpToDay = await _ftpChangeRepository.GetByUserIdOnOrBeforeAsync(userId, date, cancellationToken);
-
         // Bierzemy pod uwagę WYŁĄCZNIE poprzednie wpisy EstimatedFromActivity (manual idzie swoją ścieżką).
-        var lastEftpChange = changesUpToDay
+        var lastEftpChange = all.Where(c => c.EffectiveDate <= date)
             .Where(c => c.Source == SourceEstimatedFromActivity)
             .OrderBy(c => c.EffectiveDate)
             .LastOrDefault();
@@ -182,6 +219,10 @@ internal sealed class UserFtpProvider : IUserFtpProvider
 
         var change = UserFtpChange.Create(userId, date, estimatedFtp, SourceEstimatedFromActivity);
         await _ftpChangeRepository.AddAsync(change, cancellationToken);
+
+        // Keep the in-memory timeline consistent so later activities in the same sync see this change.
+        if (_cachedChangesUserId == userId && _cachedChanges is not null)
+            _cachedChanges.Add(change);
     }
 
     private bool ShouldAcceptAutomaticChange(int fromFtp, int toFtp)

@@ -13,7 +13,12 @@ public sealed class ReadinessData
     public int? BodyBatteryMax { get; init; }
     public int? SleepScore { get; init; }
     public int? TrainingReadinessScore { get; init; }
+    public string? TrainingReadinessLevel { get; init; }
     public int? AverageStressLevel { get; init; }
+    public int? HrvLastNightMs { get; init; }
+    public int? HrvBaselineMs { get; init; }
+    public string? HrvStatus { get; init; }
+    public float? Vo2Max { get; init; }
     public int? UserFtp { get; init; }
     public bool HasGarminData { get; init; }
     public bool HasPmcData { get; init; }

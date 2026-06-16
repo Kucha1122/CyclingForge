@@ -28,9 +28,11 @@ internal sealed class PerformanceManagementService : IPerformanceManagementServi
         // Need sufficient history for CTL warm-up (exponential has long tail)
         var lookbackDays = Math.Max(ctlDays * 2, 120);
         var lookbackDate = startDate.AddDays(-lookbackDays);
-        var activities = await _activityRepository.GetByUserIdAndDateRangeAsync(userId, lookbackDate, endDate, CancellationToken.None);
+        // Include the whole end day; a midnight endDate would drop activities with a time component.
+        var endBound = InclusiveEndOfDay(endDate);
+        var activities = await _activityRepository.GetByUserIdAndDateRangeAsync(userId, lookbackDate, endBound, CancellationToken.None);
 
-        var activitiesWithTss = await BuildActivitiesWithTssAsync(userId, activities, lookbackDate, endDate);
+        var activitiesWithTss = await BuildActivitiesWithTssAsync(userId, activities, lookbackDate, endBound);
 
         return CalculatePmcHistory(activitiesWithTss, startDate, endDate, ctlDays, atlDays);
     }
@@ -39,8 +41,9 @@ internal sealed class PerformanceManagementService : IPerformanceManagementServi
     {
         // For daily load we don't need long warm-up, but we still want to respect
         // the same load calculation rules (power vs HRSS, sport factors, FTP timeline).
-        var activities = await _activityRepository.GetByUserIdAndDateRangeAsync(userId, startDate, endDate, CancellationToken.None);
-        var activitiesWithTss = await BuildActivitiesWithTssAsync(userId, activities, startDate, endDate);
+        var endBound = InclusiveEndOfDay(endDate);
+        var activities = await _activityRepository.GetByUserIdAndDateRangeAsync(userId, startDate, endBound, CancellationToken.None);
+        var activitiesWithTss = await BuildActivitiesWithTssAsync(userId, activities, startDate, endBound);
         return activitiesWithTss;
     }
 
@@ -59,8 +62,11 @@ internal sealed class PerformanceManagementService : IPerformanceManagementServi
         var warmupDays = Math.Max(ctlDays * 2, 120);
         var lookbackDate = historyStartDate.AddDays(-warmupDays);
 
-        var activities = await _activityRepository.GetByUserIdAndDateRangeAsync(userId, lookbackDate, today, CancellationToken.None);
-        var activitiesWithTss = await BuildActivitiesWithTssAsync(userId, activities, lookbackDate, today);
+        // Upper bound must include today's activities, which have a time component
+        // (e.g. 14:00). Using `today` (midnight) would exclude anything synced today.
+        var endOfToday = InclusiveEndOfDay(today);
+        var activities = await _activityRepository.GetByUserIdAndDateRangeAsync(userId, lookbackDate, endOfToday, CancellationToken.None);
+        var activitiesWithTss = await BuildActivitiesWithTssAsync(userId, activities, lookbackDate, endOfToday);
 
         var (ctl, atl, tsb) = CalculatePmcForDate(activitiesWithTss, today, ctlDays, atlDays);
 
@@ -116,6 +122,10 @@ internal sealed class PerformanceManagementService : IPerformanceManagementServi
 
         return summary;
     }
+
+    // Normalizes a date to the last tick of its day so that range queries with an
+    // inclusive `<= endDate` bound capture activities that carry a time component.
+    private static DateTime InclusiveEndOfDay(DateTime date) => date.Date.AddDays(1).AddTicks(-1);
 
     private static string BuildCacheKey(Guid userId, int ctlDays, int atlDays, int historyDays) =>
         $"pmc:{userId}:{ctlDays}:{atlDays}:{historyDays}";

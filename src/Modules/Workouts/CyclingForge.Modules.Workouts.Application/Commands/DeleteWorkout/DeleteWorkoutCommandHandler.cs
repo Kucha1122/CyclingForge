@@ -17,8 +17,10 @@ internal sealed class DeleteWorkoutCommandHandler : IRequestHandler<DeleteWorkou
         var workout = await _workoutRepository.GetByIdAsync(request.WorkoutId, cancellationToken)
             ?? throw new InvalidOperationException("Workout not found.");
 
-        if (!workout.IsOwnedBy(request.UserId))
-            throw new UnauthorizedAccessException("You can only delete your own workouts.");
+        // Users can delete their own workouts and shared system workouts; only other users'
+        // private workouts are protected.
+        if (!workout.IsOwnedBy(request.UserId) && !workout.IsSystemWorkout)
+            throw new UnauthorizedAccessException("You can only delete your own or system workouts.");
 
         await _workoutRepository.DeleteAsync(workout, cancellationToken);
     }

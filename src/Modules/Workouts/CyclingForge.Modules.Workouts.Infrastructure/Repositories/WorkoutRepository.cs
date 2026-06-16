@@ -90,9 +90,26 @@ internal sealed class WorkoutRepository : IWorkoutRepository
         => await _dbContext.Workouts
             .Include(w => w.Steps)
             .Where(w => w.Category == category
+                        && w.IsPublic
                         && w.DurationMinutes >= minDuration
                         && w.DurationMinutes <= maxDuration)
             .ToListAsync(cancellationToken);
+
+    public async Task<Workout?> GetGeneratedAsync(
+        Guid userId,
+        WorkoutCategory category,
+        int minDuration,
+        int maxDuration,
+        CancellationToken cancellationToken = default)
+        => await _dbContext.Workouts
+            .Include(w => w.Steps)
+            .Where(w => w.UserId == userId
+                        && w.Source == WorkoutSource.Generated
+                        && w.Category == category
+                        && w.DurationMinutes >= minDuration
+                        && w.DurationMinutes <= maxDuration)
+            .OrderBy(w => w.DurationMinutes)
+            .FirstOrDefaultAsync(cancellationToken);
 
     public async Task AddAsync(Workout workout, CancellationToken cancellationToken = default)
     {
@@ -132,6 +149,7 @@ internal sealed class WorkoutRepository : IWorkoutRepository
 
     public async Task DeleteAsync(Workout workout, CancellationToken cancellationToken = default)
     {
+        await RemoveRecommendationReferencesAsync(new[] { workout.Id }, cancellationToken);
         _dbContext.Workouts.Remove(workout);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -141,8 +159,27 @@ internal sealed class WorkoutRepository : IWorkoutRepository
         var toDelete = await _dbContext.Workouts
             .Where(w => w.UserId == userId)
             .ToListAsync(cancellationToken);
+
+        await RemoveRecommendationReferencesAsync(toDelete.Select(w => w.Id).ToList(), cancellationToken);
         _dbContext.Workouts.RemoveRange(toDelete);
         await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    // Daily recommendations reference workouts with a NoAction FK, so any recommendation pointing
+    // at a workout being deleted must be removed first (it will be regenerated on next view).
+    private async Task RemoveRecommendationReferencesAsync(
+        IReadOnlyCollection<Guid> workoutIds, CancellationToken cancellationToken)
+    {
+        if (workoutIds.Count == 0)
+            return;
+
+        var referencing = await _dbContext.DailyRecommendations
+            .Where(r => (r.RecommendedWorkoutId.HasValue && workoutIds.Contains(r.RecommendedWorkoutId.Value))
+                        || (r.AlternativeWorkoutId.HasValue && workoutIds.Contains(r.AlternativeWorkoutId.Value)))
+            .ToListAsync(cancellationToken);
+
+        if (referencing.Count > 0)
+            _dbContext.DailyRecommendations.RemoveRange(referencing);
     }
 
     private IQueryable<Workout> BuildSearchQuery(

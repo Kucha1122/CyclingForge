@@ -4,5 +4,6 @@ public enum WorkoutSource
 {
     System,
     UserCreated,
-    Imported
+    Imported,
+    Generated
 }

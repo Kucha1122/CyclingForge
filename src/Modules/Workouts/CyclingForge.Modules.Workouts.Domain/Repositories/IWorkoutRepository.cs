@@ -35,6 +35,12 @@ public interface IWorkoutRepository
         int minDuration,
         int maxDuration,
         CancellationToken cancellationToken = default);
+    Task<Workout?> GetGeneratedAsync(
+        Guid userId,
+        WorkoutCategory category,
+        int minDuration,
+        int maxDuration,
+        CancellationToken cancellationToken = default);
     Task AddAsync(Workout workout, CancellationToken cancellationToken = default);
     Task UpdateAsync(Workout workout, CancellationToken cancellationToken = default);
     Task DeleteAsync(Workout workout, CancellationToken cancellationToken = default);

@@ -19,6 +19,9 @@ public interface IUserFtpProvider
 
     Task<(int? lthr, int? maxHr, int? restingHr, string gender)> GetHeartRateZonesAsync(Guid userId, CancellationToken cancellationToken = default);
 
+    /// <summary>Returns the user's body weight in kilograms, or null when not set. Used for watts/kg metrics.</summary>
+    Task<float?> GetWeightKgAsync(Guid userId, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Returns the minimum effort duration (seconds) used for eFTP estimation; default 300 (5 min) when not set.
     /// </summary>
