@@ -9,7 +9,14 @@ public sealed record DailyRecommendationDto(
     string Status,
     WorkoutDto? RecommendedWorkout,
     WorkoutDto? AlternativeWorkout,
-    Guid? CompletedActivityId);
+    Guid? CompletedActivityId,
+    int? Rpe = null,
+    string? LegsFeel = null,
+    string? SessionQuality = null,
+    string? FeedbackNote = null,
+    bool IsDeloadWeek = false,
+    bool IsTaper = false,
+    int? TargetDurationMinutes = null);
 
 public sealed record ReadinessBreakdownDto(
     decimal OverallScore,
@@ -22,7 +29,10 @@ public sealed record ReadinessBreakdownDto(
     decimal? TrainingReadinessScore,
     int? TrainingReadinessValue,
     decimal? StressScore,
-    int? StressValue);
+    int? StressValue,
+    decimal? HrvScore,
+    int? HrvLastNightMs,
+    int? HrvBaselineMs);
 
 public sealed record WeeklyPlanDto(
     DateOnly WeekStart,

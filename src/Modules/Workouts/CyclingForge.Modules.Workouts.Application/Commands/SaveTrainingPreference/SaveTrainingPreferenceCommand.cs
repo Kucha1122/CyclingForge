@@ -13,4 +13,10 @@ public sealed record SaveTrainingPreferenceCommand(
     DateTime? TargetEventDate,
     int PreferredWorkoutMinutes,
     bool ConsiderNonCycling,
-    string PlanMode) : ICommand<TrainingPreferenceDto>;
+    string PlanMode,
+    string PeriodizationModel,
+    int? LongRideDay,
+    int MaxLongRideMinutes,
+    int MesocycleWeeks,
+    IReadOnlyList<int>? RestDays,
+    int WeekStartDay) : ICommand<TrainingPreferenceDto>;

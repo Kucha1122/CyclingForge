@@ -9,4 +9,10 @@ public sealed record SaveTrainingPreferenceRequest(
     DateTime? TargetEventDate,
     int PreferredWorkoutMinutes,
     bool ConsiderNonCycling,
-    string PlanMode);
+    string PlanMode,
+    string PeriodizationModel,
+    int? LongRideDay,
+    int MaxLongRideMinutes,
+    int MesocycleWeeks,
+    IReadOnlyList<int>? RestDays,
+    int WeekStartDay);

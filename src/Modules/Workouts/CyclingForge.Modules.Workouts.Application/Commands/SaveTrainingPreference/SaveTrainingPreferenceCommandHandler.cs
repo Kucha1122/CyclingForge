@@ -30,6 +30,9 @@ internal sealed class SaveTrainingPreferenceCommandHandler
         var goal = Enum.Parse<TrainingGoal>(request.Goal);
         var level = Enum.Parse<FitnessLevel>(request.Level);
         var planMode = Enum.Parse<PlanMode>(request.PlanMode);
+        var periodizationModel = string.IsNullOrWhiteSpace(request.PeriodizationModel)
+            ? PeriodizationModel.Auto
+            : Enum.Parse<PeriodizationModel>(request.PeriodizationModel);
         var now = _clock.CurrentDate();
         var today = DateOnly.FromDateTime(now);
 
@@ -47,6 +50,12 @@ internal sealed class SaveTrainingPreferenceCommandHandler
                 request.PreferredWorkoutMinutes,
                 request.ConsiderNonCycling,
                 planMode,
+                periodizationModel,
+                request.LongRideDay,
+                request.MaxLongRideMinutes,
+                request.MesocycleWeeks,
+                request.RestDays,
+                request.WeekStartDay,
                 now);
 
             await _repository.UpdateAsync(existing, cancellationToken);
@@ -66,6 +75,12 @@ internal sealed class SaveTrainingPreferenceCommandHandler
             request.PreferredWorkoutMinutes,
             request.ConsiderNonCycling,
             planMode,
+            periodizationModel,
+            request.LongRideDay,
+            request.MaxLongRideMinutes,
+            request.MesocycleWeeks,
+            request.RestDays,
+            request.WeekStartDay,
             now);
 
         await _repository.AddAsync(preference, cancellationToken);

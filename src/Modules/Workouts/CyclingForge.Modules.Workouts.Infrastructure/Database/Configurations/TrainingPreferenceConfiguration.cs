@@ -34,7 +34,30 @@ internal sealed class TrainingPreferenceConfiguration : IEntityTypeConfiguration
             .HasMaxLength(64)
             .IsRequired();
 
+        builder.Property(p => p.PeriodizationModel)
+            .HasConversion(
+                m => m.ToString(),
+                m => Enum.Parse<PeriodizationModel>(m))
+            .HasMaxLength(64)
+            .HasDefaultValue(PeriodizationModel.Auto)
+            .IsRequired();
+
         builder.Property(p => p.WeeklyHoursAvailable).HasPrecision(5, 2);
+
+        builder.Property(p => p.MaxLongRideMinutes)
+            .HasDefaultValue(180)
+            .IsRequired();
+
+        builder.Property(p => p.MesocycleWeeks)
+            .HasDefaultValue(4)
+            .IsRequired();
+
+        builder.Property(p => p.RestDays)
+            .HasMaxLength(32);
+
+        builder.Property(p => p.WeekStartDay)
+            .HasDefaultValue(0)
+            .IsRequired();
 
         builder.HasIndex(p => new { p.UserId, p.IsActive });
 

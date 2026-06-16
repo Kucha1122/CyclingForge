@@ -11,4 +11,10 @@ public sealed record TrainingPreferenceDto(
     int PreferredWorkoutMinutes,
     bool ConsiderNonCycling,
     string PlanMode,
+    string PeriodizationModel,
+    int? LongRideDay,
+    int MaxLongRideMinutes,
+    int MesocycleWeeks,
+    IReadOnlyList<int> RestDays,
+    int WeekStartDay,
     bool IsActive);

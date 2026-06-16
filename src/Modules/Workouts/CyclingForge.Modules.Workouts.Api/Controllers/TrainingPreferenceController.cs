@@ -52,7 +52,13 @@ public sealed class TrainingPreferenceController : ControllerBase
             request.TargetEventDate,
             request.PreferredWorkoutMinutes,
             request.ConsiderNonCycling,
-            request.PlanMode);
+            request.PlanMode,
+            request.PeriodizationModel,
+            request.LongRideDay,
+            request.MaxLongRideMinutes,
+            request.MesocycleWeeks,
+            request.RestDays,
+            request.WeekStartDay);
 
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);

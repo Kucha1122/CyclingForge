@@ -87,6 +87,12 @@ public static class WorkoutMappings
             preference.PreferredWorkoutMinutes,
             preference.ConsiderNonCycling,
             preference.PlanMode.ToString(),
+            preference.PeriodizationModel.ToString(),
+            preference.LongRideDay,
+            preference.MaxLongRideMinutes,
+            preference.MesocycleWeeks,
+            preference.GetRestDays(),
+            preference.WeekStartDay,
             preference.IsActive);
 
     public static DailyRecommendationDto ToDto(this DailyRecommendation recommendation)
@@ -99,5 +105,9 @@ public static class WorkoutMappings
             recommendation.Status.ToString(),
             recommendation.RecommendedWorkout?.ToDto(),
             recommendation.AlternativeWorkout?.ToDto(),
-            recommendation.CompletedActivityId);
+            recommendation.CompletedActivityId,
+            recommendation.Rpe,
+            recommendation.LegsFeel?.ToString(),
+            recommendation.SessionQuality?.ToString(),
+            recommendation.FeedbackNote);
 }

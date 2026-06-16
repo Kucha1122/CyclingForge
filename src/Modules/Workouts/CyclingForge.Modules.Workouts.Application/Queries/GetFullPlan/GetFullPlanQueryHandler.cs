@@ -10,15 +10,21 @@ namespace CyclingForge.Modules.Workouts.Application.Queries.GetFullPlan;
 internal sealed class GetFullPlanQueryHandler : IRequestHandler<GetFullPlanQuery, FullPlanDto>
 {
     private readonly IDailyRecommendationRepository _repository;
+    private readonly ITrainingPreferenceRepository _preferenceRepository;
+    private readonly IPlanPeriodizationService _periodizationService;
     private readonly IRecommendationEngine _recommendationEngine;
     private readonly IClock _clock;
 
     public GetFullPlanQueryHandler(
         IDailyRecommendationRepository repository,
+        ITrainingPreferenceRepository preferenceRepository,
+        IPlanPeriodizationService periodizationService,
         IRecommendationEngine recommendationEngine,
         IClock clock)
     {
         _repository = repository;
+        _preferenceRepository = preferenceRepository;
+        _periodizationService = periodizationService;
         _recommendationEngine = recommendationEngine;
         _clock = clock;
     }
@@ -27,10 +33,20 @@ internal sealed class GetFullPlanQueryHandler : IRequestHandler<GetFullPlanQuery
     {
         var weeks = Math.Clamp(request.Weeks, 1, 52);
         var today = DateOnly.FromDateTime(_clock.CurrentDate());
-        var planStart = GetMondayOfWeek(today);
+
+        var preference = await _preferenceRepository.GetActiveByUserIdAsync(request.UserId, cancellationToken);
+        var weekStartDay = preference?.WeekStartDay ?? 0;
+
+        var planStart = WeekDates.GetWeekStart(today, weekStartDay);
         var planEnd = planStart.AddDays(weeks * 7 - 1);
         var weeksData = new List<WeeklyPlanDto>();
         var recentlyRecommendedWorkoutIds = new List<Guid>();
+
+        // Anchor the macro-cycle to the week the plan was set up, so week indexing (and deload
+        // weeks) stays stable regardless of which range is being viewed.
+        var macroAnchor = preference is not null
+            ? WeekDates.GetWeekStart(DateOnly.FromDateTime(preference.UpdatedAt ?? preference.CreatedAt), weekStartDay)
+            : planStart;
 
         for (var w = 0; w < weeks; w++)
         {
@@ -56,8 +72,11 @@ internal sealed class GetFullPlanQueryHandler : IRequestHandler<GetFullPlanQuery
                     var avoidIds = recentlyRecommendedWorkoutIds.Count > 20
                         ? recentlyRecommendedWorkoutIds.TakeLast(14).ToList()
                         : recentlyRecommendedWorkoutIds;
+                    var intent = preference is not null
+                        ? _periodizationService.GetDayIntent(preference, macroAnchor, date)
+                        : null;
                     var generated = await _recommendationEngine.GenerateRecommendationAsync(
-                        request.UserId, date, cancellationToken, avoidIds);
+                        request.UserId, date, cancellationToken, avoidIds, intent);
                     days.Add(generated);
                     if (generated.RecommendedWorkout is { } rec)
                         recentlyRecommendedWorkoutIds.Add(rec.Id);
@@ -68,11 +87,5 @@ internal sealed class GetFullPlanQueryHandler : IRequestHandler<GetFullPlanQuery
         }
 
         return new FullPlanDto(planStart, planEnd, weeks, weeksData);
-    }
-
-    private static DateOnly GetMondayOfWeek(DateOnly date)
-    {
-        var daysFromMonday = ((int)date.DayOfWeek + 6) % 7;
-        return date.AddDays(-daysFromMonday);
     }
 }

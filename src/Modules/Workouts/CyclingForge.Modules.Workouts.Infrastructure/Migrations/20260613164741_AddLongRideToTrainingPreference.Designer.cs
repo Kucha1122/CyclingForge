@@ -4,6 +4,7 @@ using CyclingForge.Modules.Workouts.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CyclingForge.Modules.Workouts.Infrastructure.Migrations
 {
     [DbContext(typeof(WorkoutsDbContext))]
-    partial class WorkoutsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260613164741_AddLongRideToTrainingPreference")]
+    partial class AddLongRideToTrainingPreference
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,17 +44,6 @@ namespace CyclingForge.Modules.Workouts.Infrastructure.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
-                    b.Property<DateTime?>("FeedbackAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FeedbackNote")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("LegsFeel")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
                     b.Property<decimal>("ReadinessScore")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
@@ -63,13 +55,6 @@ namespace CyclingForge.Modules.Workouts.Infrastructure.Migrations
 
                     b.Property<Guid?>("RecommendedWorkoutId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int?>("Rpe")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SessionQuality")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -135,11 +120,6 @@ namespace CyclingForge.Modules.Workouts.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(180);
 
-                    b.Property<int>("MesocycleWeeks")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(4);
-
                     b.Property<string>("PeriodizationModel")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -158,10 +138,6 @@ namespace CyclingForge.Modules.Workouts.Infrastructure.Migrations
                     b.Property<int>("PreferredWorkoutMinutes")
                         .HasColumnType("int");
 
-                    b.Property<string>("RestDays")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
                     b.Property<DateTime?>("TargetEventDate")
                         .HasColumnType("datetime2");
 
@@ -173,11 +149,6 @@ namespace CyclingForge.Modules.Workouts.Infrastructure.Migrations
 
                     b.Property<int>("Version")
                         .HasColumnType("int");
-
-                    b.Property<int>("WeekStartDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
 
                     b.Property<decimal>("WeeklyHoursAvailable")
                         .HasPrecision(5, 2)

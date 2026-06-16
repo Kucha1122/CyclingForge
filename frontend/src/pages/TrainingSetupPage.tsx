@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trainingPreferenceApi } from '../services/api';
 import type { SaveTrainingPreferenceRequest } from '../types/workout';
-import { TRAINING_GOALS, FITNESS_LEVELS } from '../types/workout';
+import { TRAINING_GOALS, FITNESS_LEVELS, PERIODIZATION_MODELS } from '../types/workout';
 
 const GOAL_ICONS: Record<string, string> = {
   GeneralFitness: '🎯',
@@ -46,6 +46,12 @@ export const TrainingSetupPage = () => {
     preferredWorkoutMinutes: 60,
     considerNonCycling: true,
     planMode: 'DailyRecommendations',
+    periodizationModel: 'Auto',
+    longRideDay: null,
+    maxLongRideMinutes: 180,
+    mesocycleWeeks: 4,
+    restDays: [],
+    weekStartDay: 0,
   });
 
   useEffect(() => {
@@ -61,6 +67,12 @@ export const TrainingSetupPage = () => {
           preferredWorkoutMinutes: data.preferredWorkoutMinutes,
           considerNonCycling: data.considerNonCycling,
           planMode: data.planMode ?? 'DailyRecommendations',
+          periodizationModel: data.periodizationModel ?? 'Auto',
+          longRideDay: data.longRideDay ?? null,
+          maxLongRideMinutes: data.maxLongRideMinutes ?? 180,
+          mesocycleWeeks: data.mesocycleWeeks ?? 4,
+          restDays: data.restDays ?? [],
+          weekStartDay: data.weekStartDay ?? 0,
         });
       })
       .catch(() => {})
@@ -145,6 +157,133 @@ export const TrainingSetupPage = () => {
                 <p className="font-semibold text-primary">{t('fullPlan')}</p>
                 <p className="text-sm text-tertiary">{t('fullPlanDesc', { weeks: form.planDurationWeeks })}</p>
               </button>
+            </div>
+            {form.planMode === 'FullPlan' && (
+              <div className="mb-6">
+                <h3 className="mb-1 text-lg font-semibold text-primary">{t('periodizationModel')}</h3>
+                <p className="mb-3 text-sm text-tertiary">{t('periodizationModelDesc')}</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {PERIODIZATION_MODELS.map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, periodizationModel: m }))}
+                      className={`rounded-xl border-2 p-4 text-left transition-colors ${
+                        form.periodizationModel === m ? 'border-accent bg-state-active-bg' : 'border-border-default hover:border-accent'
+                      }`}
+                    >
+                      <p className="font-semibold text-primary">{t(`periodization_${m}`)}</p>
+                      <p className="text-sm text-tertiary">{t(`periodization_${m}_desc`)}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {form.planMode === 'FullPlan' && (
+              <div className="mb-6">
+                <h3 className="mb-1 text-lg font-semibold text-primary">{t('mesocycle')}</h3>
+                <p className="mb-3 text-sm text-tertiary">{t('mesocycleDesc')}</p>
+                <div className="flex gap-2">
+                  {[3, 4, 5, 6].map(w => (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, mesocycleWeeks: w }))}
+                      className={`flex-1 rounded-lg px-2 py-2 text-sm font-medium transition-colors ${
+                        form.mesocycleWeeks === w ? 'bg-accent text-accent-foreground' : 'bg-muted text-secondary hover:bg-state-active-bg'
+                      }`}
+                    >
+                      {t('mesocycleOption', { build: w - 1, total: w })}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {form.planMode === 'FullPlan' && (
+              <div className="mb-6">
+                <h3 className="mb-1 text-lg font-semibold text-primary">{t('longRide')}</h3>
+                <p className="mb-3 text-sm text-tertiary">{t('longRideDesc')}</p>
+                <div className="mb-4 grid grid-cols-4 gap-2 sm:grid-cols-8">
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, longRideDay: null }))}
+                    className={`rounded-lg px-2 py-2 text-sm font-medium transition-colors ${
+                      form.longRideDay === null ? 'bg-accent text-accent-foreground' : 'bg-muted text-secondary hover:bg-state-active-bg'
+                    }`}
+                  >
+                    {t('longRideNone')}
+                  </button>
+                  {[0, 1, 2, 3, 4, 5, 6].map(d => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, longRideDay: d }))}
+                      className={`rounded-lg px-2 py-2 text-sm font-medium transition-colors ${
+                        form.longRideDay === d ? 'bg-accent text-accent-foreground' : 'bg-muted text-secondary hover:bg-state-active-bg'
+                      }`}
+                    >
+                      {t(`weekday_${d}`)}
+                    </button>
+                  ))}
+                </div>
+                {form.longRideDay !== null && (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-secondary">
+                      {t('maxLongRide', { hours: (form.maxLongRideMinutes / 60).toFixed(1) })}
+                    </label>
+                    <input
+                      type="range"
+                      min={60}
+                      max={360}
+                      step={30}
+                      value={form.maxLongRideMinutes}
+                      onChange={e => setForm(f => ({ ...f, maxLongRideMinutes: Number(e.target.value) }))}
+                      className="w-full"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            {form.planMode === 'FullPlan' && (
+              <div className="mb-6">
+                <h3 className="mb-1 text-lg font-semibold text-primary">{t('restDays')}</h3>
+                <p className="mb-3 text-sm text-tertiary">{t('restDaysDesc')}</p>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                  {[0, 1, 2, 3, 4, 5, 6].map(d => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        restDays: f.restDays.includes(d) ? f.restDays.filter(x => x !== d) : [...f.restDays, d],
+                      }))}
+                      className={`rounded-lg px-2 py-2 text-sm font-medium transition-colors ${
+                        form.restDays.includes(d) ? 'bg-accent text-accent-foreground' : 'bg-muted text-secondary hover:bg-state-active-bg'
+                      }`}
+                    >
+                      {t(`weekday_${d}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="mb-6">
+              <h3 className="mb-1 text-lg font-semibold text-primary">{t('weekStartDay')}</h3>
+              <p className="mb-3 text-sm text-tertiary">{t('weekStartDayDesc')}</p>
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                {[0, 1, 2, 3, 4, 5, 6].map(d => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, weekStartDay: d }))}
+                    className={`rounded-lg px-2 py-2 text-sm font-medium transition-colors ${
+                      form.weekStartDay === d ? 'bg-accent text-accent-foreground' : 'bg-muted text-secondary hover:bg-state-active-bg'
+                    }`}
+                  >
+                    {t(`weekday_${d}`)}
+                  </button>
+                ))}
+              </div>
             </div>
             <h2 className="mb-6 text-xl font-semibold text-primary">{t('weeklySchedule')}</h2>
             <div className="space-y-6">
