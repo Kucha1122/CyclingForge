@@ -24,6 +24,7 @@
   "dailyWellness": "Daily Wellness",
   "bodyBattery": "Body Battery",
   "stress": "Stress",
+  "hrv": "HRV",
   "steps": "Steps",
   "dateLabel": "Date",
   "syncing": "Syncing...",
@@ -37,5 +38,13 @@
   "light": "Light",
   "awake": "Awake",
   "scoreLabel": "Score",
-  "vo2max": "VO2max"
+  "vo2max": "VO2max",
+  "hrv": "HRV",
+  "hrvAvg": "Avg HRV",
+  "hrv5MinHigh": "5-min High",
+  "hrvStatus": "Status",
+  "vitals": "Vitals",
+  "respiration": "Respiration",
+  "expand": "Show details",
+  "collapse": "Hide details"
 }

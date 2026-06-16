@@ -41,6 +41,15 @@
   "connectWithStrava": "Połącz ze Strava",
   "connectGarminHint": "Połącz konto Garmin, aby synchronizować sen, gotowość treningową i dane wellness.",
   "connectWithGarmin": "Połącz z Garmin",
+  "connectingGarmin": "Łączenie...",
+  "garminEmail": "E-mail Garmin",
+  "garminPassword": "Hasło Garmin",
+  "garminPasswordNotice": "Hasło jest użyte tylko raz do zalogowania i nigdy nie jest przechowywane.",
+  "garminConnectError": "Nie udało się połączyć. Sprawdź dane logowania i spróbuj ponownie.",
+  "garminMfaHint": "Podaj kod 2FA z aplikacji uwierzytelniającej.",
+  "garminMfaCode": "Kod 2FA",
+  "confirmMfa": "Potwierdź",
+  "cancel": "Anuluj",
   "fromStrava": "Ze Strava",
   "stravaNoZones": "Strava nie zwróciła żadnych stref tętna ani mocy dla Twojego profilu.",
   "failedToLoadZones": "Nie udało się załadować stref ze Strava. Możesz nadal używać ręcznych metryk poniżej.",
@@ -64,5 +73,7 @@
   "saving": "Zapisywanie…",
   "proTipText": "Aby uzyskać dokładne FTP, wykonaj 20-minutowy test maksymalny i użyj 95% średniej mocy. Możesz też użyć testu rampowego lub testu w laboratorium. Aktualizuj FTP co 4–6 tygodni w miarę poprawy formy.",
   "placeholderMaxHr": "np. 185",
-  "placeholderRestingHr": "np. 48"
+  "placeholderRestingHr": "np. 48",
+  "rpeFeedbackLabel": "Ocena RPE po treningu",
+  "rpeFeedbackHint": "Po oznaczeniu sesji jako wykonanej poprosimy o szybką ocenę odczuwanego wysiłku. Zasila ona silnik rekomendacji, dzięki czemu po serii ciężkich dni intensywność może zostać obniżona."
 }

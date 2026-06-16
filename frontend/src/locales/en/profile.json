@@ -41,6 +41,15 @@
   "connectWithStrava": "Connect with Strava",
   "connectGarminHint": "Connect your Garmin account to sync sleep, training readiness, and wellness data.",
   "connectWithGarmin": "Connect with Garmin",
+  "connectingGarmin": "Connecting...",
+  "garminEmail": "Garmin email",
+  "garminPassword": "Garmin password",
+  "garminPasswordNotice": "Your password is only used once to sign in and is never stored.",
+  "garminConnectError": "Could not connect. Check your credentials and try again.",
+  "garminMfaHint": "Enter the 2FA code from your authenticator app.",
+  "garminMfaCode": "2FA code",
+  "confirmMfa": "Confirm",
+  "cancel": "Cancel",
   "fromStrava": "From Strava",
   "stravaNoZones": "Strava did not return any predefined heart rate or power zones for your profile.",
   "failedToLoadZones": "Failed to load zones from Strava. You can still use manual metrics below.",
@@ -64,5 +73,7 @@
   "saving": "Saving...",
   "proTipText": "To get an accurate FTP value, perform a 20-minute maximum effort test and use 95% of your average power. Alternatively, use a ramp test or get a lab test for the most accurate results. Update your FTP every 4-6 weeks as your fitness improves.",
   "placeholderMaxHr": "e.g. 185",
-  "placeholderRestingHr": "e.g. 48"
+  "placeholderRestingHr": "e.g. 48",
+  "rpeFeedbackLabel": "Post-workout RPE feedback",
+  "rpeFeedbackHint": "After marking a session done, ask for a quick perceived-effort rating. It feeds the recommendation engine so repeated hard days can be eased off."
 }
