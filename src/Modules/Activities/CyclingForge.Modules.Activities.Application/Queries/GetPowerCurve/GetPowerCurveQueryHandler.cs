@@ -51,16 +51,11 @@ internal sealed class GetPowerCurveQueryHandler : IRequestHandler<GetPowerCurveQ
         int? wPrime = null;
         var p5 = rides.Max(a => a.Best5MinPower);
         var p20 = rides.Max(a => a.Best20MinPower);
-        if (p5 is > 0 && p20 is > 0 && p5.Value > p20.Value)
+        if (p5 is > 0 && p20 is > 0
+            && CriticalPowerModel.Estimate(300, p5.Value, 1200, p20.Value) is { } fit)
         {
-            // W' = (P5 - P20) / (1/300 - 1/1200); CP = P20 - W'/1200
-            var wp = (p5.Value - p20.Value) / (1f / 300f - 1f / 1200f);
-            var criticalPower = p20.Value - wp / 1200f;
-            if (criticalPower > 0)
-            {
-                cp = (int)Math.Round(criticalPower);
-                wPrime = (int)Math.Round(wp);
-            }
+            cp = (int)Math.Round(fit.CriticalPower);
+            wPrime = (int)Math.Round(fit.WPrime);
         }
 
         return new PowerCurveDto(

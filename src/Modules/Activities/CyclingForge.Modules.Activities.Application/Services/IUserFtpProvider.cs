@@ -33,4 +33,11 @@ public interface IUserFtpProvider
     /// so that calendar FTP and activity FTP use only the UserFtpChanges table.
     /// </summary>
     Task RegisterEftpChangeIfNeededAsync(Guid userId, DateTime activityDate, int estimatedFtp, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Removes all automatically estimated eFTP changes (Source = "EstimatedFromActivity") for the user,
+    /// preserving manual changes. Used before a forced recompute so the eFTP timeline is rebuilt from
+    /// scratch instead of being blocked by the "eFTP can only increase" rule against stale values.
+    /// </summary>
+    Task ClearEstimatedFtpChangesAsync(Guid userId, CancellationToken cancellationToken = default);
 }
