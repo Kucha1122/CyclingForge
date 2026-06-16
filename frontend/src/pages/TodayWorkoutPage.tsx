@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { recommendationsApi } from '../services/api';
+import { recommendationsApi, usersApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { ReadinessGauge } from '../components/workouts/ReadinessGauge';
 import { IntervalChart } from '../components/workouts/IntervalChart';
 import { HowRecommendationsWork } from '../components/workouts/HowRecommendationsWork';
+import { SessionFeedbackForm } from '../components/workouts/SessionFeedbackForm';
 import type { DailyRecommendationDto, ReadinessBreakdownDto } from '../types/workout';
 import { CATEGORY_COLORS } from '../types/workout';
 import { formatDate } from '../utils/format';
@@ -27,23 +29,32 @@ function translateReason(
   t: (key: string, opts?: object) => string,
   tWorkouts: (key: string) => string
 ): string {
+  const cat = (raw: string) => tWorkouts(CATEGORY_I18N_KEYS[raw] ?? 'categoryMixed');
   const parts: string[] = [];
-  if (reason.includes('Rest day recommended')) {
+  let planMatch: RegExpMatchArray | null;
+  if (reason.includes('Rest day recommended') || reason.includes('Rest day - readiness is very low') || reason.includes('Rest day - part of your recovery')) {
     parts.push(t('reasonRestDay'));
   } else if (reason.includes('Consider a light walk')) {
     parts.push(t('reasonLightWalk'));
+  } else if ((planMatch = reason.match(/Adjusted today's plan down to a (\w+) workout because of low readiness\./))) {
+    parts.push(t('reasonAdjustedDown', { category: cat(planMatch[1]) }));
+  } else if ((planMatch = reason.match(/(\w+) workout - recovery \(deload\) week/))) {
+    parts.push(t('reasonDeload', { category: cat(planMatch[1]) }));
+  } else if ((planMatch = reason.match(/(\w+) workout - tapering before your target event\./))) {
+    parts.push(t('reasonTaper', { category: cat(planMatch[1]) }));
+  } else if ((planMatch = reason.match(/(\w+) workout from your (\w+) plan\./))) {
+    parts.push(t('reasonPlanWorkout', { category: cat(planMatch[1]), model: planMatch[2] }));
   } else {
     const workoutMatch = reason.match(/Recommended a (\w+) workout based on your current readiness\./);
     if (workoutMatch) {
-      const categoryKey = CATEGORY_I18N_KEYS[workoutMatch[1]] ?? 'categoryMixed';
-      parts.push(t('reasonRecommendedWorkout', { category: tWorkouts(categoryKey) }));
+      parts.push(t('reasonRecommendedWorkout', { category: cat(workoutMatch[1]) }));
     } else {
       parts.push(reason.split('.')[0] || reason);
     }
   }
   const scoreMatch = reason.match(/Readiness score: (\d+)\/100\.?/);
   if (scoreMatch) parts.push(t('reasonReadinessScore', { score: scoreMatch[1] }));
-  const formMatch = reason.match(/Form \(TSB\): ([\d.,]+)\.?/);
+  const formMatch = reason.match(/Form \(TSB\): (-?\d+(?:\.\d+)?)/);
   if (formMatch) parts.push(t('reasonFormTsb', { value: formMatch[1] }));
   const bbMatch = reason.match(/Body Battery: ([\d]+)\/100\.?/);
   if (bbMatch) parts.push(t('reasonBodyBattery', { value: bbMatch[1] }));
@@ -58,10 +69,20 @@ export const TodayWorkoutPage = () => {
   const { t, i18n } = useTranslation('todayWorkout');
   const tCommon = useTranslation('common').t;
   const tWorkouts = useTranslation('workouts').t;
+  const { user } = useAuth();
   const [recommendation, setRecommendation] = useState<DailyRecommendationDto | null>(null);
   const [readiness, setReadiness] = useState<ReadinessBreakdownDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [noPreference, setNoPreference] = useState(false);
+  const [rpeEnabled, setRpeEnabled] = useState(true);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
+  useEffect(() => {
+    if (!user?.userId) return;
+    usersApi.getProfile(user.userId)
+      .then((res) => setRpeEnabled(res.data.enableRpeFeedback ?? true))
+      .catch(() => { /* default true */ });
+  }, [user]);
 
   useEffect(() => {
     Promise.all([
@@ -88,9 +109,18 @@ export const TodayWorkoutPage = () => {
     try {
       await recommendationsApi.updateStatus(recommendation.id, status);
       setRecommendation(prev => prev ? { ...prev, status } : null);
+      // Prompt for post-workout RPE once the session is marked done (opt-in via profile).
+      if (status === 'Completed' && rpeEnabled && recommendation.rpe == null) {
+        setFeedbackOpen(true);
+      }
     } catch {
       // ignore
     }
+  };
+
+  const handleFeedbackSubmitted = (fb: { rpe: number; legsFeel: string; sessionQuality: string; note: string }) => {
+    setRecommendation(prev => prev ? { ...prev, rpe: fb.rpe, legsFeel: fb.legsFeel, sessionQuality: fb.sessionQuality, feedbackNote: fb.note } : null);
+    setFeedbackOpen(false);
   };
 
   const handleRegenerate = async () => {
@@ -138,9 +168,14 @@ export const TodayWorkoutPage = () => {
         {/* Readiness Score */}
         <div className="mb-8 rounded-xl bg-surface p-8 shadow-sm ring-1 ring-border-default">
           <div className="flex flex-col items-center gap-6 md:flex-row">
-            <ReadinessGauge score={readiness?.overallScore ?? recommendation?.readinessScore ?? 50} size="lg" />
+            <div className="flex flex-col items-center">
+              <ReadinessGauge score={readiness?.overallScore ?? recommendation?.readinessScore ?? 50} size="lg" />
+              <p className="mt-2 text-center text-xs font-medium text-tertiary">{t('readinessCompositeLabel')}</p>
+            </div>
             <div className="flex-1">
-              <h2 className="mb-4 text-xl font-semibold text-primary">{t('readinessBreakdown')}</h2>
+              <h2 className="mb-1 text-xl font-semibold text-primary">{t('readinessBreakdown')}</h2>
+              <p className="mb-4 text-xs text-tertiary">{t('readinessCompositeHint')}</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-tertiary">{t('readinessComponentsTitle')}</p>
               <div className="grid grid-cols-2 gap-3">
                 {readiness?.tsbValue != null && (
                   <MetricCard label={t('formTsb')} value={readiness.tsbValue.toFixed(1)} score={readiness.tsbScore} />
@@ -156,6 +191,17 @@ export const TodayWorkoutPage = () => {
                 )}
                 {readiness?.stressValue != null && (
                   <MetricCard label={t('stressLevel')} value={`${readiness.stressValue}/100`} score={readiness.stressScore} />
+                )}
+                {readiness?.hrvLastNightMs != null && (
+                  <MetricCard
+                    label={t('hrv')}
+                    value={
+                      readiness.hrvBaselineMs != null
+                        ? `${readiness.hrvLastNightMs} / ${readiness.hrvBaselineMs} ms`
+                        : `${readiness.hrvLastNightMs} ms`
+                    }
+                    score={readiness.hrvScore}
+                  />
                 )}
               </div>
             </div>
@@ -217,13 +263,32 @@ export const TodayWorkoutPage = () => {
                 </div>
               )}
               {recommendation.status !== 'Pending' && (
-                <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  recommendation.status === 'Accepted' ? 'bg-state-success-bg text-state-success-text'
-                    : recommendation.status === 'Completed' ? 'bg-state-active-bg text-state-active-text'
-                    : 'bg-muted text-primary'
-                }`}>
-                  {tWorkouts(STATUS_I18N_KEYS[recommendation.status] ?? recommendation.status)}
-                </span>
+                <div className="flex items-center gap-2">
+                  {recommendation.status === 'Accepted' && (
+                    <button onClick={() => handleStatusUpdate('Completed')}
+                      className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground hover:opacity-90">
+                      {t('markCompleted')}
+                    </button>
+                  )}
+                  {recommendation.status === 'Completed' && rpeEnabled && recommendation.rpe == null && (
+                    <button onClick={() => setFeedbackOpen(true)}
+                      className="rounded-lg border border-border-default px-3 py-1.5 text-xs font-medium text-secondary hover:bg-muted">
+                      {t('addFeedback')}
+                    </button>
+                  )}
+                  {recommendation.rpe != null && (
+                    <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-primary">
+                      {t('feedbackRpe')}: {recommendation.rpe}/10
+                    </span>
+                  )}
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    recommendation.status === 'Accepted' ? 'bg-state-success-bg text-state-success-text'
+                      : recommendation.status === 'Completed' ? 'bg-state-active-bg text-state-active-text'
+                      : 'bg-muted text-primary'
+                  }`}>
+                    {tWorkouts(STATUS_I18N_KEYS[recommendation.status] ?? recommendation.status)}
+                  </span>
+                </div>
               )}
             </div>
 
@@ -293,6 +358,14 @@ export const TodayWorkoutPage = () => {
           </Link>
         </div>
       </div>
+
+      {feedbackOpen && recommendation && (
+        <SessionFeedbackForm
+          recommendationId={recommendation.id}
+          onSubmitted={handleFeedbackSubmitted}
+          onClose={() => setFeedbackOpen(false)}
+        />
+      )}
     </div>
   );
 };

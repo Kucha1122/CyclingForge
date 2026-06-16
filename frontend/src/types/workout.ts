@@ -115,6 +115,8 @@ export interface ParseZwoStepDto {
 
 export const PLAN_MODES = ['DailyRecommendations', 'FullPlan'] as const;
 
+export const PERIODIZATION_MODELS = ['Auto', 'Polarized', 'Pyramidal'] as const;
+
 export interface TrainingPreferenceDto {
   id: string;
   goal: string;
@@ -126,6 +128,12 @@ export interface TrainingPreferenceDto {
   preferredWorkoutMinutes: number;
   considerNonCycling: boolean;
   planMode: string;
+  periodizationModel: string;
+  longRideDay: number | null;
+  maxLongRideMinutes: number;
+  mesocycleWeeks: number;
+  restDays: number[];
+  weekStartDay: number;
   isActive: boolean;
 }
 
@@ -139,6 +147,12 @@ export interface SaveTrainingPreferenceRequest {
   preferredWorkoutMinutes: number;
   considerNonCycling: boolean;
   planMode: string;
+  periodizationModel: string;
+  longRideDay: number | null;
+  maxLongRideMinutes: number;
+  mesocycleWeeks: number;
+  restDays: number[];
+  weekStartDay: number;
 }
 
 export interface DailyRecommendationDto {
@@ -151,6 +165,13 @@ export interface DailyRecommendationDto {
   recommendedWorkout: WorkoutDto | null;
   alternativeWorkout: WorkoutDto | null;
   completedActivityId: string | null;
+  rpe: number | null;
+  legsFeel: string | null;
+  sessionQuality: string | null;
+  feedbackNote: string | null;
+  isDeloadWeek: boolean;
+  isTaper: boolean;
+  targetDurationMinutes: number | null;
 }
 
 export interface ReadinessBreakdownDto {
@@ -165,6 +186,9 @@ export interface ReadinessBreakdownDto {
   trainingReadinessValue: number | null;
   stressScore: number | null;
   stressValue: number | null;
+  hrvScore: number | null;
+  hrvLastNightMs: number | null;
+  hrvBaselineMs: number | null;
 }
 
 export interface WeeklyPlanDto {

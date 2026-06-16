@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { AthleteProfileDto, AthleteZonesDto } from '../types/strava';
-import type { ActivityDto, ActivityDetailsDto } from '../types/activity';
-import type { GarminStatusDto, SleepDataDto, WellnessDataDto } from '../types/garmin';
+import type { ActivityDto, ActivityDetailsDto, RealizedWeekDto } from '../types/activity';
+import type { GarminStatusDto, SleepDataDto, WellnessDataDto, HrvDataDto } from '../types/garmin';
 import type {
   WorkoutDto, WorkoutSearchResultDto, CreateWorkoutRequest,
   BulkImportZwoResult, ParseZwoResultDto,
@@ -68,12 +68,31 @@ export const stravaApi = {
   getActivityDetails: (id: string) => api.get<StravaActivityDetailsDto>(`/strava/activities/${id}`),
 };
 
+export interface PowerCurvePointDto {
+  durationSeconds: number;
+  watts: number;
+  wattsPerKg: number | null;
+}
+
+export interface PowerCurveDto {
+  windowDays: number;
+  activityCount: number;
+  points: PowerCurvePointDto[];
+  criticalPower: number | null;
+  wPrimeJoules: number | null;
+  criticalPowerPerKg: number | null;
+}
+
 export const activitiesApi = {
   sync: (quickSync?: boolean) =>
     api.post<{ syncedCount: number }>('/activities/sync', null, { params: quickSync ? { quickSync: true } : {} }),
   getActivities: (page = 1, pageSize = 30) =>
     api.get<ActivityDto[]>('/activities', { params: { page, pageSize } }),
   getActivityDetails: (id: string) => api.get<ActivityDetailsDto>(`/activities/${id}`),
+  getRealizedWeek: (weekStart?: string) =>
+    api.get<RealizedWeekDto>('/activities/realized-week', { params: { weekStart } }),
+  getPowerCurve: (windowDays = 42) =>
+    api.get<PowerCurveDto>('/activities/power-curve', { params: { windowDays } }),
 };
 
 export interface FtpChangeDto {
@@ -157,6 +176,7 @@ export interface UserProfile {
   restingHeartRate: number | null;
   gender: string | null;
   eftpMinDurationSeconds: number | null;
+  enableRpeFeedback: boolean;
 }
 
 export const metricsApi = {
@@ -181,15 +201,17 @@ export const usersApi = {
       restingHeartRate?: number | null;
       gender?: string | null;
       eftpMinDurationSeconds?: number | null;
+      enableRpeFeedback?: boolean | null;
     }
   ) => api.put(`/users/${userId}/profile`, profile),
 };
 
 export const garminApi = {
   getStatus: () => api.get<GarminStatusDto>('/garmin/status'),
-  getAuthorizeUrl: () => api.get<{ authorizeUrl: string }>('/garmin/authorize-url'),
-  authorize: (oAuthToken: string, oAuthVerifier: string) =>
-    api.post('/garmin/authorize', { oAuthToken, oAuthVerifier }),
+  connect: (email: string, password: string) =>
+    api.post<{ sessionId?: string }>('/garmin/connect', { email, password }),
+  connectMfa: (sessionId: string, mfaCode: string) =>
+    api.post('/garmin/connect/mfa', { sessionId, mfaCode }),
   disconnect: () => api.delete('/garmin/disconnect'),
   sync: (daysBack = 7) =>
     api.post('/garmin/sync', null, { params: { daysBack } }),
@@ -197,6 +219,10 @@ export const garminApi = {
     api.get<SleepDataDto[]>('/garmin/sleep', { params: { startDate, endDate } }),
   getWellness: (date: string) =>
     api.get<WellnessDataDto>('/garmin/wellness', { params: { date } }),
+  getLatestWellness: (onOrBefore?: string) =>
+    api.get<WellnessDataDto>('/garmin/wellness/latest', { params: { onOrBefore } }),
+  getHrvData: (startDate: string, endDate: string) =>
+    api.get<HrvDataDto[]>('/garmin/hrv', { params: { startDate, endDate } }),
 };
 
 export const workoutsApi = {
@@ -243,6 +269,10 @@ export const recommendationsApi = {
   getReadiness: (date?: string) => api.get<ReadinessBreakdownDto>('/recommendations/readiness', { params: { date } }),
   updateStatus: (id: string, status: string, completedActivityId?: string) =>
     api.put(`/recommendations/${id}/status`, { status, completedActivityId }),
+  submitFeedback: (id: string, feedback: { rpe: number; legsFeel?: string | null; sessionQuality?: string | null; note?: string | null }) =>
+    api.post(`/recommendations/${id}/feedback`, feedback),
+  adjustPlanDay: (id: string, action: 'rest' | 'swap' | 'move', targetDate?: string) =>
+    api.put<{ success: boolean; warnings: string[] }>(`/recommendations/${id}/plan-adjust`, { action, targetDate }),
 };
 
 export default api;

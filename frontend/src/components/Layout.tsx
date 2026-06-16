@@ -7,7 +7,7 @@ import i18n from '../i18n';
 const NAV_ITEMS: { key: string; href: string; icon: string }[] = [
   { key: 'dashboard', href: '/dashboard', icon: '📊' },
   { key: 'todayWorkout', href: '/workout/today', icon: '🎯' },
-  { key: 'weeklyPlan', href: '/workout/week', icon: '📅' },
+  { key: 'realizedWeek', href: '/workout/week', icon: '✅' },
   { key: 'fullPlan', href: '/workout/plan', icon: '📋' },
   { key: 'workoutLibrary', href: '/workouts', icon: '💪' },
   { key: 'activities', href: '/activities', icon: '🚴' },

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { useSync } from '../context/SyncContext';
 import { metricsApi, stravaApi, activitiesApi, garminApi } from '../services/api';
 import type { PmcSummary, WeeklySummary, MonthlySummary, DailyTssPoint } from '../services/api';
 import type { AthleteProfileDto } from '../types/strava';
-import type { SleepDataDto, WellnessDataDto, GarminStatusDto } from '../types/garmin';
+import type { SleepDataDto, WellnessDataDto, GarminStatusDto, HrvDataDto } from '../types/garmin';
 import { PMCChart } from '../components/PMCChart';
 import { DailyTssChart } from '../components/DailyTssChart';
 import { WeeklySummaryCard } from '../components/WeeklySummaryCard';
@@ -13,10 +14,18 @@ import { ReadinessCard } from '../components/ReadinessCard';
 import { TrendsCard } from '../components/TrendsCard';
 import { SleepSummaryCard } from '../components/garmin/SleepSummaryCard';
 import { TrainingReadinessCard } from '../components/garmin/TrainingReadinessCard';
+import { WellnessStatsRow } from '../components/garmin/WellnessStatsRow';
+import { WeeklyZonesCard } from '../components/WeeklyZonesCard';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { recommendationsApi } from '../services/api';
 import type { DailyRecommendationDto } from '../types/workout';
 import { CATEGORY_COLORS } from '../types/workout';
+
+const CATEGORY_I18N_KEYS: Record<string, string> = {
+  Recovery: 'categoryRecovery', Endurance: 'categoryEndurance', Tempo: 'categoryTempo',
+  SweetSpot: 'categorySweetSpot', Threshold: 'categoryThreshold', VO2Max: 'categoryVO2Max',
+  Anaerobic: 'categoryAnaerobic', Sprint: 'categorySprint', Mixed: 'categoryMixed',
+};
 import { ReadinessGauge } from '../components/workouts/ReadinessGauge';
 
 function getStartOfWeek(date: Date): Date {
@@ -43,10 +52,12 @@ function getYearMonthForOffset(offset: number): { year: number; month: number } 
 
 export const NewDashboardPage = () => {
   const { user } = useAuth();
+  const { syncVersion, notifySynced } = useSync();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation('dashboard');
   const tCommon = useTranslation('common').t;
+  const tWorkouts = useTranslation('workouts').t;
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [stravaProfile, setStravaProfile] = useState<AthleteProfileDto | null>(null);
@@ -61,6 +72,8 @@ export const NewDashboardPage = () => {
   const [garminStatus, setGarminStatus] = useState<GarminStatusDto | null>(null);
   const [lastSleep, setLastSleep] = useState<SleepDataDto | null>(null);
   const [todayWellness, setTodayWellness] = useState<WellnessDataDto | null>(null);
+  const [todayHrv, setTodayHrv] = useState<HrvDataDto | null>(null);
+  const [weeklyZones, setWeeklyZones] = useState<number[] | null>(null);
   const [todayRecommendation, setTodayRecommendation] = useState<DailyRecommendationDto | null>(null);
   const [pmcHistoryDays, setPmcHistoryDays] = useState(() => {
     const stored = localStorage.getItem('pmcHistoryDays');
@@ -91,6 +104,42 @@ export const NewDashboardPage = () => {
     }
   }, [pmcCtlDays, pmcAtlDays, pmcHistoryDays]);
 
+  const refreshWellness = useCallback(async () => {
+    try {
+      const status = await garminApi.getStatus();
+      setGarminStatus(status.data);
+      if (!status.data.isConnected) return;
+
+      const today = new Date().toISOString().slice(0, 10);
+      const sleepFrom = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
+      const hrvFrom = new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10);
+      const [sleepRes, wellnessRes, hrvRes] = await Promise.all([
+        garminApi.getSleepData(sleepFrom, today),
+        garminApi.getLatestWellness().catch(() => null),
+        garminApi.getHrvData(hrvFrom, today).catch(() => null),
+      ]);
+      if (sleepRes.data.length > 0) setLastSleep(sleepRes.data[0]);
+      if (wellnessRes?.data) setTodayWellness(wellnessRes.data);
+      if (hrvRes?.data?.length) {
+        const latestHrv = [...hrvRes.data]
+          .sort((a, b) => b.date.localeCompare(a.date))
+          .find((h) => h.lastNightAvgMs != null) ?? null;
+        setTodayHrv(latestHrv);
+      }
+    } catch {
+      // Garmin data not available
+    }
+  }, []);
+
+  const fetchZones = useCallback(async () => {
+    try {
+      const res = await activitiesApi.getRealizedWeek();
+      setWeeklyZones(res.data.weeklyHrZoneSeconds);
+    } catch {
+      // Zone data not available
+    }
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -103,26 +152,7 @@ export const NewDashboardPage = () => {
           // Ignore error if profile not connected
         }
 
-        try {
-          const garminStatusRes = await garminApi.getStatus();
-          setGarminStatus(garminStatusRes.data);
-          if (garminStatusRes.data.isConnected) {
-            const today = new Date().toISOString().slice(0, 10);
-            const weekAgo = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
-            const [sleepRes, wellnessRes] = await Promise.all([
-              garminApi.getSleepData(weekAgo, today),
-              garminApi.getWellness(today).catch(() => null),
-            ]);
-            if (sleepRes.data.length > 0) {
-              setLastSleep(sleepRes.data[0]);
-            }
-            if (wellnessRes?.data) {
-              setTodayWellness(wellnessRes.data);
-            }
-          }
-        } catch {
-          // Garmin data not available
-        }
+        await Promise.all([refreshWellness(), fetchZones()]);
 
         await fetchMetrics();
 
@@ -142,17 +172,19 @@ export const NewDashboardPage = () => {
     };
 
     fetchData();
-  }, [location.pathname, pmcCtlDays, pmcAtlDays, pmcHistoryDays, fetchMetrics]);
+  }, [location.pathname, pmcCtlDays, pmcAtlDays, pmcHistoryDays, syncVersion, fetchMetrics, refreshWellness, fetchZones]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible' && location.pathname === '/dashboard') {
         fetchMetrics();
+        refreshWellness();
+        fetchZones();
       }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, [location.pathname, fetchMetrics]);
+  }, [location.pathname, fetchMetrics, refreshWellness, fetchZones]);
 
   useEffect(() => {
     localStorage.setItem('pmcHistoryDays', String(pmcHistoryDays));
@@ -170,8 +202,14 @@ export const NewDashboardPage = () => {
     try {
       await stravaApi.sync(false);
       await activitiesApi.sync(true);
+      if (garminStatus?.isConnected) {
+        await garminApi.sync().catch(() => null);
+      }
       await fetchMetrics();
       await fetchSummaries(selectedWeekOffset, selectedMonthOffset);
+      await Promise.all([refreshWellness(), fetchZones()]);
+      // Powiadom pozostałe strony (analiza, sen…), żeby odświeżyły swoje dane.
+      notifySynced();
     } catch {
       // ignore
     } finally {
@@ -239,10 +277,18 @@ export const NewDashboardPage = () => {
         <div className="space-y-6">
           {/* Garmin Wellness Row */}
           {garminStatus?.isConnected && (lastSleep || todayWellness) && (
-            <div className="grid gap-6 md:grid-cols-2">
-              <SleepSummaryCard sleep={lastSleep} />
-              <TrainingReadinessCard wellness={todayWellness} />
+            <div className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                <SleepSummaryCard sleep={lastSleep} />
+                <TrainingReadinessCard wellness={todayWellness} />
+              </div>
+              <WellnessStatsRow wellness={todayWellness} hrv={todayHrv} />
             </div>
+          )}
+
+          {/* Weekly time-in-zones */}
+          {weeklyZones && weeklyZones.some((s) => s > 0) && (
+            <WeeklyZonesCard weeklyHrZoneSeconds={weeklyZones} />
           )}
 
           {/* Garmin Connect Prompt */}
@@ -267,7 +313,10 @@ export const NewDashboardPage = () => {
           {todayRecommendation && (
             <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
               <div className="flex items-center gap-6">
-                <ReadinessGauge score={todayRecommendation.readinessScore} size="sm" />
+                <div className="flex flex-col items-center">
+                  <ReadinessGauge score={todayRecommendation.readinessScore} size="sm" />
+                  <p className="mt-1 text-center text-[10px] font-medium text-tertiary">{t('compositeReadiness')}</p>
+                </div>
                 <div className="flex-1">
                   <h2 className="text-lg font-semibold text-primary">{t('todaysWorkout')}</h2>
                   {todayRecommendation.recommendationType === 'RestDay' ? (
@@ -279,7 +328,7 @@ export const NewDashboardPage = () => {
                       <p className="font-medium text-primary">{todayRecommendation.recommendedWorkout.name}</p>
                       <div className="mt-1 flex gap-2">
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[todayRecommendation.recommendedWorkout.category] || 'bg-muted text-primary'}`}>
-                          {todayRecommendation.recommendedWorkout.category}
+                          {tWorkouts(CATEGORY_I18N_KEYS[todayRecommendation.recommendedWorkout.category] ?? 'categoryMixed')}
                         </span>
                         <span className="text-xs text-tertiary">
                           {todayRecommendation.recommendedWorkout.durationMinutes} {tCommon('min')} / TSS {todayRecommendation.recommendedWorkout.estimatedTSS}

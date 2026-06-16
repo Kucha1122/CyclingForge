@@ -101,7 +101,7 @@ export const WorkoutCard = ({ workout, onDelete, showActions }: WorkoutCardProps
           >
             {copying ? t('copying') : t('copy')}
           </button>
-          {onDelete && isUserWorkout && (
+          {onDelete && (isUserWorkout || workout.source === 'System' || workout.source === 'Generated') && (
             <button
               onClick={() => onDelete(workout.id)}
               className="rounded-lg px-3 py-1.5 text-xs font-medium text-state-danger-text hover:bg-state-danger-bg"

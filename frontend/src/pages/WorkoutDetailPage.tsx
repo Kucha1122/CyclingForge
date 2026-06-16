@@ -183,7 +183,7 @@ export const WorkoutDetailPage = () => {
               >
                 {copying ? t('copying') : t('copyWorkout')}
               </button>
-              {isUserWorkout && (
+              {(isUserWorkout || workout.source === 'System' || workout.source === 'Generated') && (
                 <button
                   onClick={() => setDeleteConfirmOpen(true)}
                   className="rounded-lg border border-border-default bg-state-danger-bg px-4 py-2 text-sm font-medium text-state-danger-text hover:opacity-90"
