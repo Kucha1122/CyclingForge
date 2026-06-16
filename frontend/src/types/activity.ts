@@ -20,6 +20,32 @@ export interface ActivityDto {
   deviceWatts?: boolean;
 }
 
+export interface RealizedActivityDto {
+  id: string;
+  stravaActivityId: number;
+  name: string;
+  type: string;
+  startDate: string;
+  distanceKm: number;
+  durationSeconds: number;
+  trainingStressScore?: number;
+  averageHeartRate?: number;
+  hrZoneSeconds: number[];
+}
+
+export interface RealizedDayDto {
+  date: string;
+  activities: RealizedActivityDto[];
+  dailyHrZoneSeconds: number[];
+}
+
+export interface RealizedWeekDto {
+  weekStart: string;
+  weekEnd: string;
+  days: RealizedDayDto[];
+  weeklyHrZoneSeconds: number[];
+}
+
 export interface ActivityDetailsDto {
   id: string;
   stravaActivityId: number;

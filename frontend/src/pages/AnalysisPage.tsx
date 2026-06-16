@@ -3,10 +3,15 @@ import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { metricsApi, type PmcSummary } from '../services/api';
 import { PMCChart } from '../components/PMCChart';
+import { PowerCurveChart } from '../components/PowerCurveChart';
+import { TrainingRiskCard } from '../components/TrainingRiskCard';
+import { HrvTrendChart } from '../components/HrvTrendChart';
+import { useSync } from '../context/SyncContext';
 
 export const AnalysisPage = () => {
   const { t } = useTranslation('analysis');
   const location = useLocation();
+  const { syncVersion } = useSync();
   const [loading, setLoading] = useState(true);
   const [pmcData, setPmcData] = useState<PmcSummary | null>(null);
   const [selectedTimeRange, setSelectedTimeRange] = useState<'7' | '30' | '42' | '90' | '180' | '365'>(() => {
@@ -32,7 +37,7 @@ export const AnalysisPage = () => {
   useEffect(() => {
     setLoading(true);
     fetchPmc();
-  }, [location.pathname, selectedTimeRange, fetchPmc]);
+  }, [location.pathname, selectedTimeRange, syncVersion, fetchPmc]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -151,6 +156,15 @@ export const AnalysisPage = () => {
 
           {/* PMC Chart */}
           <PMCChart chartId="analysis" data={pmcData.history} ftpChanges={pmcData.ftpChanges} />
+
+          {/* Training risk panel (ACWR, ramp, monotony, low-TSB streak) */}
+          <TrainingRiskCard pmc={pmcData} />
+
+          {/* HRV trend with rolling baseline */}
+          <HrvTrendChart />
+
+          {/* Power Curve / Critical Power */}
+          <PowerCurveChart />
 
           {/* Insights */}
           <div className="grid gap-6 lg:grid-cols-2">

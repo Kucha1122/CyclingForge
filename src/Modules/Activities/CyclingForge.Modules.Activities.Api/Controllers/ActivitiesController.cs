@@ -1,6 +1,8 @@
 using CyclingForge.Modules.Activities.Application.Commands.SyncActivities;
 using CyclingForge.Modules.Activities.Application.Queries.GetActivities;
 using CyclingForge.Modules.Activities.Application.Queries.GetActivityDetails;
+using CyclingForge.Modules.Activities.Application.Queries.GetPowerCurve;
+using CyclingForge.Modules.Activities.Application.Queries.GetRealizedWeek;
 using CyclingForge.Shared.Abstractions.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -46,6 +48,32 @@ public sealed class ActivitiesController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("realized-week")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<RealizedWeekDto>> GetRealizedWeek(
+        [FromQuery] string? weekStart,
+        CancellationToken cancellationToken = default)
+    {
+        var start = weekStart is not null
+            ? DateOnly.Parse(weekStart)
+            : GetMondayOfCurrentWeek();
+
+        var result = await _mediator.Send(
+            new GetRealizedWeekQuery(_currentUser.UserId, start), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("power-curve")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PowerCurveDto>> GetPowerCurve(
+        [FromQuery] int windowDays = 42,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetPowerCurveQuery(_currentUser.UserId, windowDays), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{activityId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -56,5 +84,12 @@ public sealed class ActivitiesController : ControllerBase
         var query = new GetActivityDetailsQuery(activityId);
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
+    }
+
+    private static DateOnly GetMondayOfCurrentWeek()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var daysFromMonday = ((int)today.DayOfWeek + 6) % 7;
+        return today.AddDays(-daysFromMonday);
     }
 }
