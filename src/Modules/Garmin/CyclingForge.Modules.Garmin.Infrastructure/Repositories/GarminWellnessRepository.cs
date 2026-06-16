@@ -18,6 +18,23 @@ internal sealed class GarminWellnessRepository : IGarminWellnessRepository
         => await _dbContext.GarminDailyWellness.FirstOrDefaultAsync(
             w => w.UserId == userId && w.Date == date, cancellationToken);
 
+    public async Task<GarminDailyWellness?> GetLatestByUserIdAsync(Guid userId, DateOnly onOrBefore, CancellationToken cancellationToken = default)
+    {
+        // Garmin may have a wellness row for today before Training Readiness is computed; prefer the
+        // most recent day that actually carries a readiness score, then fall back to any latest row.
+        var withReadiness = await _dbContext.GarminDailyWellness
+            .Where(w => w.UserId == userId && w.Date <= onOrBefore && w.TrainingReadinessScore != null)
+            .OrderByDescending(w => w.Date)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (withReadiness is not null)
+            return withReadiness;
+
+        return await _dbContext.GarminDailyWellness
+            .Where(w => w.UserId == userId && w.Date <= onOrBefore)
+            .OrderByDescending(w => w.Date)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<GarminDailyWellness>> GetByUserIdAndDateRangeAsync(
         Guid userId, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default)
         => await _dbContext.GarminDailyWellness

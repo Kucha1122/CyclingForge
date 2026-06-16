@@ -2,20 +2,34 @@ namespace CyclingForge.Modules.Garmin.Application.Services;
 
 public interface IGarminApiService
 {
-    Task<GarminRequestTokenResult> GetRequestTokenAsync(CancellationToken cancellationToken = default);
-    string GetAuthorizeUrl(string oauthToken);
-    Task<GarminAccessTokenResult> ExchangeForAccessTokenAsync(string oauthToken, string oauthTokenSecret, string oauthVerifier, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<GarminSleepResponse>> GetSleepDataAsync(string accessToken, string accessTokenSecret, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
-    Task<GarminWellnessResponse?> GetDailyWellnessAsync(string accessToken, string accessTokenSecret, DateOnly date, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Step 1: Logs in with email/password. Returns a token on success, or a
+    /// GarminConnectResult with NeedsMfa=true + SessionId when 2FA is required.
+    /// </summary>
+    Task<GarminConnectResult> ConnectAsync(string email, string password, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Step 2 (2FA accounts only): Completes the login with the TOTP code.
+    /// Returns the garth session token.
+    /// </summary>
+    Task<string> ConnectMfaAsync(string sessionId, string mfaCode, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<GarminSleepResponse>> GetSleepDataAsync(string garthToken, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
+    Task<GarminWellnessResponse?> GetDailyWellnessAsync(string garthToken, DateOnly date, CancellationToken cancellationToken = default);
+    Task<GarminHrvResponse?> GetHrvDataAsync(string garthToken, DateOnly date, CancellationToken cancellationToken = default);
 }
 
-public sealed record GarminRequestTokenResult(
-    string OAuthToken,
-    string OAuthTokenSecret);
+public sealed record GarminConnectResult(bool NeedsMfa, string? Token, string? SessionId)
+{
+    public static GarminConnectResult Success(string token) => new(false, token, null);
+    public static GarminConnectResult MfaRequired(string sessionId) => new(true, null, sessionId);
+}
 
-public sealed record GarminAccessTokenResult(
-    string AccessToken,
-    string AccessTokenSecret);
+/// <summary>One sleep-stage segment (5-min interval from Garmin's sleepMovement).</summary>
+/// <param name="StartGmt">"YYYY-MM-DD HH:MM:SS" UTC string.</param>
+/// <param name="EndGmt">"YYYY-MM-DD HH:MM:SS" UTC string.</param>
+/// <param name="ActivityLevel">0=deep, 1=light, 2=rem, 3=awake.</param>
+public sealed record GarminSleepLevel(string StartGmt, string EndGmt, float ActivityLevel);
 
 public sealed record GarminSleepResponse(
     DateOnly Date,
@@ -28,7 +42,8 @@ public sealed record GarminSleepResponse(
     float? AverageSpO2,
     float? AverageRespirationRate,
     DateTime? SleepStartTime,
-    DateTime? SleepEndTime);
+    DateTime? SleepEndTime,
+    IReadOnlyList<GarminSleepLevel> SleepLevels);
 
 public sealed record GarminWellnessResponse(
     DateOnly Date,
@@ -39,3 +54,9 @@ public sealed record GarminWellnessResponse(
     int? BodyBatteryMax,
     int? AverageStressLevel,
     int? StepsCount);
+
+public sealed record GarminHrvResponse(
+    DateOnly Date,
+    int? LastNightAvgMs,
+    int? LastNight5MinHighMs,
+    string? Status);

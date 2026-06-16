@@ -5,6 +5,8 @@ namespace CyclingForge.Modules.Garmin.Domain.Repositories;
 public interface IGarminWellnessRepository
 {
     Task<GarminDailyWellness?> GetByUserIdAndDateAsync(Guid userId, DateOnly date, CancellationToken cancellationToken = default);
+    /// <summary>Most recent wellness on or before <paramref name="onOrBefore"/>, preferring a day that has a Training Readiness score.</summary>
+    Task<GarminDailyWellness?> GetLatestByUserIdAsync(Guid userId, DateOnly onOrBefore, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<GarminDailyWellness>> GetByUserIdAndDateRangeAsync(Guid userId, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
     Task AddAsync(GarminDailyWellness wellness, CancellationToken cancellationToken = default);
     Task UpdateAsync(GarminDailyWellness wellness, CancellationToken cancellationToken = default);

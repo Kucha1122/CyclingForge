@@ -23,11 +23,16 @@ public static class Extensions
         services.Configure<GarminOptions>(
             configuration.GetSection(GarminOptions.SectionName));
 
-        services.AddHttpClient<GarminHttpClient>();
+        var options = configuration.GetSection(GarminOptions.SectionName).Get<GarminOptions>()
+            ?? new GarminOptions();
+
+        services.AddHttpClient<GarminHttpClient>(client =>
+            client.BaseAddress = new Uri(options.PythonServiceBaseUrl));
         services.AddScoped<IGarminApiService, GarminApiService>();
         services.AddScoped<IGarminTokenRepository, GarminTokenRepository>();
         services.AddScoped<IGarminSleepRepository, GarminSleepRepository>();
         services.AddScoped<IGarminWellnessRepository, GarminWellnessRepository>();
+        services.AddScoped<IGarminHrvRepository, GarminHrvRepository>();
 
         return services;
     }

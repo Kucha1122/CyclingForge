@@ -6,8 +6,9 @@ namespace CyclingForge.Modules.Garmin.Domain.Entities;
 public sealed class GarminToken : AggregateRoot<Guid>
 {
     public Guid UserId { get; private set; }
+
+    /// <summary>Serialized garth session (OAuth2 token) returned by the Python service.</summary>
     public AccessToken Token { get; private set; } = default!;
-    public string TokenSecret { get; private set; } = string.Empty;
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
@@ -15,24 +16,21 @@ public sealed class GarminToken : AggregateRoot<Guid>
 
     public static GarminToken Create(
         Guid userId,
-        AccessToken accessToken,
-        string tokenSecret,
+        AccessToken session,
         DateTime createdAt)
     {
         return new GarminToken
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            Token = accessToken,
-            TokenSecret = tokenSecret,
+            Token = session,
             CreatedAt = createdAt
         };
     }
 
-    public void UpdateTokens(AccessToken accessToken, string tokenSecret, DateTime updatedAt)
+    public void UpdateToken(AccessToken session, DateTime updatedAt)
     {
-        Token = accessToken;
-        TokenSecret = tokenSecret;
+        Token = session;
         UpdatedAt = updatedAt;
     }
 }

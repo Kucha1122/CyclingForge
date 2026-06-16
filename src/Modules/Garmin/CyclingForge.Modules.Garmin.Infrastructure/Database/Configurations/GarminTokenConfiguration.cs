@@ -17,11 +17,6 @@ internal sealed class GarminTokenConfiguration : IEntityTypeConfiguration<Garmin
             .HasConversion(
                 token => token.Value,
                 value => new AccessToken(value))
-            .HasMaxLength(2048)
-            .IsRequired();
-
-        builder.Property(t => t.TokenSecret)
-            .HasMaxLength(2048)
             .IsRequired();
 
         builder.Property(t => t.UserId).IsRequired();

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { garminApi } from '../services/api';
-import type { SleepDataDto, GarminStatusDto } from '../types/garmin';
+import type { SleepDataDto, HrvDataDto, GarminStatusDto } from '../types/garmin';
 import { SleepChart } from '../components/garmin/SleepChart';
 import { SleepStagesChart } from '../components/garmin/SleepStagesChart';
 import { SleepDetailsCard } from '../components/garmin/SleepDetailsCard';
 import { useNavigate } from 'react-router-dom';
+import { useSync } from '../context/SyncContext';
 
 type DateRange = 7 | 30 | 90;
 
@@ -21,23 +22,32 @@ function formatDuration(seconds: number): string {
 
 export const SleepPage = () => {
   const { t } = useTranslation('sleep');
-  useNavigate();
+  const navigate = useNavigate();
+  const { syncVersion, notifySynced } = useSync();
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [garminStatus, setGarminStatus] = useState<GarminStatusDto | null>(null);
   const [sleepData, setSleepData] = useState<SleepDataDto[]>([]);
+  const [hrvData, setHrvData] = useState<HrvDataDto[]>([]);
   const [range, setRange] = useState<DateRange>(30);
 
   const fetchSleepData = useCallback(async (days: number) => {
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - days);
+    const start = formatDate(startDate);
+    const end = formatDate(endDate);
 
     try {
-      const res = await garminApi.getSleepData(formatDate(startDate), formatDate(endDate));
-      setSleepData(res.data);
+      const [sleepRes, hrvRes] = await Promise.allSettled([
+        garminApi.getSleepData(start, end),
+        garminApi.getHrvData(start, end),
+      ]);
+      setSleepData(sleepRes.status === 'fulfilled' ? sleepRes.value.data : []);
+      setHrvData(hrvRes.status === 'fulfilled' ? hrvRes.value.data : []);
     } catch {
       setSleepData([]);
+      setHrvData([]);
     }
   }, []);
 
@@ -58,13 +68,14 @@ export const SleepPage = () => {
       }
     };
     init();
-  }, [range, fetchSleepData]);
+  }, [range, syncVersion, fetchSleepData]);
 
   const handleSync = async () => {
     setSyncing(true);
     try {
       await garminApi.sync(range);
       await fetchSleepData(range);
+      notifySynced();
     } catch {
       // ignore
     } finally {
@@ -72,13 +83,9 @@ export const SleepPage = () => {
     }
   };
 
-  const handleConnect = async () => {
-    try {
-      const res = await garminApi.getAuthorizeUrl();
-      window.location.href = res.data.authorizeUrl;
-    } catch {
-      // Failed to initiate Garmin auth
-    }
+  const handleConnect = () => {
+    // Connecting a Garmin account (email/password) lives on the profile page.
+    navigate('/profile');
   };
 
   if (loading) {
@@ -188,17 +195,23 @@ export const SleepPage = () => {
 
           {/* Charts */}
           <div className="grid gap-6 lg:grid-cols-2">
-            <SleepChart data={sleepData} />
+            <SleepChart data={sleepData} hrvData={hrvData} />
             <SleepStagesChart data={sleepData} />
           </div>
 
           {/* Individual nights */}
           <div>
             <h2 className="mb-4 text-xl font-semibold text-primary">{t('nightDetails')}</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {sleepData.map((d) => (
-                <SleepDetailsCard key={d.date} sleep={d} />
-              ))}
+            <div className="grid gap-5 md:grid-cols-2">
+              {[...sleepData]
+                .sort((a, b) => b.date.localeCompare(a.date))
+                .map((d) => (
+                  <SleepDetailsCard
+                    key={d.date}
+                    sleep={d}
+                    hrv={hrvData.find((h) => h.date === d.date) ?? null}
+                  />
+                ))}
             </div>
           </div>
         </div>

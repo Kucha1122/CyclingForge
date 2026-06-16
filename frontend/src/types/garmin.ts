@@ -3,6 +3,14 @@ export interface GarminStatusDto {
   connectedAt: string | null;
 }
 
+export interface SleepLevelDto {
+  /** "YYYY-MM-DD HH:MM:SS" UTC string from Garmin sleepMovement */
+  startGmt: string;
+  endGmt: string;
+  /** 0=deep, 1=light, 2=rem, 3=awake */
+  activityLevel: number;
+}
+
 export interface SleepDataDto {
   date: string;
   totalSleepSeconds: number;
@@ -13,8 +21,10 @@ export interface SleepDataDto {
   sleepScore: number | null;
   averageSpO2: number | null;
   averageRespirationRate: number | null;
+  /** Naive local wall-clock datetime string (no Z) */
   sleepStartTime: string | null;
   sleepEndTime: string | null;
+  sleepLevels: SleepLevelDto[];
 }
 
 export interface WellnessDataDto {
@@ -26,4 +36,11 @@ export interface WellnessDataDto {
   bodyBatteryMax: number | null;
   averageStressLevel: number | null;
   stepsCount: number | null;
+}
+
+export interface HrvDataDto {
+  date: string;
+  lastNightAvgMs: number | null;
+  lastNight5MinHighMs: number | null;
+  status: string | null;
 }

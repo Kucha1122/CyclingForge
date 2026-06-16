@@ -1,11 +1,12 @@
 using CyclingForge.Modules.Garmin.Api.Requests;
-using CyclingForge.Modules.Garmin.Application.Commands.AuthorizeGarmin;
+using CyclingForge.Modules.Garmin.Application.Commands.ConnectGarmin;
 using CyclingForge.Modules.Garmin.Application.Commands.DisconnectGarmin;
+using CyclingForge.Modules.Garmin.Domain.Exceptions;
 using CyclingForge.Modules.Garmin.Application.Commands.SyncGarminData;
 using CyclingForge.Modules.Garmin.Application.Queries.GetConnectionStatus;
+using CyclingForge.Modules.Garmin.Application.Queries.GetHrvData;
 using CyclingForge.Modules.Garmin.Application.Queries.GetSleepData;
 using CyclingForge.Modules.Garmin.Application.Queries.GetWellnessData;
-using CyclingForge.Modules.Garmin.Application.Queries.InitiateAuth;
 using CyclingForge.Shared.Abstractions.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -28,23 +29,34 @@ public sealed class GarminController : ControllerBase
         _currentUser = currentUser;
     }
 
-    [HttpGet("authorize-url")]
+    [HttpPost("connect")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<GarminAuthUrlDto>> GetAuthorizeUrl(CancellationToken cancellationToken)
-    {
-        var query = new InitiateGarminAuthQuery(_currentUser.UserId);
-        var result = await _mediator.Send(query, cancellationToken);
-        return Ok(result);
-    }
-
-    [HttpPost("authorize")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(GarminMfaRequiredDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Authorize(
-        [FromBody] GarminAuthorizeRequest request,
+    public async Task<IActionResult> Connect(
+        [FromBody] GarminConnectRequest request,
         CancellationToken cancellationToken)
     {
-        var command = new AuthorizeGarminCommand(_currentUser.UserId, request.OAuthToken, request.OAuthVerifier);
+        try
+        {
+            var command = new ConnectGarminCommand(_currentUser.UserId, request.Email, request.Password);
+            await _mediator.Send(command, cancellationToken);
+            return Ok();
+        }
+        catch (GarminMfaRequiredException ex)
+        {
+            return Accepted(new GarminMfaRequiredDto(ex.SessionId));
+        }
+    }
+
+    [HttpPost("connect/mfa")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ConnectMfa(
+        [FromBody] GarminConnectMfaRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new ConnectGarminMfaCommand(_currentUser.UserId, request.SessionId, request.MfaCode);
         await _mediator.Send(command, cancellationToken);
         return Ok();
     }
@@ -103,6 +115,34 @@ public sealed class GarminController : ControllerBase
         var query = new GetWellnessDataQuery(_currentUser.UserId, d);
         var result = await _mediator.Send(query, cancellationToken);
         if (result is null) return NotFound();
+        return Ok(result);
+    }
+
+    [HttpGet("wellness/latest")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<WellnessDataDto>> GetLatestWellness(
+        [FromQuery] string? onOrBefore,
+        CancellationToken cancellationToken)
+    {
+        var d = onOrBefore is not null ? DateOnly.Parse(onOrBefore) : DateOnly.FromDateTime(DateTime.UtcNow);
+        var query = new GetLatestWellnessDataQuery(_currentUser.UserId, d);
+        var result = await _mediator.Send(query, cancellationToken);
+        if (result is null) return NotFound();
+        return Ok(result);
+    }
+
+    [HttpGet("hrv")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<HrvDataDto>>> GetHrv(
+        [FromQuery] string startDate,
+        [FromQuery] string endDate,
+        CancellationToken cancellationToken)
+    {
+        var start = DateOnly.Parse(startDate);
+        var end = DateOnly.Parse(endDate);
+        var query = new GetHrvDataQuery(_currentUser.UserId, start, end);
+        var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
     }
 }

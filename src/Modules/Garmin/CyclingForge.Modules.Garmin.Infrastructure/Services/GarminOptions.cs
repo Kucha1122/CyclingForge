@@ -4,10 +4,6 @@ public sealed class GarminOptions
 {
     public const string SectionName = "Garmin";
 
-    public string ConsumerKey { get; set; } = string.Empty;
-    public string ConsumerSecret { get; set; } = string.Empty;
-    public string CallbackUrl { get; set; } = string.Empty;
-    public string RequestTokenUrl { get; set; } = "https://connectapi.garmin.com/oauth-service/oauth/request_token";
-    public string AuthorizeUrl { get; set; } = "https://connect.garmin.com/oauthConfirm";
-    public string AccessTokenUrl { get; set; } = "https://connectapi.garmin.com/oauth-service/oauth/access_token";
+    /// <summary>Base URL of the Python garmin-connect microservice (e.g. http://garmin-python:8000).</summary>
+    public string PythonServiceBaseUrl { get; set; } = "http://localhost:8000";
 }

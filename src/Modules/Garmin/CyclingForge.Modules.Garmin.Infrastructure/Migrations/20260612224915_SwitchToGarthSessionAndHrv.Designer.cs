@@ -4,6 +4,7 @@ using CyclingForge.Modules.Garmin.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CyclingForge.Modules.Garmin.Infrastructure.Migrations
 {
     [DbContext(typeof(GarminDbContext))]
-    partial class GarminDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260612224915_SwitchToGarthSessionAndHrv")]
+    partial class SwitchToGarthSessionAndHrv
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -136,9 +139,6 @@ namespace CyclingForge.Modules.Garmin.Infrastructure.Migrations
 
                     b.Property<DateTime?>("SleepEndTime")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("SleepLevelsJson")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("SleepScore")
                         .HasColumnType("int");

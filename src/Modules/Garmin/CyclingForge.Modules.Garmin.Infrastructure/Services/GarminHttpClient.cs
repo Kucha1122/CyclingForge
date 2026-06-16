@@ -1,10 +1,14 @@
+using System.Net;
 using System.Net.Http.Json;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json.Serialization;
+using CyclingForge.Modules.Garmin.Domain.Exceptions;
 
 namespace CyclingForge.Modules.Garmin.Infrastructure.Services;
 
+/// <summary>
+/// Typed HTTP client for the Python garmin-connect microservice.
+/// Replaces the previous hand-rolled OAuth 1.0a Garmin Wellness API calls.
+/// </summary>
 internal sealed class GarminHttpClient
 {
     private readonly HttpClient _httpClient;
@@ -14,236 +18,146 @@ internal sealed class GarminHttpClient
         _httpClient = httpClient;
     }
 
-    public async Task<OAuthRequestTokenResponse> GetRequestTokenAsync(
-        string requestTokenUrl, string consumerKey, string consumerSecret, string callbackUrl,
-        CancellationToken cancellationToken)
+    public async Task<GarminLoginResult> LoginAsync(string email, string password, CancellationToken cancellationToken)
     {
-        var oauthParams = new SortedDictionary<string, string>
-        {
-            ["oauth_consumer_key"] = consumerKey,
-            ["oauth_signature_method"] = "HMAC-SHA1",
-            ["oauth_timestamp"] = GetTimestamp(),
-            ["oauth_nonce"] = GetNonce(),
-            ["oauth_version"] = "1.0",
-            ["oauth_callback"] = callbackUrl
-        };
+        var response = await _httpClient.PostAsJsonAsync(
+            "/login", new LoginRequest(email, password), cancellationToken);
 
-        var signature = GenerateSignature("POST", requestTokenUrl, oauthParams, consumerSecret, "");
-        oauthParams["oauth_signature"] = signature;
+        if (response.StatusCode is HttpStatusCode.Unauthorized)
+            throw new GarminAuthorizationException("Invalid Garmin credentials.");
 
-        var request = new HttpRequestMessage(HttpMethod.Post, requestTokenUrl);
-        request.Headers.Add("Authorization", BuildAuthHeader(oauthParams));
-
-        var response = await _httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
-        var parsed = ParseQueryString(body);
+        var body = await response.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken);
+        if (body is null) throw new GarminAuthorizationException("Empty response from Garmin service.");
 
-        return new OAuthRequestTokenResponse(
-            parsed.GetValueOrDefault("oauth_token", ""),
-            parsed.GetValueOrDefault("oauth_token_secret", ""));
+        if (body.NeedsMfa && !string.IsNullOrEmpty(body.SessionId))
+            return GarminLoginResult.MfaRequired(body.SessionId);
+
+        if (string.IsNullOrEmpty(body.Token))
+            throw new GarminAuthorizationException("Garmin service returned an empty session token.");
+
+        return GarminLoginResult.Success(body.Token);
     }
 
-    public async Task<OAuthAccessTokenResponse> ExchangeForAccessTokenAsync(
-        string accessTokenUrl, string consumerKey, string consumerSecret,
-        string oauthToken, string oauthTokenSecret, string oauthVerifier,
-        CancellationToken cancellationToken)
+    public async Task<string> LoginMfaAsync(string sessionId, string mfaCode, CancellationToken cancellationToken)
     {
-        var oauthParams = new SortedDictionary<string, string>
-        {
-            ["oauth_consumer_key"] = consumerKey,
-            ["oauth_signature_method"] = "HMAC-SHA1",
-            ["oauth_timestamp"] = GetTimestamp(),
-            ["oauth_nonce"] = GetNonce(),
-            ["oauth_version"] = "1.0",
-            ["oauth_token"] = oauthToken,
-            ["oauth_verifier"] = oauthVerifier
-        };
+        var response = await _httpClient.PostAsJsonAsync(
+            "/login/mfa", new MfaRequest(sessionId, mfaCode), cancellationToken);
 
-        var signature = GenerateSignature("POST", accessTokenUrl, oauthParams, consumerSecret, oauthTokenSecret);
-        oauthParams["oauth_signature"] = signature;
+        if (response.StatusCode is HttpStatusCode.Unauthorized)
+            throw new GarminAuthorizationException("Invalid MFA code.");
 
-        var request = new HttpRequestMessage(HttpMethod.Post, accessTokenUrl);
-        request.Headers.Add("Authorization", BuildAuthHeader(oauthParams));
-
-        var response = await _httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
-        var parsed = ParseQueryString(body);
+        var body = await response.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken);
+        if (string.IsNullOrEmpty(body?.Token))
+            throw new GarminAuthorizationException("Garmin service returned an empty session token after MFA.");
 
-        return new OAuthAccessTokenResponse(
-            parsed.GetValueOrDefault("oauth_token", ""),
-            parsed.GetValueOrDefault("oauth_token_secret", ""));
+        return body.Token;
     }
 
-    public async Task<List<GarminSleepApiResponse>?> GetSleepDataAsync(
-        string consumerKey, string consumerSecret,
-        string accessToken, string accessTokenSecret,
-        string startDate, string endDate,
-        CancellationToken cancellationToken)
+    public async Task<List<SleepDto>?> GetSleepAsync(
+        string token, string startDate, string endDate, CancellationToken cancellationToken)
     {
-        var url = $"https://apis.garmin.com/wellness-api/rest/dailySleepData?startDate={startDate}&endDate={endDate}";
-        var request = CreateSignedRequest(HttpMethod.Get, url, consumerKey, consumerSecret, accessToken, accessTokenSecret);
+        var response = await _httpClient.PostAsJsonAsync(
+            "/sleep", new SleepRequest(token, startDate, endDate), cancellationToken);
 
-        var response = await _httpClient.SendAsync(request, cancellationToken);
+        EnsureNotExpired(response);
         if (!response.IsSuccessStatusCode) return null;
 
-        return await response.Content.ReadFromJsonAsync<List<GarminSleepApiResponse>>(cancellationToken);
+        return await response.Content.ReadFromJsonAsync<List<SleepDto>>(cancellationToken);
     }
 
-    public async Task<GarminWellnessApiResponse?> GetDailyWellnessAsync(
-        string consumerKey, string consumerSecret,
-        string accessToken, string accessTokenSecret,
-        string date,
-        CancellationToken cancellationToken)
+    public async Task<WellnessDto?> GetWellnessAsync(
+        string token, string date, CancellationToken cancellationToken)
     {
-        var url = $"https://apis.garmin.com/wellness-api/rest/dailyWellness?date={date}";
-        var request = CreateSignedRequest(HttpMethod.Get, url, consumerKey, consumerSecret, accessToken, accessTokenSecret);
+        var response = await _httpClient.PostAsJsonAsync(
+            "/wellness", new DateRequest(token, date), cancellationToken);
 
-        var response = await _httpClient.SendAsync(request, cancellationToken);
+        EnsureNotExpired(response);
         if (!response.IsSuccessStatusCode) return null;
 
-        return await response.Content.ReadFromJsonAsync<GarminWellnessApiResponse>(cancellationToken);
+        return await response.Content.ReadFromJsonAsync<WellnessDto>(cancellationToken);
     }
 
-    private HttpRequestMessage CreateSignedRequest(
-        HttpMethod method, string fullUrl,
-        string consumerKey, string consumerSecret,
-        string accessToken, string accessTokenSecret)
+    public async Task<HrvDto?> GetHrvAsync(
+        string token, string date, CancellationToken cancellationToken)
     {
-        var uri = new Uri(fullUrl);
-        var baseUrl = $"{uri.Scheme}://{uri.Host}{uri.AbsolutePath}";
+        var response = await _httpClient.PostAsJsonAsync(
+            "/hrv", new DateRequest(token, date), cancellationToken);
 
-        var oauthParams = new SortedDictionary<string, string>
-        {
-            ["oauth_consumer_key"] = consumerKey,
-            ["oauth_token"] = accessToken,
-            ["oauth_signature_method"] = "HMAC-SHA1",
-            ["oauth_timestamp"] = GetTimestamp(),
-            ["oauth_nonce"] = GetNonce(),
-            ["oauth_version"] = "1.0"
-        };
+        EnsureNotExpired(response);
+        if (!response.IsSuccessStatusCode) return null;
 
-        var allParams = new SortedDictionary<string, string>(oauthParams);
-        if (!string.IsNullOrEmpty(uri.Query))
-        {
-            foreach (var pair in ParseQueryString(uri.Query.TrimStart('?')))
-            {
-                allParams[pair.Key] = pair.Value;
-            }
-        }
-
-        var signature = GenerateSignature(method.Method, baseUrl, allParams, consumerSecret, accessTokenSecret);
-        oauthParams["oauth_signature"] = signature;
-
-        var request = new HttpRequestMessage(method, fullUrl);
-        request.Headers.Add("Authorization", BuildAuthHeader(oauthParams));
-        return request;
+        return await response.Content.ReadFromJsonAsync<HrvDto>(cancellationToken);
     }
 
-    private static string GenerateSignature(
-        string httpMethod, string baseUrl,
-        SortedDictionary<string, string> parameters,
-        string consumerSecret, string tokenSecret)
+    private static void EnsureNotExpired(HttpResponseMessage response)
     {
-        var paramString = string.Join("&",
-            parameters.Select(p => $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value)}"));
-
-        var signatureBase = $"{httpMethod.ToUpper()}&{Uri.EscapeDataString(baseUrl)}&{Uri.EscapeDataString(paramString)}";
-        var signingKey = $"{Uri.EscapeDataString(consumerSecret)}&{Uri.EscapeDataString(tokenSecret)}";
-
-        using var hmac = new HMACSHA1(Encoding.ASCII.GetBytes(signingKey));
-        var hash = hmac.ComputeHash(Encoding.ASCII.GetBytes(signatureBase));
-        return Convert.ToBase64String(hash);
-    }
-
-    private static string BuildAuthHeader(SortedDictionary<string, string> oauthParams)
-    {
-        var parts = oauthParams.Select(p => $"{Uri.EscapeDataString(p.Key)}=\"{Uri.EscapeDataString(p.Value)}\"");
-        return $"OAuth {string.Join(", ", parts)}";
-    }
-
-    private static string GetTimestamp()
-        => DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
-
-    private static string GetNonce()
-        => Guid.NewGuid().ToString("N");
-
-    private static Dictionary<string, string> ParseQueryString(string query)
-    {
-        return query.Split('&', StringSplitOptions.RemoveEmptyEntries)
-            .Select(p => p.Split('=', 2))
-            .Where(p => p.Length == 2)
-            .ToDictionary(
-                p => Uri.UnescapeDataString(p[0]),
-                p => Uri.UnescapeDataString(p[1]));
+        if (response.StatusCode is HttpStatusCode.Unauthorized)
+            throw new GarminAuthorizationException("Garmin session expired. Please reconnect your account.");
     }
 }
 
-internal sealed record OAuthRequestTokenResponse(string OAuthToken, string OAuthTokenSecret);
-internal sealed record OAuthAccessTokenResponse(string OAuthToken, string OAuthTokenSecret);
-
-internal sealed class GarminSleepApiResponse
+internal sealed record GarminLoginResult(bool IsMfaRequired, string? Token, string? SessionId)
 {
-    [JsonPropertyName("calendarDate")]
-    public string? CalendarDate { get; set; }
-
-    [JsonPropertyName("sleepTimeInSeconds")]
-    public int SleepTimeInSeconds { get; set; }
-
-    [JsonPropertyName("deepSleepDurationInSeconds")]
-    public int DeepSleepDurationInSeconds { get; set; }
-
-    [JsonPropertyName("lightSleepDurationInSeconds")]
-    public int LightSleepDurationInSeconds { get; set; }
-
-    [JsonPropertyName("remSleepInSeconds")]
-    public int RemSleepInSeconds { get; set; }
-
-    [JsonPropertyName("awakeDurationInSeconds")]
-    public int AwakeDurationInSeconds { get; set; }
-
-    [JsonPropertyName("overallSleepScore")]
-    public int? OverallSleepScore { get; set; }
-
-    [JsonPropertyName("averageSpO2Value")]
-    public float? AverageSpO2Value { get; set; }
-
-    [JsonPropertyName("averageRespirationValue")]
-    public float? AverageRespirationValue { get; set; }
-
-    [JsonPropertyName("sleepStartTimestampGMT")]
-    public long? SleepStartTimestampGmt { get; set; }
-
-    [JsonPropertyName("sleepEndTimestampGMT")]
-    public long? SleepEndTimestampGmt { get; set; }
+    public static GarminLoginResult Success(string token) => new(false, token, null);
+    public static GarminLoginResult MfaRequired(string sessionId) => new(true, null, sessionId);
 }
 
-internal sealed class GarminWellnessApiResponse
+internal sealed record LoginRequest(string Email, string Password);
+internal sealed record MfaRequest(string SessionId, string MfaCode);
+internal sealed record SleepRequest(string Token, string StartDate, string EndDate);
+internal sealed record DateRequest(string Token, string Date);
+
+internal sealed class LoginResponse
 {
-    [JsonPropertyName("calendarDate")]
-    public string? CalendarDate { get; set; }
+    [JsonPropertyName("token")] public string? Token { get; set; }
+    [JsonPropertyName("needsMfa")] public bool NeedsMfa { get; set; }
+    [JsonPropertyName("sessionId")] public string? SessionId { get; set; }
+}
 
-    [JsonPropertyName("vo2Max")]
-    public float? Vo2Max { get; set; }
+internal sealed class SleepDto
+{
+    [JsonPropertyName("date")] public string? Date { get; set; }
+    [JsonPropertyName("totalSleepSeconds")] public int TotalSleepSeconds { get; set; }
+    [JsonPropertyName("deepSleepSeconds")] public int DeepSleepSeconds { get; set; }
+    [JsonPropertyName("lightSleepSeconds")] public int LightSleepSeconds { get; set; }
+    [JsonPropertyName("remSleepSeconds")] public int RemSleepSeconds { get; set; }
+    [JsonPropertyName("awakeSeconds")] public int AwakeSeconds { get; set; }
+    [JsonPropertyName("sleepScore")] public int? SleepScore { get; set; }
+    [JsonPropertyName("averageSpO2")] public float? AverageSpO2 { get; set; }
+    [JsonPropertyName("averageRespirationRate")] public float? AverageRespirationRate { get; set; }
+    // Naive datetime (no 'Z') — local wall-clock time, not UTC.
+    [JsonPropertyName("sleepStartTime")] public DateTime? SleepStartTime { get; set; }
+    [JsonPropertyName("sleepEndTime")] public DateTime? SleepEndTime { get; set; }
+    [JsonPropertyName("sleepLevels")] public List<SleepLevelDto>? SleepLevels { get; set; }
+}
 
-    [JsonPropertyName("trainingReadinessScore")]
-    public int? TrainingReadinessScore { get; set; }
+internal sealed class SleepLevelDto
+{
+    [JsonPropertyName("startGmt")] public string? StartGmt { get; set; }
+    [JsonPropertyName("endGmt")] public string? EndGmt { get; set; }
+    [JsonPropertyName("activityLevel")] public float ActivityLevel { get; set; }
+}
 
-    [JsonPropertyName("trainingReadinessLevel")]
-    public string? TrainingReadinessLevel { get; set; }
+internal sealed class WellnessDto
+{
+    [JsonPropertyName("date")] public string? Date { get; set; }
+    [JsonPropertyName("vo2MaxMlPerMinPerKg")] public float? Vo2Max { get; set; }
+    [JsonPropertyName("trainingReadinessScore")] public int? TrainingReadinessScore { get; set; }
+    [JsonPropertyName("trainingReadinessLevel")] public string? TrainingReadinessLevel { get; set; }
+    [JsonPropertyName("bodyBatteryMin")] public int? BodyBatteryMin { get; set; }
+    [JsonPropertyName("bodyBatteryMax")] public int? BodyBatteryMax { get; set; }
+    [JsonPropertyName("averageStressLevel")] public int? AverageStressLevel { get; set; }
+    [JsonPropertyName("stepsCount")] public int? StepsCount { get; set; }
+}
 
-    [JsonPropertyName("bodyBatteryChargedValue")]
-    public int? BodyBatteryMax { get; set; }
-
-    [JsonPropertyName("bodyBatteryDrainedValue")]
-    public int? BodyBatteryMin { get; set; }
-
-    [JsonPropertyName("averageStressLevel")]
-    public int? AverageStressLevel { get; set; }
-
-    [JsonPropertyName("totalSteps")]
-    public int? TotalSteps { get; set; }
+internal sealed class HrvDto
+{
+    [JsonPropertyName("date")] public string? Date { get; set; }
+    [JsonPropertyName("lastNightAvgMs")] public int? LastNightAvgMs { get; set; }
+    [JsonPropertyName("lastNight5MinHighMs")] public int? LastNight5MinHighMs { get; set; }
+    [JsonPropertyName("status")] public string? Status { get; set; }
 }

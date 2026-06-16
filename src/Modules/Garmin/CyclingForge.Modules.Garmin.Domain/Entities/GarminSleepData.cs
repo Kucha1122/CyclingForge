@@ -16,6 +16,8 @@ public sealed class GarminSleepData : AggregateRoot<Guid>
     public float? AverageRespirationRate { get; private set; }
     public DateTime? SleepStartTime { get; private set; }
     public DateTime? SleepEndTime { get; private set; }
+    /// <summary>JSON array of sleep-stage segments (from Garmin sleepMovement).</summary>
+    public string? SleepLevelsJson { get; private set; }
     public DateTime SyncedAt { get; private set; }
 
     private GarminSleepData() { }
@@ -33,6 +35,7 @@ public sealed class GarminSleepData : AggregateRoot<Guid>
         float? averageRespirationRate,
         DateTime? sleepStartTime,
         DateTime? sleepEndTime,
+        string? sleepLevelsJson,
         DateTime syncedAt)
     {
         return new GarminSleepData
@@ -50,6 +53,7 @@ public sealed class GarminSleepData : AggregateRoot<Guid>
             AverageRespirationRate = averageRespirationRate,
             SleepStartTime = sleepStartTime,
             SleepEndTime = sleepEndTime,
+            SleepLevelsJson = sleepLevelsJson,
             SyncedAt = syncedAt
         };
     }
@@ -65,6 +69,7 @@ public sealed class GarminSleepData : AggregateRoot<Guid>
         float? averageRespirationRate,
         DateTime? sleepStartTime,
         DateTime? sleepEndTime,
+        string? sleepLevelsJson,
         DateTime syncedAt)
     {
         TotalSleepSeconds = totalSleepSeconds;
@@ -77,6 +82,7 @@ public sealed class GarminSleepData : AggregateRoot<Guid>
         AverageRespirationRate = averageRespirationRate;
         SleepStartTime = sleepStartTime;
         SleepEndTime = sleepEndTime;
+        SleepLevelsJson = sleepLevelsJson;
         SyncedAt = syncedAt;
     }
 }
