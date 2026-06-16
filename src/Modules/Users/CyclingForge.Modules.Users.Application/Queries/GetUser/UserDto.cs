@@ -13,4 +13,5 @@ public sealed record UserDto(
     int? MaxHeartRate,
     int? RestingHeartRate,
     string? Gender,
-    int? EftpMinDurationSeconds);
+    int? EftpMinDurationSeconds,
+    bool EnableRpeFeedback);

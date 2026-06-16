@@ -34,7 +34,7 @@ internal sealed class UpdateProfileCommandHandler : IRequestHandler<UpdateProfil
         }
 
         var previousFtp = user.FunctionalThresholdPower;
-        user.UpdateProfile(request.Ftp, request.WeightKg, request.Lthr, request.EftpMinDurationSeconds, request.MaxHeartRate, request.RestingHeartRate, request.Gender);
+        user.UpdateProfile(request.Ftp, request.WeightKg, request.Lthr, request.EftpMinDurationSeconds, request.MaxHeartRate, request.RestingHeartRate, request.Gender, request.EnableRpeFeedback);
         await _userRepository.UpdateAsync(user);
 
         if (request.Ftp.HasValue && request.Ftp.Value != previousFtp)

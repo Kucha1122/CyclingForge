@@ -21,6 +21,12 @@ export const ProfilePage = () => {
   const [zonesError, setZonesError] = useState<string | null>(null);
   const [garminStatus, setGarminStatus] = useState<GarminStatusDto | null>(null);
   const [garminDisconnecting, setGarminDisconnecting] = useState(false);
+  const [garminEmail, setGarminEmail] = useState('');
+  const [garminPassword, setGarminPassword] = useState('');
+  const [garminConnecting, setGarminConnecting] = useState(false);
+  const [garminError, setGarminError] = useState<string | null>(null);
+  const [garminMfaSessionId, setGarminMfaSessionId] = useState<string | null>(null);
+  const [garminMfaCode, setGarminMfaCode] = useState('');
   const [ftp, setFtp] = useState<string>('');
   const [weight, setWeight] = useState<string>('');
   const [lthr, setLthr] = useState<string>('');
@@ -28,6 +34,7 @@ export const ProfilePage = () => {
   const [restingHeartRate, setRestingHeartRate] = useState<string>('');
   const [gender, setGender] = useState<string>('male');
   const [eftpMinMinutes, setEftpMinMinutes] = useState<number>(5);
+  const [enableRpeFeedback, setEnableRpeFeedback] = useState<boolean>(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const handleConnectStrava = () => {
@@ -65,6 +72,7 @@ export const ProfilePage = () => {
           }
           const eftpSec = profileResponse.data.eftpMinDurationSeconds;
           setEftpMinMinutes(typeof eftpSec === 'number' ? Math.round(eftpSec / 60) : 5);
+          setEnableRpeFeedback(profileResponse.data.enableRpeFeedback ?? true);
         }
 
         try {
@@ -126,6 +134,7 @@ export const ProfilePage = () => {
           restingHeartRate: restingHrValue,
           gender: gender || null,
           eftpMinDurationSeconds: eftpSec,
+          enableRpeFeedback,
         });
         setMessage({ type: 'success', text: t('profileUpdated') });
         
@@ -264,24 +273,111 @@ export const ProfilePage = () => {
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
-                <p className="text-sm text-secondary">
-                  {t('connectGarminHint')}
-                </p>
-                <button
-                  onClick={async () => {
+              <>{!garminMfaSessionId ? (
+                <form
+                  className="flex flex-col gap-3"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setGarminError(null);
+                    setGarminConnecting(true);
                     try {
-                      const res = await garminApi.getAuthorizeUrl();
-                      window.location.href = res.data.authorizeUrl;
+                      const res = await garminApi.connect(garminEmail, garminPassword);
+                      if (res.status === 202 && res.data.sessionId) {
+                        setGarminMfaSessionId(res.data.sessionId);
+                      } else {
+                        const status = await garminApi.getStatus();
+                        setGarminStatus(status.data);
+                        setGarminEmail('');
+                        setGarminPassword('');
+                      }
                     } catch {
-                      // ignore
+                      setGarminError(t('garminConnectError'));
+                    } finally {
+                      setGarminConnecting(false);
                     }
                   }}
-                  className="inline-flex items-center justify-center rounded-lg bg-[#007CC3] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#006AAF]"
                 >
-                  {t('connectWithGarmin')}
-                </button>
-              </div>
+                  <p className="text-sm text-secondary">{t('connectGarminHint')}</p>
+                  <input
+                    type="email"
+                    required
+                    autoComplete="username"
+                    value={garminEmail}
+                    onChange={(e) => setGarminEmail(e.target.value)}
+                    placeholder={t('garminEmail')}
+                    className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary"
+                  />
+                  <input
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                    value={garminPassword}
+                    onChange={(e) => setGarminPassword(e.target.value)}
+                    placeholder={t('garminPassword')}
+                    className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary"
+                  />
+                  <p className="text-xs text-tertiary">{t('garminPasswordNotice')}</p>
+                  {garminError && <p className="text-xs text-state-error-text">{garminError}</p>}
+                  <button
+                    type="submit"
+                    disabled={garminConnecting}
+                    className="inline-flex items-center justify-center rounded-lg bg-[#007CC3] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#006AAF] disabled:opacity-50"
+                  >
+                    {garminConnecting ? t('connectingGarmin') : t('connectWithGarmin')}
+                  </button>
+                </form>
+              ) : (
+                <form
+                  className="flex flex-col gap-3"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setGarminError(null);
+                    setGarminConnecting(true);
+                    try {
+                      await garminApi.connectMfa(garminMfaSessionId, garminMfaCode);
+                      const status = await garminApi.getStatus();
+                      setGarminStatus(status.data);
+                      setGarminMfaSessionId(null);
+                      setGarminMfaCode('');
+                      setGarminEmail('');
+                      setGarminPassword('');
+                    } catch {
+                      setGarminError(t('garminConnectError'));
+                    } finally {
+                      setGarminConnecting(false);
+                    }
+                  }}
+                >
+                  <p className="text-sm text-secondary">{t('garminMfaHint')}</p>
+                  <input
+                    type="text"
+                    required
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={garminMfaCode}
+                    onChange={(e) => setGarminMfaCode(e.target.value)}
+                    placeholder={t('garminMfaCode')}
+                    className="rounded-lg border border-border-default bg-surface px-3 py-2 text-sm text-primary"
+                  />
+                  {garminError && <p className="text-xs text-state-error-text">{garminError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setGarminMfaSessionId(null); setGarminError(null); }}
+                      className="inline-flex items-center justify-center rounded-lg border border-border-default px-4 py-2 text-sm font-medium text-secondary"
+                    >
+                      {t('cancel')}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={garminConnecting}
+                      className="inline-flex items-center justify-center rounded-lg bg-[#007CC3] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#006AAF] disabled:opacity-50"
+                    >
+                      {garminConnecting ? t('connectingGarmin') : t('confirmMfa')}
+                    </button>
+                  </div>
+                </form>
+              )}</>
             )}
           </div>
 
@@ -587,6 +683,31 @@ export const ProfilePage = () => {
                   <option value="male">{t('male')}</option>
                   <option value="female">{t('female')}</option>
                 </select>
+              </div>
+
+              {/* RPE Feedback toggle */}
+              <div className="rounded-lg border border-border-default p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-primary">{t('rpeFeedbackLabel')}</p>
+                    <p className="mt-1 text-xs text-secondary">{t('rpeFeedbackHint')}</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enableRpeFeedback}
+                    onClick={() => setEnableRpeFeedback((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
+                      enableRpeFeedback ? 'bg-accent' : 'bg-muted'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                        enableRpeFeedback ? 'translate-x-5' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
 
               {/* Calculated Metrics */}

@@ -32,6 +32,7 @@ internal sealed class GetUserQueryHandler : IRequestHandler<GetUserQuery, UserDt
             user.MaxHeartRate,
             user.RestingHeartRate,
             user.Gender,
-            user.EftpMinDurationSeconds);
+            user.EftpMinDurationSeconds,
+            user.EnableRpeFeedback);
     }
 }

@@ -32,6 +32,20 @@ internal sealed class DailyRecommendationConfiguration : IEntityTypeConfiguratio
 
         builder.Property(r => r.ReadinessScore).HasPrecision(5, 2);
 
+        builder.Property(r => r.LegsFeel)
+            .HasConversion(
+                v => v.HasValue ? v.Value.ToString() : null,
+                v => string.IsNullOrEmpty(v) ? null : Enum.Parse<LegsFeel>(v))
+            .HasMaxLength(32);
+
+        builder.Property(r => r.SessionQuality)
+            .HasConversion(
+                v => v.HasValue ? v.Value.ToString() : null,
+                v => string.IsNullOrEmpty(v) ? null : Enum.Parse<SessionQuality>(v))
+            .HasMaxLength(32);
+
+        builder.Property(r => r.FeedbackNote).HasMaxLength(1000);
+
         builder.HasIndex(r => new { r.UserId, r.Date }).IsUnique();
 
         builder.HasOne(r => r.RecommendedWorkout)

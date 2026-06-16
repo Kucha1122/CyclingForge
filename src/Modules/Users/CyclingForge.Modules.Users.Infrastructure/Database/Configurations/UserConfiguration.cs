@@ -65,6 +65,10 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(16)
             .IsRequired(false);
 
+        builder.Property(u => u.EnableRpeFeedback)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         builder.Ignore(u => u.DomainEvents);
     }
 }

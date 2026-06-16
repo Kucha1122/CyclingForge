@@ -21,6 +21,8 @@ public sealed class User : AggregateRoot<UserId>
     public string Gender { get; private set; } = "male";
     /// <summary>Minimum effort duration (seconds) used for eFTP estimation; null = default 300 (5 min). Valid range 180–1800 (intervals.icu).</summary>
     public int? EftpMinDurationSeconds { get; private set; }
+    /// <summary>Whether the post-workout RPE feedback prompt is shown and the sRPE signal feeds the recommendation engine. Defaults to true.</summary>
+    public bool EnableRpeFeedback { get; private set; } = true;
 
     private User() { }
 
@@ -62,8 +64,13 @@ public sealed class User : AggregateRoot<UserId>
         WeightKg = weightKg;
     }
 
-    public void UpdateProfile(int? ftp, float? weightKg, int? lthr = null, int? eftpMinDurationSeconds = null, int? maxHr = null, int? restingHr = null, string? gender = null)
+    public void UpdateProfile(int? ftp, float? weightKg, int? lthr = null, int? eftpMinDurationSeconds = null, int? maxHr = null, int? restingHr = null, string? gender = null, bool? enableRpeFeedback = null)
     {
+        if (enableRpeFeedback.HasValue)
+        {
+            EnableRpeFeedback = enableRpeFeedback.Value;
+        }
+
         if (ftp.HasValue)
         {
             if (ftp.Value <= 0)
