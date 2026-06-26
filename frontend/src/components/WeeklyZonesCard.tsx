@@ -1,7 +1,15 @@
 import { useTranslation } from 'react-i18next';
+import { computeIntensityDistribution, type IntensityModel } from '../utils/activityMetrics';
+import { InfoTooltip } from './InfoTooltip';
 
 // HR zone colours (Z1..Z5+), matching RealizedWeekPage.
 const HR_ZONE_COLORS = ['#94a3b8', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7'];
+
+const MODEL_KEYS: Record<Exclude<IntensityModel, 'none'>, string> = {
+  polarized: 'intensityModelPolarized',
+  pyramidal: 'intensityModelPyramidal',
+  threshold: 'intensityModelThreshold',
+};
 
 function formatDuration(seconds: number): string {
   const m = Math.round(seconds / 60);
@@ -15,13 +23,23 @@ interface Props {
 
 export const WeeklyZonesCard = ({ weeklyHrZoneSeconds }: Props) => {
   const { t } = useTranslation('common');
+  const tCharts = useTranslation('charts').t;
   const total = weeklyHrZoneSeconds.reduce((a, b) => a + b, 0);
+  const model = computeIntensityDistribution(weeklyHrZoneSeconds).model;
 
   return (
     <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
       <div className="mb-3 flex items-baseline justify-between">
         <h3 className="text-sm font-semibold text-secondary">{t('timeInZones')}</h3>
-        <span className="text-xs text-tertiary">{t('thisWeekLabel')} · {formatDuration(total)}</span>
+        <div className="flex items-center gap-2">
+          {model !== 'none' && (
+            <span className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-secondary">
+              {tCharts(MODEL_KEYS[model])}
+              <InfoTooltip text={tCharts('glossaryIntensity')} label={tCharts('intensityTitle')} />
+            </span>
+          )}
+          <span className="text-xs text-tertiary">{t('thisWeekLabel')} · {formatDuration(total)}</span>
+        </div>
       </div>
 
       {total === 0 ? (

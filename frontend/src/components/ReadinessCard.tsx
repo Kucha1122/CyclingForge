@@ -1,5 +1,6 @@
 import { type FC } from 'react';
 import { useTranslation } from 'react-i18next';
+import { InfoTooltip } from './InfoTooltip';
 
 interface ReadinessCardProps {
   currentTSB: number;
@@ -61,7 +62,10 @@ export const ReadinessCard: FC<ReadinessCardProps> = ({
         <div className="mb-2 text-6xl">{getStatusIcon(currentTSB)}</div>
         <div className={`mx-auto mb-2 inline-block rounded-full px-4 py-2 text-white ${getStatusColor(currentTSB)}`}>
           <span className="text-2xl font-bold">{currentTSB.toFixed(1)}</span>
-          <span className="ml-1 text-sm">TSB</span>
+          <span className="ml-1 inline-flex items-center gap-1 text-sm">
+            TSB
+            <InfoTooltip text={t('glossaryTsb')} label="TSB" />
+          </span>
         </div>
         <p className="text-lg font-semibold text-primary">{displayFormStatus}</p>
       </div>

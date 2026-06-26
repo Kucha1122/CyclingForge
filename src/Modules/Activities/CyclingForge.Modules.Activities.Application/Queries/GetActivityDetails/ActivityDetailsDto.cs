@@ -20,6 +20,7 @@ public sealed record ActivityDetailsDto(
     float? NormalizedPower,
     float? IntensityFactor,
     float? TrainingStressScore,
+    float? VariabilityIndex,
     int? FtpUsed,
     float? Best5MinPower,
     float? Best20MinPower,

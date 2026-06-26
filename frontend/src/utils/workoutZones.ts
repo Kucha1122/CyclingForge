@@ -6,7 +6,7 @@ const ZONE_BOUNDS = [0, 0.56, 0.76, 0.91, 1.06, 1.21, 2] as const;
 export const ZONE_COUNT = 6;
 
 // Returns the zero-based zone index (0 = Z1 .. 5 = Z6) for a given power fraction of FTP.
-function powerToZoneIndex(power: number): number {
+export function powerToZoneIndex(power: number): number {
   if (power < 0.56) return 0;
   if (power < 0.76) return 1;
   if (power < 0.91) return 2;
@@ -59,6 +59,29 @@ export function computeWorkoutZoneSeconds(steps: WorkoutStepDto[] | undefined): 
         acc[powerToZoneIndex(step.powerHigh || step.powerLow)] += step.durationSeconds;
         break;
     }
+  }
+
+  return acc.map((s) => Math.round(s));
+}
+
+// Computes actual seconds spent in each power zone from a recorded power stream.
+// Uses the time delta between consecutive samples (handles non-1 Hz streams and
+// pauses); gaps larger than `maxGapSeconds` are clamped so stops don't inflate Z1.
+export function computePowerZoneSecondsFromStream(
+  samples: { watts: number | null; time: number }[],
+  ftp: number,
+  maxGapSeconds = 10
+): number[] {
+  const acc = new Array<number>(ZONE_COUNT).fill(0);
+  if (!ftp || ftp <= 0 || samples.length < 2) return acc;
+
+  for (let i = 0; i < samples.length; i++) {
+    const watts = samples[i].watts;
+    if (watts == null) continue;
+    // Duration this sample represents: delta to the next sample, clamped.
+    const next = samples[i + 1];
+    const delta = next ? Math.min(Math.max(next.time - samples[i].time, 0), maxGapSeconds) : 1;
+    acc[powerToZoneIndex(watts / ftp)] += delta;
   }
 
   return acc.map((s) => Math.round(s));

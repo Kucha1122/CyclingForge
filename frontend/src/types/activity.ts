@@ -66,6 +66,7 @@ export interface ActivityDetailsDto {
   normalizedPower?: number;
   intensityFactor?: number;
   trainingStressScore?: number;
+  variabilityIndex?: number;
   ftpUsed?: number;
   best5MinPower?: number;
   best20MinPower?: number;

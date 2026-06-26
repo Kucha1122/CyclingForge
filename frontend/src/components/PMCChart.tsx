@@ -5,6 +5,7 @@ import type { FtpChangeDto, PmcActivitySummaryDto } from '../services/api';
 import { formatDate } from '../utils/format';
 import i18n from '../i18n';
 import { useTheme } from '../context/ThemeContext';
+import { InfoTooltip } from './InfoTooltip';
 
 interface PMCData {
   date: string;
@@ -397,15 +398,15 @@ export const PMCChart: FC<PMCChartProps> = ({ data, ftpChanges = [], ctlDays = 4
 
       <div className="mt-4 grid grid-cols-3 gap-4 text-center text-sm">
         <div>
-          <p className="text-secondary">CTL ({t('ctl')})</p>
+          <p className="flex items-center justify-center gap-1 text-secondary">CTL ({t('ctl')}) <InfoTooltip text={t('glossaryCtl')} label="CTL" /></p>
           <p className="text-xs text-tertiary">{t('ctlDaysAverage', { days: ctlDays })}</p>
         </div>
         <div>
-          <p className="text-secondary">ATL ({t('atl')})</p>
+          <p className="flex items-center justify-center gap-1 text-secondary">ATL ({t('atl')}) <InfoTooltip text={t('glossaryAtl')} label="ATL" /></p>
           <p className="text-xs text-tertiary">{t('atlDaysAverage', { days: atlDays })}</p>
         </div>
         <div>
-          <p className="text-secondary">TSB ({t('tsb')})</p>
+          <p className="flex items-center justify-center gap-1 text-secondary">TSB ({t('tsb')}) <InfoTooltip text={t('glossaryTsb')} label="TSB" /></p>
           <p className="text-xs text-tertiary">{t('tsbFormula')}</p>
         </div>
       </div>

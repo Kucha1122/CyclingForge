@@ -3,6 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { activitiesApi, stravaApi } from '../services/api';
 import type { ActivityDetailsDto } from '../types/activity';
+import { InfoTooltip } from '../components/InfoTooltip';
+import { PowerZonesCard } from '../components/PowerZonesCard';
+import { computePowerZoneSecondsFromStream } from '../utils/workoutZones';
+import { computeAerobicDecoupling } from '../utils/activityMetrics';
 import { formatDate as formatDateUtil, formatTime as formatTimeUtil, formatDateTime } from '../utils/format';
 import {
   LineChart,
@@ -128,12 +132,16 @@ interface StatCardProps {
   unit?: string;
   accent?: string;
   sub?: string;
+  info?: string;
 }
 
-function StatCard({ label, value, unit, accent = 'text-primary', sub }: StatCardProps) {
+function StatCard({ label, value, unit, accent = 'text-primary', sub, info }: StatCardProps) {
   return (
     <div className="rounded-xl bg-surface p-4 shadow-sm ring-1 ring-border-default flex flex-col gap-1">
-      <span className="text-xs font-medium uppercase tracking-wide text-tertiary">{label}</span>
+      <span className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-tertiary">
+        {label}
+        {info && <InfoTooltip text={info} label={label} />}
+      </span>
       <div className="flex items-baseline gap-1">
         <span className={`text-2xl font-bold ${accent}`}>{value}</span>
         {unit && <span className="text-sm text-tertiary">{unit}</span>}
@@ -263,6 +271,7 @@ export default function ActivityDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const { t: tAd, i18n } = useTranslation('activityDetails');
   const tErr = useTranslation('errors').t;
+  const tCharts = useTranslation('charts').t;
   const [activity, setActivity] = useState<ActivityDetailsDto | null>(null);
   const [rawChart, setRawChart] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -292,6 +301,12 @@ export default function ActivityDetailsPage() {
   }, [id]);
 
   const chartData = useMemo(() => downsample(rawChart), [rawChart]);
+  const powerZoneSeconds = useMemo(
+    () => computePowerZoneSecondsFromStream(rawChart, activity?.ftpUsed ?? 0),
+    [rawChart, activity?.ftpUsed]
+  );
+  const hasPowerZones = powerZoneSeconds.some((s) => s > 0);
+  const decoupling = useMemo(() => computeAerobicDecoupling(rawChart), [rawChart]);
 
   if (loading) return <LoadingSkeleton />;
   if (error || !activity)
@@ -426,6 +441,7 @@ export default function ActivityDetailsPage() {
                 unit="W"
                 accent="text-blue-700"
                 sub="NP"
+                info={tCharts('glossaryNp')}
               />
             )}
             {activity.maxPower != null && (
@@ -442,6 +458,16 @@ export default function ActivityDetailsPage() {
                 value={activity.intensityFactor.toFixed(2)}
                 accent="text-orange-600"
                 sub="IF"
+                info={tCharts('glossaryIf')}
+              />
+            )}
+            {activity.variabilityIndex != null && (
+              <StatCard
+                label={tAd('variabilityIndex')}
+                value={activity.variabilityIndex.toFixed(2)}
+                accent="text-teal-600"
+                sub="VI"
+                info={tCharts('glossaryVi')}
               />
             )}
             {activity.trainingStressScore != null && (
@@ -450,6 +476,7 @@ export default function ActivityDetailsPage() {
                 value={Math.round(activity.trainingStressScore)}
                 accent="text-red-600"
                 sub="TSS"
+                info={tCharts('glossaryTss')}
               />
             )}
             {activity.ftpUsed != null && (
@@ -458,6 +485,15 @@ export default function ActivityDetailsPage() {
                 value={activity.ftpUsed}
                 unit="W"
                 accent="text-secondary"
+              />
+            )}
+            {decoupling != null && (
+              <StatCard
+                label={tCharts('decoupling')}
+                value={decoupling.toFixed(1)}
+                unit="%"
+                accent={decoupling <= 5 ? 'text-green-600' : 'text-orange-600'}
+                info={tCharts('glossaryDecoupling')}
               />
             )}
           </div>
@@ -722,6 +758,15 @@ export default function ActivityDetailsPage() {
       )}
 
       {/* ── Power Bests ── */}
+      {hasPowerZones && (
+        <div>
+          <SectionHeading>{tCharts('powerZonesTitle')}</SectionHeading>
+          <div className="rounded-xl bg-surface p-5 shadow-sm ring-1 ring-border-default">
+            <PowerZonesCard zoneSeconds={powerZoneSeconds} />
+          </div>
+        </div>
+      )}
+
       {hasPowerBests && (
         <div>
           <SectionHeading>{tAd('powerBests')}</SectionHeading>

@@ -8,6 +8,7 @@
   "normalizedPower": "Normalized Power",
   "maxPower": "Max Power",
   "intensityFactor": "Intensity Factor",
+  "variabilityIndex": "Variability Index",
   "trainingLoad": "Training Load",
   "ftpUsed": "FTP (used)",
   "avgHr": "Avg HR",
