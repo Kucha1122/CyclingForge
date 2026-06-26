@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { recommendationsApi, usersApi } from '../services/api';
+import { PageLoader } from '../components/Spinner';
+import { recommendationsApi, usersApi, activitiesApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { ReadinessGauge } from '../components/workouts/ReadinessGauge';
 import { IntervalChart } from '../components/workouts/IntervalChart';
@@ -76,6 +77,7 @@ export const TodayWorkoutPage = () => {
   const [noPreference, setNoPreference] = useState(false);
   const [rpeEnabled, setRpeEnabled] = useState(true);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [actualTss, setActualTss] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user?.userId) return;
@@ -101,6 +103,19 @@ export const TodayWorkoutPage = () => {
       }
     }).finally(() => setLoading(false));
   }, []);
+
+  // When the session is completed and linked to an activity, pull its actual
+  // TSS so we can show planned-vs-actual compliance.
+  useEffect(() => {
+    const id = recommendation?.completedActivityId;
+    if (!id) {
+      setActualTss(null);
+      return;
+    }
+    activitiesApi.getActivityDetails(id)
+      .then((res) => setActualTss(res.data.trainingStressScore ?? null))
+      .catch(() => setActualTss(null));
+  }, [recommendation?.completedActivityId]);
 
   const [regenerating, setRegenerating] = useState(false);
 
@@ -136,7 +151,7 @@ export const TodayWorkoutPage = () => {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center"><p className="text-tertiary">{t('loadingWorkout')}</p></div>;
+    return <PageLoader label={t('loadingWorkout')} />;
   }
 
   if (noPreference) {
@@ -304,6 +319,27 @@ export const TodayWorkoutPage = () => {
                 {t('viewFullWorkout')}
               </Link>
             </div>
+
+            {actualTss != null && workout.estimatedTSS > 0 && (() => {
+              const compliance = Math.round((actualTss / workout.estimatedTSS) * 100);
+              const onTarget = compliance >= 85 && compliance <= 115;
+              const barColor = onTarget ? 'bg-green-500' : compliance < 85 ? 'bg-blue-500' : 'bg-orange-500';
+              return (
+                <div className="mt-4 rounded-lg bg-muted p-4">
+                  <div className="mb-2 flex items-center justify-between text-sm">
+                    <span className="font-medium text-secondary">{t('complianceTitle')}</span>
+                    <span className="font-semibold text-primary">{compliance}%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-surface">
+                    <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.min(compliance, 150)}%` }} />
+                  </div>
+                  <div className="mt-2 flex justify-between text-xs text-tertiary">
+                    <span>{t('compliancePlanned')}: {Math.round(workout.estimatedTSS)} {tCommon('tssLabel')}</span>
+                    <span>{t('complianceActual')}: {Math.round(actualTss)} {tCommon('tssLabel')}</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
