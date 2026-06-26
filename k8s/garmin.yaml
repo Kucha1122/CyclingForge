@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cyclingforge-garmin
+  namespace: cyclingforge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cyclingforge-garmin
+  template:
+    metadata:
+      labels:
+        app: cyclingforge-garmin
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: garmin
+          image: ghcr.io/kucha1122/cyclingforge-garmin:latest
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cyclingforge-garmin
+  namespace: cyclingforge
+spec:
+  selector:
+    app: cyclingforge-garmin
+  ports:
+    - port: 8000
+      targetPort: 8000

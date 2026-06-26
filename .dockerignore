@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/.git/
+**/.vs/
+**/.vscode/
+**/dist/
+**/out/
+*.md
+*.sln.DotSettings*
+frontend/
+services/
+scripts/
+tests/
+tools/
+k8s/
+.github/

@@ -1,0 +1,56 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ghcr.io/kucha1122/cyclingforge-backend
+  FRONTEND_IMAGE: ghcr.io/kucha1122/cyclingforge-frontend
+  GARMIN_IMAGE: ghcr.io/kucha1122/cyclingforge-garmin
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build & push backend image
+        run: |
+          docker build -t $BACKEND_IMAGE:${{ github.sha }} -t $BACKEND_IMAGE:latest .
+          docker push $BACKEND_IMAGE:${{ github.sha }}
+          docker push $BACKEND_IMAGE:latest
+
+      - name: Build & push frontend image
+        run: |
+          docker build -t $FRONTEND_IMAGE:${{ github.sha }} -t $FRONTEND_IMAGE:latest -f frontend/Dockerfile frontend/
+          docker push $FRONTEND_IMAGE:${{ github.sha }}
+          docker push $FRONTEND_IMAGE:latest
+
+      - name: Build & push garmin image
+        run: |
+          docker build -t $GARMIN_IMAGE:${{ github.sha }} -t $GARMIN_IMAGE:latest -f services/garmin-python/Dockerfile services/garmin-python/
+          docker push $GARMIN_IMAGE:${{ github.sha }}
+          docker push $GARMIN_IMAGE:latest
+
+      - name: Deploy to k3s
+        run: |
+          sudo kubectl apply -f k8s/namespace.yaml
+          sudo kubectl apply -f k8s/backend.yaml
+          sudo kubectl apply -f k8s/frontend.yaml
+          sudo kubectl apply -f k8s/garmin.yaml
+          sudo kubectl -n cyclingforge set image deployment/cyclingforge-backend backend=$BACKEND_IMAGE:${{ github.sha }}
+          sudo kubectl -n cyclingforge set image deployment/cyclingforge-frontend frontend=$FRONTEND_IMAGE:${{ github.sha }}
+          sudo kubectl -n cyclingforge set image deployment/cyclingforge-garmin garmin=$GARMIN_IMAGE:${{ github.sha }}
+          sudo kubectl -n cyclingforge rollout status deployment/cyclingforge-backend --timeout=180s
+          sudo kubectl -n cyclingforge rollout status deployment/cyclingforge-frontend --timeout=120s
+          sudo kubectl -n cyclingforge rollout status deployment/cyclingforge-garmin --timeout=120s

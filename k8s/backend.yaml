@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cyclingforge-backend
+  namespace: cyclingforge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cyclingforge-backend
+  template:
+    metadata:
+      labels:
+        app: cyclingforge-backend
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: backend
+          image: ghcr.io/kucha1122/cyclingforge-backend:latest
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - secretRef:
+                name: cyclingforge-secrets
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: ASPNETCORE_URLS
+              value: http://+:5000
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cyclingforge-backend
+  namespace: cyclingforge
+spec:
+  selector:
+    app: cyclingforge-backend
+  ports:
+    - port: 5000
+      targetPort: 5000
+# No Ingress: backend is internal-only. The frontend's nginx proxies /api/ to this
+# Service (http://cyclingforge-backend:5000) inside the cluster.

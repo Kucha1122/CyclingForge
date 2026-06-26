@@ -3,6 +3,9 @@ da
 .claude/
 services/garmin-python/.venv/
 
+## Kubernetes secrets
+k8s/secrets.yaml
+
 ## .NET
 *.swp
 *.*~
