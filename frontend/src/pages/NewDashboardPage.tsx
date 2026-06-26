@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PageLoader } from '../components/Spinner';
 import { useAuth } from '../context/AuthContext';
 import { useSync } from '../context/SyncContext';
+import { useToast } from '../context/ToastContext';
 import { metricsApi, stravaApi, activitiesApi, garminApi } from '../services/api';
 import type { PmcSummary, WeeklySummary, MonthlySummary, DailyTssPoint } from '../services/api';
 import type { AthleteProfileDto } from '../types/strava';
@@ -53,6 +55,7 @@ function getYearMonthForOffset(offset: number): { year: number; month: number } 
 export const NewDashboardPage = () => {
   const { user } = useAuth();
   const { syncVersion, notifySynced } = useSync();
+  const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation('dashboard');
@@ -201,7 +204,7 @@ export const NewDashboardPage = () => {
     setSyncing(true);
     try {
       await stravaApi.sync(false);
-      await activitiesApi.sync(true);
+      const syncResult = await activitiesApi.sync(true);
       if (garminStatus?.isConnected) {
         await garminApi.sync().catch(() => null);
       }
@@ -210,8 +213,10 @@ export const NewDashboardPage = () => {
       await Promise.all([refreshWellness(), fetchZones()]);
       // Powiadom pozostałe strony (analiza, sen…), żeby odświeżyły swoje dane.
       notifySynced();
+      const count = syncResult.data?.syncedCount ?? 0;
+      toast.success(count > 0 ? tCommon('toastSyncSuccessCount', { count }) : tCommon('toastSyncNoNew'));
     } catch {
-      // ignore
+      // Error toast already raised by the global axios interceptor.
     } finally {
       setSyncing(false);
     }
@@ -225,11 +230,7 @@ export const NewDashboardPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-page">
-        <p className="text-xl font-semibold text-secondary">{t('loadingDashboard')}</p>
-      </div>
-    );
+    return <PageLoader label={t('loadingDashboard')} />;
   }
 
   return (
@@ -286,7 +287,7 @@ export const NewDashboardPage = () => {
             </div>
           )}
 
-          {/* Weekly time-in-zones */}
+          {/* Weekly time-in-zones (with intensity-distribution label) */}
           {weeklyZones && weeklyZones.some((s) => s > 0) && (
             <WeeklyZonesCard weeklyHrZoneSeconds={weeklyZones} />
           )}

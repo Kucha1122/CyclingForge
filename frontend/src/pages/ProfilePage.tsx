@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PageLoader } from '../components/Spinner';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { usersApi, stravaApi, garminApi, type UserProfile } from '../services/api';
 import type { AthleteProfileDto, AthleteZonesDto } from '../types/strava';
 import type { GarminStatusDto } from '../types/garmin';
@@ -11,6 +14,7 @@ export const ProfilePage = () => {
   const { user } = useAuth();
   const { t } = useTranslation('profile');
   const tCommon = useTranslation('common').t;
+  const toast = useToast();
   useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -21,6 +25,7 @@ export const ProfilePage = () => {
   const [zonesError, setZonesError] = useState<string | null>(null);
   const [garminStatus, setGarminStatus] = useState<GarminStatusDto | null>(null);
   const [garminDisconnecting, setGarminDisconnecting] = useState(false);
+  const [garminDisconnectConfirm, setGarminDisconnectConfirm] = useState(false);
   const [garminEmail, setGarminEmail] = useState('');
   const [garminPassword, setGarminPassword] = useState('');
   const [garminConnecting, setGarminConnecting] = useState(false);
@@ -137,7 +142,8 @@ export const ProfilePage = () => {
           enableRpeFeedback,
         });
         setMessage({ type: 'success', text: t('profileUpdated') });
-        
+        toast.success(tCommon('toastProfileSaved'));
+
         // Refresh profile data
         const profileResponse = await usersApi.getProfile(user.userId);
         setUserProfile(profileResponse.data);
@@ -146,6 +152,20 @@ export const ProfilePage = () => {
       setMessage({ type: 'error', text: t('profileUpdateFailed') });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGarminDisconnect = async () => {
+    setGarminDisconnecting(true);
+    try {
+      await garminApi.disconnect();
+      setGarminStatus({ isConnected: false, connectedAt: null });
+      toast.success(tCommon('toastGarminDisconnected'));
+    } catch {
+      // Error toast already raised by the global axios interceptor.
+    } finally {
+      setGarminDisconnecting(false);
+      setGarminDisconnectConfirm(false);
     }
   };
 
@@ -160,11 +180,7 @@ export const ProfilePage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-xl font-semibold text-secondary">{t('loadingProfile')}</p>
-      </div>
-    );
+    return <PageLoader label={t('loadingProfile')} />;
   }
 
   return (
@@ -255,17 +271,7 @@ export const ProfilePage = () => {
                   )}
                 </div>
                 <button
-                  onClick={async () => {
-                    setGarminDisconnecting(true);
-                    try {
-                      await garminApi.disconnect();
-                      setGarminStatus({ isConnected: false, connectedAt: null });
-                    } catch {
-                      // ignore
-                    } finally {
-                      setGarminDisconnecting(false);
-                    }
-                  }}
+                  onClick={() => setGarminDisconnectConfirm(true)}
                   disabled={garminDisconnecting}
                   className="inline-flex items-center justify-center rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
                 >
@@ -747,6 +753,17 @@ export const ProfilePage = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={garminDisconnectConfirm}
+        title={t('disconnectGarminTitle')}
+        message={t('disconnectGarminConfirm')}
+        confirmLabel={garminDisconnecting ? t('disconnecting') : t('disconnect')}
+        cancelLabel={tCommon('cancel')}
+        busy={garminDisconnecting}
+        onConfirm={handleGarminDisconnect}
+        onCancel={() => setGarminDisconnectConfirm(false)}
+      />
     </div>
   );
 };

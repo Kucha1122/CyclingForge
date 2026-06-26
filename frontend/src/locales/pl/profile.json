@@ -25,6 +25,8 @@
   "stravaAccountDisconnected": "Twoje konto Strava jest obecnie rozłączone.",
   "disconnect": "Odłącz",
   "disconnecting": "Odłączanie…",
+  "disconnectGarminTitle": "Odłączyć Garmin?",
+  "disconnectGarminConfirm": "To usunie sesję Garmin. Dane wellness, snu i HRV przestaną się synchronizować do czasu ponownego połączenia.",
   "saveProfile": "Zapisz profil",
   "profileUpdated": "Profil zaktualizowany pomyślnie!",
   "profileUpdateFailed": "Nie udało się zaktualizować profilu. Spróbuj ponownie.",

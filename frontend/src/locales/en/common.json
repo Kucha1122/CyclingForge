@@ -1,5 +1,12 @@
 {
   "appTitle": "CyclingForge",
+  "toastSyncSuccess": "Sync complete.",
+  "toastSyncSuccessCount": "Synced {{count}} activities.",
+  "toastSyncNoNew": "Already up to date.",
+  "toastProfileSaved": "Profile saved.",
+  "toastWorkoutDeleted": "Workout deleted.",
+  "toastGarminConnected": "Connected to Garmin.",
+  "toastGarminDisconnected": "Disconnected from Garmin.",
   "save": "Save",
   "cancel": "Cancel",
   "delete": "Delete",

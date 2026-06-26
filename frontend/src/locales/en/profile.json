@@ -25,6 +25,8 @@
   "stravaAccountDisconnected": "Your Strava account is currently disconnected.",
   "disconnect": "Disconnect",
   "disconnecting": "Disconnecting...",
+  "disconnectGarminTitle": "Disconnect Garmin?",
+  "disconnectGarminConfirm": "This removes your Garmin session. Wellness, sleep and HRV data will stop syncing until you reconnect.",
   "saveProfile": "Save Profile",
   "profileUpdated": "Profile updated successfully!",
   "profileUpdateFailed": "Failed to update profile. Please try again.",

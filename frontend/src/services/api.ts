@@ -1,4 +1,6 @@
 import axios from 'axios';
+import i18n from '../i18n';
+import { emitToast } from '../context/toastBus';
 import type { AthleteProfileDto, AthleteZonesDto } from '../types/strava';
 import type { ActivityDto, ActivityDetailsDto, RealizedWeekDto } from '../types/activity';
 import type { GarminStatusDto, SleepDataDto, WellnessDataDto, HrvDataDto } from '../types/garmin';
@@ -8,6 +10,14 @@ import type {
   TrainingPreferenceDto, SaveTrainingPreferenceRequest,
   DailyRecommendationDto, ReadinessBreakdownDto, WeeklyPlanDto, FullPlanDto
 } from '../types/workout';
+
+declare module 'axios' {
+  // When true, suppresses the global error toast so callers can render their
+  // own contextual error message instead.
+  export interface AxiosRequestConfig {
+    silentError?: boolean;
+  }
+}
 
 const api = axios.create({
   baseURL: '/api',
@@ -21,14 +31,36 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+function resolveErrorMessage(status: number | undefined): string {
+  if (status === 404) return i18n.t('errors:activityNotFound');
+  if (status === 408 || status === 504) return i18n.t('errors:requestFailed');
+  if (status === 400 || status === 422) return i18n.t('errors:requestFailed');
+  if (status === 401 || status === 403) return i18n.t('errors:unexpected');
+  return i18n.t('errors:unexpected');
+}
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    if (status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+      return Promise.reject(error);
     }
+
+    const silent = error.config?.silentError;
+    // Don't toast on request cancellation or when caller opted out.
+    if (!silent && !axios.isCancel(error)) {
+      const backendMessage =
+        typeof error.response?.data === 'object' && error.response?.data
+          ? (error.response.data as { message?: string; detail?: string }).message ??
+            (error.response.data as { detail?: string }).detail
+          : undefined;
+      emitToast({ type: 'error', message: backendMessage || resolveErrorMessage(status) });
+    }
+
     return Promise.reject(error);
   }
 );
@@ -203,15 +235,15 @@ export const usersApi = {
       eftpMinDurationSeconds?: number | null;
       enableRpeFeedback?: boolean | null;
     }
-  ) => api.put(`/users/${userId}/profile`, profile),
+  ) => api.put(`/users/${userId}/profile`, profile, { silentError: true }),
 };
 
 export const garminApi = {
   getStatus: () => api.get<GarminStatusDto>('/garmin/status'),
   connect: (email: string, password: string) =>
-    api.post<{ sessionId?: string }>('/garmin/connect', { email, password }),
+    api.post<{ sessionId?: string }>('/garmin/connect', { email, password }, { silentError: true }),
   connectMfa: (sessionId: string, mfaCode: string) =>
-    api.post('/garmin/connect/mfa', { sessionId, mfaCode }),
+    api.post('/garmin/connect/mfa', { sessionId, mfaCode }, { silentError: true }),
   disconnect: () => api.delete('/garmin/disconnect'),
   sync: (daysBack = 7) =>
     api.post('/garmin/sync', null, { params: { daysBack } }),
