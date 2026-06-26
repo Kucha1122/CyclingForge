@@ -55,7 +55,9 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowedOrigins",
         policy =>
         {
-            policy.WithOrigins("http://localhost:5173")
+            var origins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
+                ?? ["http://localhost:5173"];
+            policy.WithOrigins(origins)
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
@@ -113,10 +115,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseErrorHandling();
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("AllowedOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
 
 app.Run();
