@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { PageLoader } from '../components/Spinner';
 import { metricsApi, type PmcSummary } from '../services/api';
 import { PMCChart } from '../components/PMCChart';
 import { PowerCurveChart } from '../components/PowerCurveChart';
@@ -72,11 +73,7 @@ export const AnalysisPage = () => {
   const stats = calculateStats();
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-page">
-        <p className="text-xl font-semibold text-secondary">{t('loadingAnalysis')}</p>
-      </div>
-    );
+    return <PageLoader label={t('loadingAnalysis')} />;
   }
 
   return (

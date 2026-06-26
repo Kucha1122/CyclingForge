@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PageLoader } from '../components/Spinner';
 import { garminApi } from '../services/api';
 import type { SleepDataDto, HrvDataDto, GarminStatusDto } from '../types/garmin';
 import { SleepChart } from '../components/garmin/SleepChart';
@@ -89,11 +90,7 @@ export const SleepPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-page">
-        <p className="text-xl font-semibold text-secondary">{t('loadingSleep')}</p>
-      </div>
-    );
+    return <PageLoader label={t('loadingSleep')} />;
   }
 
   if (!garminStatus?.isConnected) {

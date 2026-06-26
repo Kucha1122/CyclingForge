@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { PageLoader } from '../components/Spinner';
 import type { TFunction } from 'i18next';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { recommendationsApi, trainingPreferenceApi } from '../services/api';
@@ -97,11 +98,7 @@ export const FullPlanPage = () => {
   }, [loadPlan]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-tertiary">{tCommon('generatingPlan')}</p>
-      </div>
-    );
+    return <PageLoader label={tCommon('generatingPlan')} />;
   }
 
   if (!plan) {

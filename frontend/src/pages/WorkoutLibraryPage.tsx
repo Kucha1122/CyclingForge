@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Spinner } from '../components/Spinner';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { workoutsApi } from '../services/api';
 import { WorkoutCard } from '../components/workouts/WorkoutCard';
 import type { WorkoutSummaryDto } from '../types/workout';
@@ -372,7 +374,8 @@ export const WorkoutLibraryPage = () => {
 
       {/* Grid */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center justify-center gap-3 py-20">
+          <Spinner size={32} />
           <p className="text-tertiary">{t('loadingWorkouts')}</p>
         </div>
       ) : workouts.length === 0 ? (
@@ -417,62 +420,27 @@ export const WorkoutLibraryPage = () => {
       )}
 
       {/* Delete confirmation modal */}
-      {deleteId && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-primary/40">
-          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl ring-1 ring-border-default">
-            <h2 className="text-lg font-semibold text-primary">{t('deleteWorkout')}</h2>
-            <p className="mt-2 text-sm text-secondary">
-              {t('deleteWorkoutConfirm', { name: deleteName ?? '' })}
-            </p>
-            <div className="mt-4 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={handleCancelDelete}
-                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                {t('cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                className="rounded-lg bg-state-danger-bg px-4 py-2 text-sm font-medium text-state-danger-text hover:bg-state-danger-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                {t('delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!deleteId}
+        title={t('deleteWorkout')}
+        message={t('deleteWorkoutConfirm', { name: deleteName ?? '' })}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
 
       {/* Delete all my workouts confirmation modal */}
-      {deleteAllOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-primary/40">
-          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl ring-1 ring-border-default">
-            <h2 className="text-lg font-semibold text-primary">{t('deleteAllMyWorkouts')}</h2>
-            <p className="mt-2 text-sm text-secondary">
-              {t('deleteAllMyWorkoutsConfirm')}
-            </p>
-            <div className="mt-4 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDeleteAllOpen(false)}
-                disabled={deletingAll}
-                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
-              >
-                {t('cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDeleteAll}
-                disabled={deletingAll}
-                className="rounded-lg bg-state-danger-bg px-4 py-2 text-sm font-medium text-state-danger-text hover:bg-state-danger-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
-              >
-                {deletingAll ? t('deleting') : t('delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={deleteAllOpen}
+        title={t('deleteAllMyWorkouts')}
+        message={t('deleteAllMyWorkoutsConfirm')}
+        confirmLabel={deletingAll ? t('deleting') : t('delete')}
+        cancelLabel={t('cancel')}
+        busy={deletingAll}
+        onConfirm={handleConfirmDeleteAll}
+        onCancel={() => setDeleteAllOpen(false)}
+      />
     </div>
   );
 };

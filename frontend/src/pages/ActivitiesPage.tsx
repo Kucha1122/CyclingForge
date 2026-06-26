@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { PageLoader, Spinner } from '../components/Spinner';
 import { useAuth } from '../context/AuthContext';
 import { activitiesApi, metricsApi, type FtpChangeDto } from '../services/api';
 import type { ActivityDto } from '../types/activity';
@@ -133,11 +134,7 @@ export const ActivitiesPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-page">
-        <p className="text-xl font-semibold text-secondary">{t('loading')}</p>
-      </div>
-    );
+    return <PageLoader label={t('loading')} />;
   }
 
   return (
@@ -305,7 +302,10 @@ export const ActivitiesPage = () => {
           ))}
           <div ref={sentinelRef} className="h-4" aria-hidden />
           {loadingMore && (
-            <p className="py-4 text-center text-sm text-tertiary">{t('loadingMore')}</p>
+            <div className="flex items-center justify-center gap-2 py-4 text-sm text-tertiary">
+              <Spinner size={16} />
+              <span>{t('loadingMore')}</span>
+            </div>
           )}
         </div>
       ) : (

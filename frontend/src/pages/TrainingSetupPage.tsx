@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { PageLoader } from '../components/Spinner';
 import { trainingPreferenceApi } from '../services/api';
 import type { SaveTrainingPreferenceRequest } from '../types/workout';
 import { TRAINING_GOALS, FITNESS_LEVELS, PERIODIZATION_MODELS } from '../types/workout';
@@ -92,7 +93,7 @@ export const TrainingSetupPage = () => {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center"><p className="text-tertiary">{t('loading')}</p></div>;
+    return <PageLoader label={t('loading')} />;
   }
 
   return (

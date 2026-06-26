@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { PageLoader } from '../components/Spinner';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { workoutsApi, usersApi } from '../services/api';
 import { IntervalChart } from '../components/workouts/IntervalChart';
 import type { WorkoutDto } from '../types/workout';
@@ -132,7 +134,7 @@ export const WorkoutDetailPage = () => {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-page"><p className="text-tertiary">{t('loadingWorkouts')}</p></div>;
+    return <PageLoader label={t('loadingWorkouts')} />;
   }
 
   if (!workout) {
@@ -329,34 +331,16 @@ export const WorkoutDetailPage = () => {
       </div>
 
       {/* Delete confirmation modal */}
-      {deleteConfirmOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-primary/40">
-          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl ring-1 ring-border-default">
-            <h2 className="text-lg font-semibold text-primary">{t('deleteWorkout')}</h2>
-            <p className="mt-2 text-sm text-secondary">
-              {t('deleteWorkoutConfirm', { name: workout.name })}
-            </p>
-            <div className="mt-4 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmOpen(false)}
-                disabled={deleting}
-                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
-              >
-                {t('cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={deleting}
-                className="rounded-lg bg-state-danger-bg px-4 py-2 text-sm font-medium text-state-danger-text hover:bg-state-danger-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
-              >
-                {t('delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title={t('deleteWorkout')}
+        message={t('deleteWorkoutConfirm', { name: workout.name })}
+        confirmLabel={deleting ? t('deleting') : t('delete')}
+        cancelLabel={t('cancel')}
+        busy={deleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirmOpen(false)}
+      />
     </div>
   );
 };

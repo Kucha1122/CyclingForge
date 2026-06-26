@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { PageLoader } from '../components/Spinner';
 import { activitiesApi, trainingPreferenceApi } from '../services/api';
 import type { RealizedWeekDto, RealizedDayDto, RealizedActivityDto } from '../types/activity';
 import { formatDate } from '../utils/format';
@@ -57,7 +58,7 @@ export const RealizedWeekPage = () => {
   }, [weekOffset, weekStartDay]);
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center"><p className="text-tertiary">{tCommon('loadingRealizedWeek')}</p></div>;
+    return <PageLoader label={tCommon('loadingRealizedWeek')} />;
   }
 
   const zoneCount = week?.weeklyHrZoneSeconds.length ?? 0;
