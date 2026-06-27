@@ -7,4 +7,5 @@ namespace CyclingForge.Modules.Strava.Application.Commands.SyncSingleActivity;
 /// <paramref name="StravaAthleteId"/> is the Strava owner_id, <paramref name="ActivityId"/> the object_id,
 /// and <paramref name="AspectType"/> one of "create", "update", "delete".
 /// </summary>
-public sealed record SyncSingleActivityCommand(long StravaAthleteId, long ActivityId, string AspectType) : ICommand;
+/// <summary>Returns the internal UserId of the activity owner, or null if not found/delete.</summary>
+public sealed record SyncSingleActivityCommand(long StravaAthleteId, long ActivityId, string AspectType) : ICommand<Guid?>;

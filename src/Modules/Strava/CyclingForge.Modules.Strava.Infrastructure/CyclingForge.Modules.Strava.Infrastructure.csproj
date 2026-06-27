@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CyclingForge.Modules.Strava.Application\CyclingForge.Modules.Strava.Application.csproj" />
+    <ProjectReference Include="..\..\Activities\CyclingForge.Modules.Activities.Application\CyclingForge.Modules.Activities.Application.csproj" />
     <ProjectReference Include="..\..\..\Shared\CyclingForge.Shared.Infrastructure\CyclingForge.Shared.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

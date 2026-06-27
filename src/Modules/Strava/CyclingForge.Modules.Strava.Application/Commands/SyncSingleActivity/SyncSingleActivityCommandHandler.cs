@@ -6,7 +6,7 @@ using MediatR;
 
 namespace CyclingForge.Modules.Strava.Application.Commands.SyncSingleActivity;
 
-internal sealed class SyncSingleActivityCommandHandler : IRequestHandler<SyncSingleActivityCommand>
+internal sealed class SyncSingleActivityCommandHandler : IRequestHandler<SyncSingleActivityCommand, Guid?>
 {
     private static readonly string[] StreamKeys =
     {
@@ -34,24 +34,24 @@ internal sealed class SyncSingleActivityCommandHandler : IRequestHandler<SyncSin
         _clock = clock;
     }
 
-    public async Task Handle(SyncSingleActivityCommand command, CancellationToken cancellationToken)
+    public async Task<Guid?> Handle(SyncSingleActivityCommand command, CancellationToken cancellationToken)
     {
         var athlete = await _athleteRepository.GetByStravaIdAsync(command.StravaAthleteId, cancellationToken);
         if (athlete is null)
         {
-            return;
+            return null;
         }
 
         if (string.Equals(command.AspectType, "delete", StringComparison.OrdinalIgnoreCase))
         {
             await _activityRepository.DeleteByExternalIdAsync(command.ActivityId, cancellationToken);
-            return;
+            return null;
         }
 
         var token = await _tokenRepository.GetByUserIdAsync(athlete.UserId, cancellationToken);
         if (token is null)
         {
-            return;
+            return null;
         }
 
         if (token.ExpiresAt <= _clock.CurrentDate())
@@ -69,7 +69,7 @@ internal sealed class SyncSingleActivityCommandHandler : IRequestHandler<SyncSin
         var activityDto = await _stravaApiService.GetActivityByIdAsync(token.Token.Value, command.ActivityId, cancellationToken);
         if (activityDto is null)
         {
-            return;
+            return null;
         }
 
         var existing = await _activityRepository.GetByExternalIdAsync(activityDto.StravaId, cancellationToken);
@@ -93,7 +93,7 @@ internal sealed class SyncSingleActivityCommandHandler : IRequestHandler<SyncSin
             }
 
             await _activityRepository.UpdateAsync(existing, cancellationToken);
-            return;
+            return athlete.UserId;
         }
 
         var streamsJson = await _stravaApiService.GetActivityStreamsJsonAsync(
@@ -118,5 +118,6 @@ internal sealed class SyncSingleActivityCommandHandler : IRequestHandler<SyncSin
             streamsJson);
 
         await _activityRepository.AddAsync(activity, cancellationToken);
+        return athlete.UserId;
     }
 }

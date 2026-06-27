@@ -1,3 +1,4 @@
+using CyclingForge.Modules.Activities.Application.Commands.SyncActivities;
 using CyclingForge.Modules.Strava.Application.Commands.SyncSingleActivity;
 using CyclingForge.Modules.Strava.Application.Services;
 using MediatR;
@@ -41,9 +42,14 @@ internal sealed class StravaWebhookProcessor : BackgroundService
             {
                 using var scope = _scopeFactory.CreateScope();
                 var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-                await mediator.Send(
+                var userId = await mediator.Send(
                     new SyncSingleActivityCommand(webhookEvent.OwnerId, webhookEvent.ObjectId, webhookEvent.AspectType),
                     stoppingToken);
+
+                if (userId.HasValue)
+                {
+                    await mediator.Send(new SyncActivitiesCommand(userId.Value, QuickSync: true), stoppingToken);
+                }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
