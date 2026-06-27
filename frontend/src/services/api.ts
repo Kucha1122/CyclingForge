@@ -1,19 +1,18 @@
 import axios from 'axios';
 import i18n from '../i18n';
 import { emitToast } from '../context/toastBus';
-import type { AthleteProfileDto, AthleteZonesDto } from '../types/strava';
-import type { ActivityDto, ActivityDetailsDto, RealizedWeekDto } from '../types/activity';
-import type { GarminStatusDto, SleepDataDto, WellnessDataDto, HrvDataDto } from '../types/garmin';
+import type { AthleteProfileDto, AthleteZonesDto } from '@cyclingforge/shared';
+import type { ActivityDto, ActivityDetailsDto, RealizedWeekDto, ActivityCountsDto, StravaActivityDetailsDto, PowerCurveDto } from '@cyclingforge/shared';
+import type { GarminStatusDto, SleepDataDto, WellnessDataDto, HrvDataDto } from '@cyclingforge/shared';
 import type {
   WorkoutDto, WorkoutSearchResultDto, CreateWorkoutRequest,
   BulkImportZwoResult, ParseZwoResultDto,
   TrainingPreferenceDto, SaveTrainingPreferenceRequest,
   DailyRecommendationDto, ReadinessBreakdownDto, WeeklyPlanDto, FullPlanDto
-} from '../types/workout';
+} from '@cyclingforge/shared';
+import type { UserProfile, PmcSummary, PmcActivitySummaryDto, FtpChangeDto, DailyTssPoint, WeeklySummary, MonthlySummary } from '@cyclingforge/shared';
 
 declare module 'axios' {
-  // When true, suppresses the global error toast so callers can render their
-  // own contextual error message instead.
   export interface AxiosRequestConfig {
     silentError?: boolean;
   }
@@ -51,7 +50,6 @@ api.interceptors.response.use(
     }
 
     const silent = error.config?.silentError;
-    // Don't toast on request cancellation or when caller opted out.
     if (!silent && !axios.isCancel(error)) {
       const backendMessage =
         typeof error.response?.data === 'object' && error.response?.data
@@ -65,29 +63,7 @@ api.interceptors.response.use(
   }
 );
 
-export interface ActivityCountsDto {
-  total: number;
-  ride: number;
-  run: number;
-  walk: number;
-}
-
-export interface StravaActivityDetailsDto {
-  externalId: number;
-  name: string;
-  type: string;
-  startDate: string;
-  distance: number;
-  movingTime: number;
-  elapsedTime: number;
-  totalElevationGain: number;
-  averageSpeed?: number;
-  maxSpeed?: number;
-  averageHeartRate?: number;
-  maxHeartRate?: number;
-  averagePower?: number;
-  streamsJson?: string;
-}
+export type { ActivityCountsDto, StravaActivityDetailsDto, PowerCurveDto, UserProfile, PmcSummary, PmcActivitySummaryDto, FtpChangeDto, DailyTssPoint, WeeklySummary, MonthlySummary };
 
 export const stravaApi = {
   connect: (code: string) => api.post('/strava/authorize', { code }),
@@ -100,21 +76,6 @@ export const stravaApi = {
   getActivityDetails: (id: string) => api.get<StravaActivityDetailsDto>(`/strava/activities/${id}`),
 };
 
-export interface PowerCurvePointDto {
-  durationSeconds: number;
-  watts: number;
-  wattsPerKg: number | null;
-}
-
-export interface PowerCurveDto {
-  windowDays: number;
-  activityCount: number;
-  points: PowerCurvePointDto[];
-  criticalPower: number | null;
-  wPrimeJoules: number | null;
-  criticalPowerPerKg: number | null;
-}
-
 export const activitiesApi = {
   sync: (quickSync?: boolean) =>
     api.post<{ syncedCount: number }>('/activities/sync', null, { params: quickSync ? { quickSync: true } : {} }),
@@ -126,90 +87,6 @@ export const activitiesApi = {
   getPowerCurve: (windowDays = 42) =>
     api.get<PowerCurveDto>('/activities/power-curve', { params: { windowDays } }),
 };
-
-export interface FtpChangeDto {
-  date: string;
-  fromFtp: number;
-  toFtp: number;
-  source: string; // 'Manual' | 'EstimatedFromActivity'
-}
-
-export interface PmcActivitySummaryDto {
-  activityId: string;
-  name: string;
-  sportType: string;
-  trainingStressScore: number | null;
-  movingTimeSeconds: number;
-}
-
-export interface PmcSummary {
-  currentCTL: number;
-  currentATL: number;
-  currentTSB: number;
-  formStatus: string;
-  recommendation: string;
-  history: Array<{
-    date: string;
-    ctl: number;
-    atl: number;
-    tsb: number;
-    activities?: PmcActivitySummaryDto[];
-  }>;
-  ftpChanges?: FtpChangeDto[];
-  previousWeekAvgCtl?: number;
-  previousWeekAvgAtl?: number;
-  currentWeekAvgCtl?: number;
-  currentWeekAvgAtl?: number;
-  rampRateCtlPerWeek?: number;
-}
-
-export interface DailyTssPoint {
-  date: string;
-  tss: number;
-}
-
-export interface WeeklySummary {
-  weekStart: string;
-  weekEnd: string;
-  totalActivities: number;
-  totalDistance: number;
-  totalMovingTime: string;
-  totalElevationGain: number;
-  totalTSS: number | null;
-  averagePower: number | null;
-  rideCount: number;
-  runCount: number;
-}
-
-export interface MonthlySummary {
-  year: number;
-  month: number;
-  totalActivities: number;
-  totalDistance: number;
-  totalMovingTime: string;
-  totalElevationGain: number;
-  totalTSS: number | null;
-  averageCTL: number | null;
-  rideCount: number;
-  runCount: number;
-}
-
-export interface UserProfile {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  createdAt: string;
-  isActive: boolean;
-  functionalThresholdPower: number | null;
-  weightKg: number | null;
-  lactateThresholdHeartRate: number | null;
-  maxHeartRate: number | null;
-  restingHeartRate: number | null;
-  gender: string | null;
-  eftpMinDurationSeconds: number | null;
-  enableRpeFeedback: boolean;
-}
 
 export const metricsApi = {
   getPmcSummary: (ctlDays?: number, atlDays?: number, historyDays?: number) =>
@@ -290,7 +167,7 @@ export const trainingPreferenceApi = {
   save: (data: SaveTrainingPreferenceRequest) => api.post<TrainingPreferenceDto>('/training-preference', data),
 };
 
-const PLAN_REQUEST_TIMEOUT_MS = 300000; // 5 min for multi-week generation
+const PLAN_REQUEST_TIMEOUT_MS = 300000;
 
 export const recommendationsApi = {
   getToday: () => api.get<DailyRecommendationDto>('/recommendations/today'),

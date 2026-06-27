@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@cyclingforge/shared": "file:../shared",
     "@heroicons/react": "^2.2.0",
     "@material-tailwind/react": "^2.1.10",
     "@tailwindcss/postcss": "^4.1.18",
