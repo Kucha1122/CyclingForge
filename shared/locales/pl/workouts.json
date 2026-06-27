@@ -153,5 +153,11 @@
   "stepMoveDown": "Przesuń w dół",
   "stepRemove": "Usuń",
   "nameProgressiveEnduranceRamp": "Progresywna wytrzymałość z rampą końcową",
-  "sourceSystem": "System"
+  "sourceSystem": "System",
+  "filters": "Filtry",
+  "stepTotal": "Łącznie",
+  "creatorImportFile": "Importuj plik",
+  "tabAll": "Wszystkie",
+  "tabSystem": "Systemowe",
+  "tabMine": "Moje"
 }

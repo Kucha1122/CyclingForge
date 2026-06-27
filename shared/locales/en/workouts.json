@@ -153,5 +153,11 @@
   "stepMoveDown": "Move down",
   "stepRemove": "Remove",
   "nameProgressiveEnduranceRamp": "Progressive endurance with ramp finish",
-  "sourceSystem": "System"
+  "sourceSystem": "System",
+  "filters": "Filters",
+  "stepTotal": "Total",
+  "creatorImportFile": "Import file",
+  "tabAll": "All",
+  "tabSystem": "System",
+  "tabMine": "Mine"
 }

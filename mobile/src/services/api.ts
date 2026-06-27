@@ -6,6 +6,7 @@ import type {
   ActivityDto, ActivityDetailsDto, RealizedWeekDto,
   GarminStatusDto, SleepDataDto, WellnessDataDto, HrvDataDto,
   WorkoutDto, WorkoutSearchResultDto, CreateWorkoutRequest,
+  BulkImportZwoResult, ParseZwoResultDto,
   TrainingPreferenceDto, SaveTrainingPreferenceRequest,
   DailyRecommendationDto, ReadinessBreakdownDto, WeeklyPlanDto, FullPlanDto,
   UserProfile, PmcSummary, DailyTssPoint, WeeklySummary, MonthlySummary,
@@ -104,6 +105,27 @@ export const workoutsApi = {
     sortBy?: string; page?: number; pageSize?: number;
   }) => api.get<WorkoutSearchResultDto>('/workouts', { params }),
   getById: (id: string) => api.get<WorkoutDto>(`/workouts/${id}`),
+  create: (data: CreateWorkoutRequest) => api.post<string>('/workouts', data),
+  update: (id: string, data: CreateWorkoutRequest) => api.put(`/workouts/${id}`, data),
+  delete: (id: string) => api.delete(`/workouts/${id}`),
+  deleteAllMine: () => api.delete('/workouts/mine'),
+  copy: (id: string) => api.post<string>(`/workouts/${id}/copy`),
+  importZwo: (zwoXmlContent: string) => api.post<string>('/workouts/import', { zwoXmlContent }),
+  parseZwo: (zwoXmlContent: string) => api.post<ParseZwoResultDto>('/workouts/parse-zwo', { zwoXmlContent }),
+  // React Native multipart: pass the picked file as { uri, name, type }.
+  importFit: (file: { uri: string; name: string }) => {
+    const formData = new FormData();
+    formData.append('file', { uri: file.uri, name: file.name, type: 'application/octet-stream' } as unknown as Blob);
+    return api.post<string>('/workouts/import-fit', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  importZwoZip: (file: { uri: string; name: string }) => {
+    const formData = new FormData();
+    formData.append('file', { uri: file.uri, name: file.name, type: 'application/zip' } as unknown as Blob);
+    return api.post<BulkImportZwoResult>('/workouts/import-zip', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
+    });
+  },
 };
 
 export const trainingPreferenceApi = {
@@ -119,6 +141,8 @@ export const recommendationsApi = {
     api.get<FullPlanDto>('/recommendations/plan', { params: { weeks }, timeout: 300000 }),
   getWeek: (weekStart?: string) =>
     api.get<WeeklyPlanDto>('/recommendations/week', { params: { weekStart } }),
+  adjustPlanDay: (id: string, action: 'rest' | 'swap' | 'move', targetDate?: string) =>
+    api.put<{ success: boolean; warnings: string[] }>(`/recommendations/${id}/plan-adjust`, { action, targetDate }),
   getReadiness: (date?: string) =>
     api.get<ReadinessBreakdownDto>('/recommendations/readiness', { params: { date } }),
   updateStatus: (id: string, status: string, completedActivityId?: string) =>
