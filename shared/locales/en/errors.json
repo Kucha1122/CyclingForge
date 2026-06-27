@@ -1,0 +1,7 @@
+{
+  "activityLoadFailed": "Failed to load activity.",
+  "requestFailed": "Request failed. Try fewer weeks or try again.",
+  "unexpected": "An unexpected error occurred.",
+  "activityNotFound": "Activity not found.",
+  "planLoadFailed": "Failed to load plan. Please try again."
+}

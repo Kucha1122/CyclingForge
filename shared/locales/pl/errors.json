@@ -1,0 +1,7 @@
+{
+  "activityLoadFailed": "Nie udało się załadować aktywności.",
+  "requestFailed": "Żądanie nie powiodło się. Spróbuj mniej tygodni lub ponów próbę.",
+  "unexpected": "Wystąpił nieoczekiwany błąd.",
+  "activityNotFound": "Aktywność nie znaleziona.",
+  "planLoadFailed": "Nie udało się załadować planu. Spróbuj ponownie."
+}
