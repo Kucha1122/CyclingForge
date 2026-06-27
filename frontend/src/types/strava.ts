@@ -1,1 +1,1 @@
-export type { StravaCallbackRequest, AthleteProfileDto, ZoneRangeDto, AthleteZonesDto } from '@cyclingforge/shared';
+export type { StravaCallbackRequest, AthleteProfileDto, ZoneRangeDto, AthleteZonesDto, ActivitySyncFilterDto } from '@cyclingforge/shared';
