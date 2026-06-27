@@ -32,6 +32,11 @@ export const ProfilePage = () => {
   const [garminError, setGarminError] = useState<string | null>(null);
   const [garminMfaSessionId, setGarminMfaSessionId] = useState<string | null>(null);
   const [garminMfaCode, setGarminMfaCode] = useState('');
+  const [syncTimes, setSyncTimes] = useState<string[]>([]);
+  const [syncEnabled, setSyncEnabled] = useState(true);
+  const [syncTimeZoneId, setSyncTimeZoneId] = useState('Europe/Warsaw');
+  const [newSyncTime, setNewSyncTime] = useState('09:00');
+  const [syncPrefSaving, setSyncPrefSaving] = useState(false);
   const [ftp, setFtp] = useState<string>('');
   const [weight, setWeight] = useState<string>('');
   const [lthr, setLthr] = useState<string>('');
@@ -116,6 +121,55 @@ export const ProfilePage = () => {
 
     fetchData();
   }, [user]);
+
+  useEffect(() => {
+    if (!garminStatus?.isConnected) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await garminApi.getSyncPreferences();
+        if (cancelled) return;
+        setSyncTimes(res.data.syncTimes ?? []);
+        setSyncEnabled(res.data.enabled);
+        setSyncTimeZoneId(res.data.timeZoneId || 'Europe/Warsaw');
+      } catch {
+        // ignore – defaults remain
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [garminStatus?.isConnected]);
+
+  const persistSyncPreferences = async (times: string[], enabled: boolean) => {
+    setSyncPrefSaving(true);
+    try {
+      await garminApi.saveSyncPreferences({ syncTimes: times, enabled, timeZoneId: syncTimeZoneId });
+      toast.success(tCommon('toastSaved'));
+    } catch {
+      // Error toast already raised by the global axios interceptor.
+    } finally {
+      setSyncPrefSaving(false);
+    }
+  };
+
+  const handleAddSyncTime = () => {
+    if (!/^\d{2}:\d{2}$/.test(newSyncTime)) return;
+    if (syncTimes.includes(newSyncTime)) return;
+    const next = [...syncTimes, newSyncTime].sort();
+    setSyncTimes(next);
+    void persistSyncPreferences(next, syncEnabled);
+  };
+
+  const handleRemoveSyncTime = (time: string) => {
+    const next = syncTimes.filter((t) => t !== time);
+    setSyncTimes(next);
+    void persistSyncPreferences(next, syncEnabled);
+  };
+
+  const handleToggleSyncEnabled = () => {
+    const next = !syncEnabled;
+    setSyncEnabled(next);
+    void persistSyncPreferences(syncTimes, next);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,6 +331,60 @@ export const ProfilePage = () => {
                 >
                   {garminDisconnecting ? t('disconnecting') : t('disconnect')}
                 </button>
+
+                <div className="mt-6 border-t border-border-default pt-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-primary">{t('garminAutoSyncTitle')}</h3>
+                    <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-secondary">
+                      <input
+                        type="checkbox"
+                        checked={syncEnabled}
+                        disabled={syncPrefSaving}
+                        onChange={handleToggleSyncEnabled}
+                      />
+                      {syncEnabled ? t('garminAutoSyncEnabled') : t('garminAutoSyncDisabled')}
+                    </label>
+                  </div>
+                  <p className="mb-3 text-xs text-tertiary">{t('garminAutoSyncHint')}</p>
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {syncTimes.length === 0 && (
+                      <span className="text-xs text-tertiary">{t('garminAutoSyncNoTimes')}</span>
+                    )}
+                    {syncTimes.map((time) => (
+                      <span
+                        key={time}
+                        className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-border-default"
+                      >
+                        {time}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSyncTime(time)}
+                          disabled={syncPrefSaving}
+                          className="text-tertiary hover:text-state-error-text disabled:opacity-50"
+                          aria-label={t('garminAutoSyncRemove')}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="time"
+                      value={newSyncTime}
+                      onChange={(e) => setNewSyncTime(e.target.value)}
+                      className="rounded-lg border border-border-default bg-surface px-3 py-1.5 text-sm text-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddSyncTime}
+                      disabled={syncPrefSaving}
+                      className="inline-flex items-center justify-center rounded-lg bg-surface-muted px-3 py-1.5 text-sm font-medium text-primary ring-1 ring-border-default transition-colors hover:bg-surface disabled:opacity-50"
+                    >
+                      {t('garminAutoSyncAdd')}
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : (
               <>{!garminMfaSessionId ? (

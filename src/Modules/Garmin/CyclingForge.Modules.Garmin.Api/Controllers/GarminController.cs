@@ -3,7 +3,9 @@ using CyclingForge.Modules.Garmin.Application.Commands.ConnectGarmin;
 using CyclingForge.Modules.Garmin.Application.Commands.DisconnectGarmin;
 using CyclingForge.Modules.Garmin.Domain.Exceptions;
 using CyclingForge.Modules.Garmin.Application.Commands.SyncGarminData;
+using CyclingForge.Modules.Garmin.Application.Commands.SaveSyncPreference;
 using CyclingForge.Modules.Garmin.Application.Queries.GetConnectionStatus;
+using CyclingForge.Modules.Garmin.Application.Queries.GetSyncPreference;
 using CyclingForge.Modules.Garmin.Application.Queries.GetHrvData;
 using CyclingForge.Modules.Garmin.Application.Queries.GetSleepData;
 using CyclingForge.Modules.Garmin.Application.Queries.GetWellnessData;
@@ -86,6 +88,27 @@ public sealed class GarminController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var command = new SyncGarminDataCommand(_currentUser.UserId, daysBack);
+        await _mediator.Send(command, cancellationToken);
+        return Ok();
+    }
+
+    [HttpGet("sync-preferences")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<GarminSyncPreferenceDto>> GetSyncPreferences(CancellationToken cancellationToken)
+    {
+        var query = new GetSyncPreferenceQuery(_currentUser.UserId);
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPut("sync-preferences")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> SaveSyncPreferences(
+        [FromBody] SaveSyncPreferenceRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new SaveSyncPreferenceCommand(
+            _currentUser.UserId, request.SyncTimes, request.Enabled, request.TimeZoneId);
         await _mediator.Send(command, cancellationToken);
         return Ok();
     }

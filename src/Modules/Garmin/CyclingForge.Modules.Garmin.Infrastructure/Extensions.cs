@@ -33,6 +33,10 @@ public static class Extensions
         services.AddScoped<IGarminSleepRepository, GarminSleepRepository>();
         services.AddScoped<IGarminWellnessRepository, GarminWellnessRepository>();
         services.AddScoped<IGarminHrvRepository, GarminHrvRepository>();
+        services.AddScoped<IGarminSyncPreferenceRepository, GarminSyncPreferenceRepository>();
+
+        // Background scheduler: pulls wellness/sleep/HRV at each user's configured local times.
+        services.AddHostedService<GarminScheduledSyncService>();
 
         return services;
     }

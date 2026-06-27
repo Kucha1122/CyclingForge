@@ -4,6 +4,7 @@
   "toastSyncSuccessCount": "Synced {{count}} activities.",
   "toastSyncNoNew": "Already up to date.",
   "toastProfileSaved": "Profile saved.",
+  "toastSaved": "Saved.",
   "toastWorkoutDeleted": "Workout deleted.",
   "toastGarminConnected": "Connected to Garmin.",
   "toastGarminDisconnected": "Disconnected from Garmin.",

@@ -41,3 +41,10 @@ export interface HrvDataDto {
   lastNight5MinHighMs: number | null;
   status: string | null;
 }
+
+export interface GarminSyncPreferenceDto {
+  /** Local times of day ("HH:mm") at which automatic background sync runs. */
+  syncTimes: string[];
+  enabled: boolean;
+  timeZoneId: string;
+}

@@ -9,6 +9,7 @@ internal sealed class GarminDbContext : DbContext
     public DbSet<GarminSleepData> GarminSleepData => Set<GarminSleepData>();
     public DbSet<GarminDailyWellness> GarminDailyWellness => Set<GarminDailyWellness>();
     public DbSet<GarminHrvData> GarminHrvData => Set<GarminHrvData>();
+    public DbSet<GarminSyncPreference> GarminSyncPreferences => Set<GarminSyncPreference>();
 
     public GarminDbContext(DbContextOptions<GarminDbContext> options)
         : base(options)

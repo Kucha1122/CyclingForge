@@ -3,7 +3,7 @@ import i18n from '../i18n';
 import { emitToast } from '../context/toastBus';
 import type { AthleteProfileDto, AthleteZonesDto } from '@cyclingforge/shared';
 import type { ActivityDto, ActivityDetailsDto, RealizedWeekDto, ActivityCountsDto, StravaActivityDetailsDto, PowerCurveDto } from '@cyclingforge/shared';
-import type { GarminStatusDto, SleepDataDto, WellnessDataDto, HrvDataDto } from '@cyclingforge/shared';
+import type { GarminStatusDto, SleepDataDto, WellnessDataDto, HrvDataDto, GarminSyncPreferenceDto } from '@cyclingforge/shared';
 import type {
   WorkoutDto, WorkoutSearchResultDto, CreateWorkoutRequest,
   BulkImportZwoResult, ParseZwoResultDto,
@@ -132,6 +132,9 @@ export const garminApi = {
     api.get<WellnessDataDto>('/garmin/wellness/latest', { params: { onOrBefore } }),
   getHrvData: (startDate: string, endDate: string) =>
     api.get<HrvDataDto[]>('/garmin/hrv', { params: { startDate, endDate } }),
+  getSyncPreferences: () => api.get<GarminSyncPreferenceDto>('/garmin/sync-preferences'),
+  saveSyncPreferences: (data: GarminSyncPreferenceDto) =>
+    api.put('/garmin/sync-preferences', data),
 };
 
 export const workoutsApi = {
