@@ -313,6 +313,7 @@ export const ProfilePage = () => {
           <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
             <h2 className="mb-4 text-xl font-semibold text-primary">{t('stravaConnection')}</h2>
             {stravaProfile ? (
+              <>
               <div className="flex items-center gap-3">
                 {stravaProfile.profileImageUrl && (
                   <img
@@ -366,8 +367,8 @@ export const ProfilePage = () => {
                       onChange={(e) => setNewFilterType(e.target.value)}
                       className="rounded-lg border border-border-default bg-surface px-2 py-1.5 text-sm text-primary"
                     >
-                      {['Ride', 'Run', 'Walk', 'Hike', 'Swim', 'VirtualRide', 'VirtualRun'].map((t) => (
-                        <option key={t} value={t}>{t}</option>
+                      {['Ride', 'Run', 'Walk', 'Hike', 'Swim', 'VirtualRide', 'VirtualRun'].map((type) => (
+                        <option key={type} value={type}>{type}</option>
                       ))}
                     </select>
                   </div>
@@ -391,6 +392,7 @@ export const ProfilePage = () => {
                   </button>
                 </div>
               </div>
+              </>
             ) : (
               <div className="flex flex-col gap-3">
                 <p className="text-sm text-secondary">
