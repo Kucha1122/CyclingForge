@@ -1,14 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ActivityDto, FtpChangeDto } from '@cyclingforge/shared';
 import { activitiesApi, metricsApi } from '../services/api';
 import { formatDate, formatTime } from '../utils/format';
-import type { ActivitiesStackParamList } from '../navigation/types';
+import type { ActivityListScreenProps } from '../navigation/types';
 
-type Props = NativeStackScreenProps<ActivitiesStackParamList, 'Activities'>;
+type Props = ActivityListScreenProps;
 type Filter = 'all' | 'ride' | 'run' | 'walk';
 const PER_PAGE = 30;
 
@@ -182,9 +180,9 @@ export function ActivitiesScreen({ navigation }: Props) {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900 items-center justify-center">
+      <View className="flex-1 bg-slate-50 dark:bg-slate-900 items-center justify-center">
         <ActivityIndicator size="large" color="#3b82f6" />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -194,7 +192,7 @@ export function ActivitiesScreen({ navigation }: Props) {
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+    <View className="flex-1 bg-slate-50 dark:bg-slate-900">
       <Text className="text-2xl font-bold text-slate-900 dark:text-white px-4 mt-4 mb-1">{t('title')}</Text>
       <Text className="text-sm text-slate-500 dark:text-slate-400 px-4 mb-3">{t('subtitle')}</Text>
 
@@ -228,6 +226,6 @@ export function ActivitiesScreen({ navigation }: Props) {
           </Text>
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }

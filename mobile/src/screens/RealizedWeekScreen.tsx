@@ -149,7 +149,7 @@ export function RealizedWeekScreen({ navigation }: RealizedWeekScreenProps) {
   }, [fetchWeek, weekOffset, weekStartDay]);
 
   const goToActivity = useCallback((id: string) => {
-    navigation.navigate('ActivitiesTab', { screen: 'ActivityDetails', params: { id } });
+    navigation.navigate('ActivityDetails', { id });
   }, [navigation]);
 
   const totals = useMemo(() => {

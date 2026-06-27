@@ -11,17 +11,24 @@ import { ActivitiesScreen } from '../screens/ActivitiesScreen';
 import { ActivityDetailsScreen } from '../screens/ActivityDetailsScreen';
 import { TodayWorkoutScreen } from '../screens/TodayWorkoutScreen';
 import { RealizedWeekScreen } from '../screens/RealizedWeekScreen';
+import { WorkoutLibraryScreen } from '../screens/WorkoutLibraryScreen';
+import { FullPlanScreen } from '../screens/FullPlanScreen';
+import { TrainingSetupScreen } from '../screens/TrainingSetupScreen';
+import { WorkoutDetailScreen } from '../screens/WorkoutDetailScreen';
+import { WorkoutCreatorScreen } from '../screens/WorkoutCreatorScreen';
 import { SleepScreen } from '../screens/SleepScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import type {
   MainTabParamList, HomeStackParamList,
-  ActivitiesStackParamList, TrainingTabParamList,
+  ActivitiesStackParamList, ActivitiesTabParamList, TrainingStackParamList, TrainingTabParamList,
   SleepStackParamList, ProfileStackParamList,
 } from './types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const ActivitiesStack = createNativeStackNavigator<ActivitiesStackParamList>();
+const ActivitiesTopTab = createMaterialTopTabNavigator<ActivitiesTabParamList>();
+const TrainingStack = createNativeStackNavigator<TrainingStackParamList>();
 const TrainingTopTab = createMaterialTopTabNavigator<TrainingTabParamList>();
 const SleepStack = createNativeStackNavigator<SleepStackParamList>();
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
@@ -34,17 +41,42 @@ function HomeNavigator() {
   );
 }
 
+/** Activities swipeable top tabs — the list + the realized week. */
+function ActivitiesTopTabs() {
+  const { t } = useTranslation('nav');
+  const isDark = useThemeStore((s) => s.theme) === 'dark';
+  const bg = isDark ? '#0f172a' : '#f8fafc';
+  return (
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: bg }}>
+      <ActivitiesTopTab.Navigator
+        screenOptions={{
+          tabBarActiveTintColor: '#3b82f6',
+          tabBarInactiveTintColor: isDark ? '#94a3b8' : '#64748b',
+          tabBarIndicatorStyle: { backgroundColor: '#3b82f6', height: 2.5 },
+          tabBarLabelStyle: { fontSize: 13, fontWeight: '600', textTransform: 'none' },
+          tabBarStyle: { backgroundColor: bg, elevation: 0, shadowOpacity: 0 },
+          tabBarScrollEnabled: false,
+        }}
+      >
+        <ActivitiesTopTab.Screen name="ActivityList" component={ActivitiesScreen} options={{ tabBarLabel: t('activities') }} />
+        <ActivitiesTopTab.Screen name="RealizedWeek" component={RealizedWeekScreen} options={{ tabBarLabel: t('realizedWeek') }} />
+      </ActivitiesTopTab.Navigator>
+    </SafeAreaView>
+  );
+}
+
+/** Activities stack: top-tab hub + pushed activity detail. */
 function ActivitiesNavigator() {
   return (
     <ActivitiesStack.Navigator>
-      <ActivitiesStack.Screen name="Activities" component={ActivitiesScreen} options={{ headerShown: false }} />
+      <ActivitiesStack.Screen name="ActivitiesHub" component={ActivitiesTopTabs} options={{ headerShown: false }} />
       <ActivitiesStack.Screen name="ActivityDetails" component={ActivityDetailsScreen} options={{ title: '' }} />
     </ActivitiesStack.Navigator>
   );
 }
 
-/** Training hub: swipeable top tabs grouping the workout-related sections. */
-function TrainingNavigator() {
+/** Swipeable top tabs — flat screens only, no nested navigators. */
+function TrainingTopTabs() {
   const { t } = useTranslation('nav');
   const isDark = useThemeStore((s) => s.theme) === 'dark';
   const bg = isDark ? '#0f172a' : '#f8fafc';
@@ -57,12 +89,28 @@ function TrainingNavigator() {
           tabBarIndicatorStyle: { backgroundColor: '#3b82f6', height: 2.5 },
           tabBarLabelStyle: { fontSize: 13, fontWeight: '600', textTransform: 'none' },
           tabBarStyle: { backgroundColor: bg, elevation: 0, shadowOpacity: 0 },
+          tabBarScrollEnabled: false,
         }}
       >
         <TrainingTopTab.Screen name="TodayWorkout" component={TodayWorkoutScreen} options={{ tabBarLabel: t('todayWorkout') }} />
-        <TrainingTopTab.Screen name="RealizedWeek" component={RealizedWeekScreen} options={{ tabBarLabel: t('realizedWeek') }} />
+        <TrainingTopTab.Screen name="FullPlan" component={FullPlanScreen} options={{ tabBarLabel: t('fullPlan') }} />
+        <TrainingTopTab.Screen name="WorkoutLibrary" component={WorkoutLibraryScreen} options={{ tabBarLabel: t('workoutLibrary') }} />
       </TrainingTopTab.Navigator>
     </SafeAreaView>
+  );
+}
+
+/** Training stack: top-tab hub + pushed detail/creator screens. */
+function TrainingNavigator() {
+  const { t } = useTranslation('workouts');
+  const { t: tSetup } = useTranslation('trainingSetup');
+  return (
+    <TrainingStack.Navigator>
+      <TrainingStack.Screen name="TrainingHub" component={TrainingTopTabs} options={{ headerShown: false }} />
+      <TrainingStack.Screen name="WorkoutDetail" component={WorkoutDetailScreen} options={{ title: '', headerBackTitle: t('backToLibrary') }} />
+      <TrainingStack.Screen name="WorkoutCreator" component={WorkoutCreatorScreen} options={{ title: t('createWorkout') }} />
+      <TrainingStack.Screen name="TrainingSetup" component={TrainingSetupScreen} options={{ title: tSetup('title') }} />
+    </TrainingStack.Navigator>
   );
 }
 
