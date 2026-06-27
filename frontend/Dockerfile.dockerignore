@@ -1,0 +1,16 @@
+**/node_modules/
+**/.git/
+**/.vs/
+**/.vscode/
+**/dist/
+**/out/
+**/bin/
+**/obj/
+src/
+tests/
+tools/
+scripts/
+services/
+k8s/
+.github/
+mobile/

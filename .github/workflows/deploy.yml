@@ -32,7 +32,7 @@ jobs:
 
       - name: Build & push frontend image
         run: |
-          docker build -t $FRONTEND_IMAGE:${{ github.sha }} -t $FRONTEND_IMAGE:latest -f frontend/Dockerfile frontend/
+          docker build -t $FRONTEND_IMAGE:${{ github.sha }} -t $FRONTEND_IMAGE:latest -f frontend/Dockerfile .
           docker push $FRONTEND_IMAGE:${{ github.sha }}
           docker push $FRONTEND_IMAGE:latest
 
