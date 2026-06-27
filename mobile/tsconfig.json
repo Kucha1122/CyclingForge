@@ -1,0 +1,20 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@cyclingforge/shared": [
+        "../shared/src/index"
+      ],
+      "@cyclingforge/shared/*": [
+        "../shared/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "../shared/src/**/*.ts",
+    "nativewind-env.d.ts"
+  ]
+}
