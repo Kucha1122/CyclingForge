@@ -58,7 +58,7 @@ internal sealed class StravaApiService : IStravaApiService
             a.AverageSpeed.HasValue ? a.AverageSpeed.Value * MetersPerSecondToKmh : null,
             a.MaxSpeed.HasValue ? a.MaxSpeed.Value * MetersPerSecondToKmh : null,
             a.AverageHeartRate,
-            a.MaxHeartRate, a.AveragePower, a.DeviceWatts)).ToList()
+            a.MaxHeartRate, a.AveragePower, a.DeviceWatts, a.DeviceName)).ToList()
             ?? [];
     }
 
@@ -79,7 +79,7 @@ internal sealed class StravaApiService : IStravaApiService
             a.AverageSpeed.HasValue ? a.AverageSpeed.Value * MetersPerSecondToKmh : null,
             a.MaxSpeed.HasValue ? a.MaxSpeed.Value * MetersPerSecondToKmh : null,
             a.AverageHeartRate,
-            a.MaxHeartRate, a.AveragePower, a.DeviceWatts);
+            a.MaxHeartRate, a.AveragePower, a.DeviceWatts, a.DeviceName);
     }
 
     public async Task<StravaZonesResponse?> GetZonesAsync(

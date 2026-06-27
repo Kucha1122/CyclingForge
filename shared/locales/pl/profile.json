@@ -77,5 +77,19 @@
   "placeholderMaxHr": "np. 185",
   "placeholderRestingHr": "np. 48",
   "rpeFeedbackLabel": "Ocena RPE po treningu",
-  "rpeFeedbackHint": "Po oznaczeniu sesji jako wykonanej poprosimy o szybką ocenę odczuwanego wysiłku. Zasila ona silnik rekomendacji, dzięki czemu po serii ciężkich dni intensywność może zostać obniżona."
+  "rpeFeedbackHint": "Po oznaczeniu sesji jako wykonanej poprosimy o szybką ocenę odczuwanego wysiłku. Zasila ona silnik rekomendacji, dzięki czemu po serii ciężkich dni intensywność może zostać obniżona.",
+  "syncFiltersTitle": "Wykluczenia synchronizacji",
+  "syncFiltersHint": "Pomijaj aktywności danego typu, gdy nazwa urządzenia nagrywającego zawiera podany tekst (np. wyklucz Ride z \"Garmin Epix\", ale zostawiaj Walk).",
+  "syncFilterDevice": "urządzenie zawiera",
+  "syncFilterTypeLabel": "Typ aktywności",
+  "syncFilterDeviceLabel": "Nazwa urządzenia zawiera",
+  "syncFilterDevicePlaceholder": "np. Garmin Epix",
+  "syncFilterAdd": "Dodaj",
+  "garminAutoSyncTitle": "Automatyczna synchronizacja",
+  "garminAutoSyncHint": "Dane Garmin (wellness, sen, HRV) pobierane są automatycznie o ustawionych poniżej godzinach (Twój czas lokalny).",
+  "garminAutoSyncEnabled": "Wł.",
+  "garminAutoSyncDisabled": "Wył.",
+  "garminAutoSyncNoTimes": "Brak godzin — dodaj poniżej.",
+  "garminAutoSyncAdd": "Dodaj",
+  "garminAutoSyncRemove": "Usuń godzinę"
 }

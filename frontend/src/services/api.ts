@@ -1,7 +1,7 @@
 import axios from 'axios';
 import i18n from '../i18n';
 import { emitToast } from '../context/toastBus';
-import type { AthleteProfileDto, AthleteZonesDto } from '@cyclingforge/shared';
+import type { AthleteProfileDto, AthleteZonesDto, ActivitySyncFilterDto } from '@cyclingforge/shared';
 import type { ActivityDto, ActivityDetailsDto, RealizedWeekDto, ActivityCountsDto, StravaActivityDetailsDto, PowerCurveDto } from '@cyclingforge/shared';
 import type { GarminStatusDto, SleepDataDto, WellnessDataDto, HrvDataDto, GarminSyncPreferenceDto } from '@cyclingforge/shared';
 import type {
@@ -74,6 +74,10 @@ export const stravaApi = {
   getActivities: (page = 1, perPage = 30) => api.get<ActivityDto[]>('/strava/activities', { params: { page, perPage } }),
   getActivityCounts: () => api.get<ActivityCountsDto>('/strava/activities/counts'),
   getActivityDetails: (id: string) => api.get<StravaActivityDetailsDto>(`/strava/activities/${id}`),
+  getSyncFilters: () => api.get<ActivitySyncFilterDto[]>('/strava/sync-filters'),
+  addSyncFilter: (activityType: string, excludedDevicePattern: string) =>
+    api.post('/strava/sync-filters', { activityType, excludedDevicePattern }),
+  deleteSyncFilter: (filterId: string) => api.delete(`/strava/sync-filters/${filterId}`),
 };
 
 export const activitiesApi = {

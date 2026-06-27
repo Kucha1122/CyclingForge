@@ -231,6 +231,9 @@ internal sealed class StravaActivityApiResponse
 
     [JsonPropertyName("device_watts")]
     public bool? DeviceWatts { get; set; }
+
+    [JsonPropertyName("device_name")]
+    public string? DeviceName { get; set; }
 }
 
 internal sealed class StravaZonesApiResponse

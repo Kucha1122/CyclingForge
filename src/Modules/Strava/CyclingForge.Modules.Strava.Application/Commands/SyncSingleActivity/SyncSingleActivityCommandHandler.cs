@@ -17,6 +17,7 @@ internal sealed class SyncSingleActivityCommandHandler : IRequestHandler<SyncSin
     private readonly IStravaTokenRepository _tokenRepository;
     private readonly IStravaActivityRepository _activityRepository;
     private readonly IStravaAthleteRepository _athleteRepository;
+    private readonly IActivitySyncFilterRepository _filterRepository;
     private readonly IStravaApiService _stravaApiService;
     private readonly IClock _clock;
 
@@ -24,12 +25,14 @@ internal sealed class SyncSingleActivityCommandHandler : IRequestHandler<SyncSin
         IStravaTokenRepository tokenRepository,
         IStravaActivityRepository activityRepository,
         IStravaAthleteRepository athleteRepository,
+        IActivitySyncFilterRepository filterRepository,
         IStravaApiService stravaApiService,
         IClock clock)
     {
         _tokenRepository = tokenRepository;
         _activityRepository = activityRepository;
         _athleteRepository = athleteRepository;
+        _filterRepository = filterRepository;
         _stravaApiService = stravaApiService;
         _clock = clock;
     }
@@ -68,6 +71,12 @@ internal sealed class SyncSingleActivityCommandHandler : IRequestHandler<SyncSin
 
         var activityDto = await _stravaApiService.GetActivityByIdAsync(token.Token.Value, command.ActivityId, cancellationToken);
         if (activityDto is null)
+        {
+            return null;
+        }
+
+        var filters = await _filterRepository.GetByUserIdAsync(athlete.UserId, cancellationToken);
+        if (filters.Any(f => f.Matches(activityDto.Type, activityDto.DeviceName)))
         {
             return null;
         }

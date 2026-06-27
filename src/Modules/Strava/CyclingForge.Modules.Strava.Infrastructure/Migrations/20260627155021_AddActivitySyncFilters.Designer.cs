@@ -4,16 +4,19 @@ using CyclingForge.Modules.Strava.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace CyclingForge.Modules.Strava.Infrastructure.Database.Migrations
+namespace CyclingForge.Modules.Strava.Infrastructure.Migrations
 {
     [DbContext(typeof(StravaDbContext))]
-    partial class StravaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260627155021_AddActivitySyncFilters")]
+    partial class AddActivitySyncFilters
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

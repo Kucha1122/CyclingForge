@@ -1,3 +1,9 @@
+export interface ActivitySyncFilterDto {
+  id: string;
+  activityType: string;
+  excludedDevicePattern: string;
+}
+
 export interface StravaCallbackRequest {
   code: string;
 }

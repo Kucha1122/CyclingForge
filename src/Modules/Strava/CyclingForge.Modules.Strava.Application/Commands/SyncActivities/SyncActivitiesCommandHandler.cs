@@ -11,6 +11,7 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
     private readonly IStravaTokenRepository _tokenRepository;
     private readonly IStravaActivityRepository _activityRepository;
     private readonly IStravaAthleteRepository _athleteRepository;
+    private readonly IActivitySyncFilterRepository _filterRepository;
     private readonly IStravaApiService _stravaApiService;
     private readonly IClock _clock;
 
@@ -18,12 +19,14 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
         IStravaTokenRepository tokenRepository,
         IStravaActivityRepository activityRepository,
         IStravaAthleteRepository athleteRepository,
+        IActivitySyncFilterRepository filterRepository,
         IStravaApiService stravaApiService,
         IClock clock)
     {
         _tokenRepository = tokenRepository;
         _activityRepository = activityRepository;
         _athleteRepository = athleteRepository;
+        _filterRepository = filterRepository;
         _stravaApiService = stravaApiService;
         _clock = clock;
     }
@@ -76,6 +79,8 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
             beforeUnix = new DateTimeOffset(todayEnd, TimeSpan.Zero).ToUnixTimeSeconds();
         }
 
+        var filters = await _filterRepository.GetByUserIdAsync(command.UserId, cancellationToken);
+
         const int perPage = 200;
         const int maxStreamBackfillsPerSync = 50;
         var page = 1;
@@ -96,6 +101,11 @@ internal sealed class SyncActivitiesCommandHandler : IRequestHandler<SyncActivit
 
             foreach (var activityDto in activities)
             {
+                if (filters.Any(f => f.Matches(activityDto.Type, activityDto.DeviceName)))
+                {
+                    continue;
+                }
+
                 var existing = await _activityRepository.GetByExternalIdAsync(activityDto.StravaId, cancellationToken);
                 if (existing is not null)
                 {

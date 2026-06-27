@@ -5,7 +5,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { usersApi, stravaApi, garminApi, type UserProfile } from '../services/api';
-import type { AthleteProfileDto, AthleteZonesDto } from '../types/strava';
+import type { AthleteProfileDto, AthleteZonesDto, ActivitySyncFilterDto } from '../types/strava';
 import type { GarminStatusDto } from '../types/garmin';
 import { useNavigate } from 'react-router-dom';
 import { formatDate } from '../utils/format';
@@ -32,6 +32,10 @@ export const ProfilePage = () => {
   const [garminError, setGarminError] = useState<string | null>(null);
   const [garminMfaSessionId, setGarminMfaSessionId] = useState<string | null>(null);
   const [garminMfaCode, setGarminMfaCode] = useState('');
+  const [syncFilters, setSyncFilters] = useState<ActivitySyncFilterDto[]>([]);
+  const [newFilterType, setNewFilterType] = useState('Ride');
+  const [newFilterDevice, setNewFilterDevice] = useState('');
+  const [filterSaving, setFilterSaving] = useState(false);
   const [syncTimes, setSyncTimes] = useState<string[]>([]);
   const [syncEnabled, setSyncEnabled] = useState(true);
   const [syncTimeZoneId, setSyncTimeZoneId] = useState('Europe/Warsaw');
@@ -121,6 +125,41 @@ export const ProfilePage = () => {
 
     fetchData();
   }, [user]);
+
+  useEffect(() => {
+    if (!stravaProfile) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await stravaApi.getSyncFilters();
+        if (!cancelled) setSyncFilters(res.data);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [stravaProfile]);
+
+  const handleAddSyncFilter = async () => {
+    if (!newFilterDevice.trim()) return;
+    setFilterSaving(true);
+    try {
+      await stravaApi.addSyncFilter(newFilterType, newFilterDevice.trim());
+      const res = await stravaApi.getSyncFilters();
+      setSyncFilters(res.data);
+      setNewFilterDevice('');
+      toast.success(tCommon('toastSaved'));
+    } catch { /* error toast from interceptor */ }
+    finally { setFilterSaving(false); }
+  };
+
+  const handleDeleteSyncFilter = async (filterId: string) => {
+    setFilterSaving(true);
+    try {
+      await stravaApi.deleteSyncFilter(filterId);
+      setSyncFilters((prev) => prev.filter((f) => f.id !== filterId));
+      toast.success(tCommon('toastSaved'));
+    } catch { /* error toast from interceptor */ }
+    finally { setFilterSaving(false); }
+  };
 
   useEffect(() => {
     if (!garminStatus?.isConnected) return;
@@ -292,6 +331,64 @@ export const ProfilePage = () => {
                   <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-state-success-bg px-2 py-0.5 text-xs font-medium text-state-success-text">
                     <span>●</span> {t('connected')}
                   </div>
+                </div>
+              </div>
+              {/* Sync Filters */}
+              <div className="mt-6 border-t border-border-default pt-4">
+                <h3 className="mb-2 text-sm font-semibold text-primary">{t('syncFiltersTitle')}</h3>
+                <p className="mb-3 text-xs text-tertiary">{t('syncFiltersHint')}</p>
+                {syncFilters.length > 0 && (
+                  <div className="mb-3 space-y-2">
+                    {syncFilters.map((f) => (
+                      <div key={f.id} className="flex items-center justify-between rounded-lg bg-surface-muted px-3 py-2 ring-1 ring-border-default">
+                        <span className="text-xs text-primary">
+                          <span className="font-medium">{f.activityType}</span>
+                          {' — '}
+                          {t('syncFilterDevice')} <span className="font-medium">{f.excludedDevicePattern}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSyncFilter(f.id)}
+                          disabled={filterSaving}
+                          className="text-sm text-tertiary hover:text-state-error-text disabled:opacity-50"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-end gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-secondary">{t('syncFilterTypeLabel')}</label>
+                    <select
+                      value={newFilterType}
+                      onChange={(e) => setNewFilterType(e.target.value)}
+                      className="rounded-lg border border-border-default bg-surface px-2 py-1.5 text-sm text-primary"
+                    >
+                      {['Ride', 'Run', 'Walk', 'Hike', 'Swim', 'VirtualRide', 'VirtualRun'].map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-1 flex-col gap-1">
+                    <label className="text-xs text-secondary">{t('syncFilterDeviceLabel')}</label>
+                    <input
+                      type="text"
+                      value={newFilterDevice}
+                      onChange={(e) => setNewFilterDevice(e.target.value)}
+                      placeholder={t('syncFilterDevicePlaceholder')}
+                      className="rounded-lg border border-border-default bg-surface px-3 py-1.5 text-sm text-primary"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddSyncFilter}
+                    disabled={filterSaving || !newFilterDevice.trim()}
+                    className="inline-flex items-center justify-center rounded-lg bg-surface-muted px-3 py-1.5 text-sm font-medium text-primary ring-1 ring-border-default transition-colors hover:bg-surface disabled:opacity-50"
+                  >
+                    {t('syncFilterAdd')}
+                  </button>
                 </div>
               </div>
             ) : (

@@ -1,9 +1,12 @@
 using CyclingForge.Modules.Strava.Api.Requests;
+using CyclingForge.Modules.Strava.Application.Commands.AddSyncFilter;
 using CyclingForge.Modules.Strava.Application.Commands.Authorize;
+using CyclingForge.Modules.Strava.Application.Commands.DeleteSyncFilter;
 using CyclingForge.Modules.Strava.Application.Commands.RefreshToken;
 using CyclingForge.Modules.Strava.Application.Commands.SyncActivities;
 using CyclingForge.Modules.Strava.Application.Queries.GetActivities;
 using CyclingForge.Modules.Strava.Application.Queries.GetActivityCounts;
+using CyclingForge.Modules.Strava.Application.Queries.GetSyncFilters;
 using CyclingForge.Modules.Strava.Application.Queries.GetActivityDetails;
 using CyclingForge.Modules.Strava.Application.Queries.GetAthleteProfile;
 using CyclingForge.Modules.Strava.Application.Queries.GetAthleteZones;
@@ -126,5 +129,34 @@ public sealed class StravaController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    [HttpGet("sync-filters")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<SyncFilterDto>>> GetSyncFilters(CancellationToken cancellationToken)
+    {
+        var query = new GetSyncFiltersQuery(_currentUser.UserId);
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("sync-filters")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> AddSyncFilter(
+        [FromBody] AddSyncFilterRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new AddSyncFilterCommand(_currentUser.UserId, request.ActivityType, request.ExcludedDevicePattern);
+        await _mediator.Send(command, cancellationToken);
+        return Ok();
+    }
+
+    [HttpDelete("sync-filters/{filterId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> DeleteSyncFilter(Guid filterId, CancellationToken cancellationToken)
+    {
+        var command = new DeleteSyncFilterCommand(_currentUser.UserId, filterId);
+        await _mediator.Send(command, cancellationToken);
+        return Ok();
     }
 }

@@ -38,7 +38,8 @@ public sealed record StravaActivityResponse(
     float? AverageHeartRate,
     float? MaxHeartRate,
     float? AveragePower,
-    bool? DeviceWatts);
+    bool? DeviceWatts,
+    string? DeviceName = null);
 
 public sealed record StravaZonesResponse(
     IReadOnlyList<StravaZoneRange> HeartRateZones,
