@@ -66,6 +66,53 @@ internal sealed class StravaHttpClient
         return await response.Content.ReadFromJsonAsync<List<StravaActivityApiResponse>>(cancellationToken);
     }
 
+    public async Task<List<StravaPushSubscriptionApiResponse>?> GetPushSubscriptionsAsync(
+        string clientId, string clientSecret, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.GetAsync(
+            $"push_subscriptions?client_id={clientId}&client_secret={Uri.EscapeDataString(clientSecret)}",
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<List<StravaPushSubscriptionApiResponse>>(cancellationToken);
+    }
+
+    public async Task<(bool Success, string Body)> CreatePushSubscriptionAsync(
+        string clientId, string clientSecret, string callbackUrl, string verifyToken, CancellationToken cancellationToken)
+    {
+        var form = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("client_id", clientId),
+            new KeyValuePair<string, string>("client_secret", clientSecret),
+            new KeyValuePair<string, string>("callback_url", callbackUrl),
+            new KeyValuePair<string, string>("verify_token", verifyToken),
+        });
+
+        var response = await _httpClient.PostAsync("push_subscriptions", form, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        return (response.IsSuccessStatusCode, body);
+    }
+
+    public async Task<StravaActivityApiResponse?> GetActivityAsync(
+        string accessToken, long activityId, CancellationToken cancellationToken = default)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"activities/{activityId}");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<StravaActivityApiResponse>(cancellationToken);
+    }
+
     public async Task<StravaZonesApiResponse?> GetZonesAsync(
         string accessToken,
         CancellationToken cancellationToken = default)
@@ -100,6 +147,15 @@ internal sealed class StravaHttpClient
         
         return await response.Content.ReadAsStringAsync(cancellationToken);
     }
+}
+
+internal sealed class StravaPushSubscriptionApiResponse
+{
+    [JsonPropertyName("id")]
+    public long Id { get; set; }
+
+    [JsonPropertyName("callback_url")]
+    public string CallbackUrl { get; set; } = string.Empty;
 }
 
 internal sealed class StravaOAuthTokenResponse

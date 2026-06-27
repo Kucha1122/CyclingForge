@@ -32,6 +32,11 @@ public static class Extensions
         services.AddScoped<IStravaActivityRepository, StravaActivityRepository>();
         services.AddScoped<IStravaAthleteZonesRepository, StravaAthleteZonesRepository>();
 
+        // Webhook ingestion: bounded in-memory queue + background consumer, plus one-shot subscription registration.
+        services.AddSingleton<IStravaWebhookQueue, StravaWebhookQueue>();
+        services.AddHostedService<StravaWebhookProcessor>();
+        services.AddHostedService<StravaWebhookSubscriptionService>();
+
         return services;
     }
 

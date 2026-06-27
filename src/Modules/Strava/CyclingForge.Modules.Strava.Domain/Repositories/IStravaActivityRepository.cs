@@ -9,6 +9,7 @@ public interface IStravaActivityRepository
     Task<IReadOnlyList<StravaActivity>> GetByAthleteIdAndDateRangeAsync(Guid athleteId, DateTime afterUtc, DateTime beforeUtc, CancellationToken cancellationToken = default);
     Task AddAsync(StravaActivity activity, CancellationToken cancellationToken = default);
     Task UpdateAsync(StravaActivity activity, CancellationToken cancellationToken = default);
+    Task DeleteByExternalIdAsync(long externalId, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(long externalId, CancellationToken cancellationToken = default);
     Task<DateTime?> GetLatestActivityStartDateAsync(Guid athleteId, CancellationToken cancellationToken = default);
     Task<(int Total, int Ride, int Run, int Walk)> GetCountsByAthleteIdAsync(Guid athleteId, CancellationToken cancellationToken = default);

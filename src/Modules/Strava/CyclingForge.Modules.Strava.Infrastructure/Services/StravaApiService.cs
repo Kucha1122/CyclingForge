@@ -62,6 +62,26 @@ internal sealed class StravaApiService : IStravaApiService
             ?? [];
     }
 
+    public async Task<StravaActivityResponse?> GetActivityByIdAsync(
+        string accessToken, long activityId, CancellationToken cancellationToken = default)
+    {
+        var a = await _httpClient.GetActivityAsync(accessToken, activityId, cancellationToken);
+        if (a is null)
+        {
+            return null;
+        }
+
+        // Strava API returns speed in m/s; convert to km/h for storage and display.
+        const float MetersPerSecondToKmh = 3.6f;
+        return new StravaActivityResponse(
+            a.Id, a.Name, a.Type, a.StartDate, a.Distance,
+            a.MovingTime, a.ElapsedTime, a.TotalElevationGain,
+            a.AverageSpeed.HasValue ? a.AverageSpeed.Value * MetersPerSecondToKmh : null,
+            a.MaxSpeed.HasValue ? a.MaxSpeed.Value * MetersPerSecondToKmh : null,
+            a.AverageHeartRate,
+            a.MaxHeartRate, a.AveragePower, a.DeviceWatts);
+    }
+
     public async Task<StravaZonesResponse?> GetZonesAsync(
         string accessToken,
         CancellationToken cancellationToken = default)
@@ -134,4 +154,10 @@ public sealed class StravaOptions
     public string ClientId { get; set; } = string.Empty;
     public string ClientSecret { get; set; } = string.Empty;
     public string RedirectUri { get; set; } = string.Empty;
+
+    /// <summary>Publicly reachable URL that Strava will POST webhook events to (e.g. https://host/api/strava/webhook).</summary>
+    public string WebhookCallbackUrl { get; set; } = string.Empty;
+
+    /// <summary>Shared secret echoed during the GET subscription validation handshake.</summary>
+    public string WebhookVerifyToken { get; set; } = string.Empty;
 }

@@ -43,6 +43,16 @@ internal sealed class StravaActivityRepository : IStravaActivityRepository
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task DeleteByExternalIdAsync(long externalId, CancellationToken cancellationToken = default)
+    {
+        var existing = await _dbContext.StravaActivities.FirstOrDefaultAsync(a => a.ExternalId == externalId, cancellationToken);
+        if (existing is not null)
+        {
+            _dbContext.StravaActivities.Remove(existing);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+    }
+
     public async Task<bool> ExistsAsync(long externalId, CancellationToken cancellationToken = default)
         => await _dbContext.StravaActivities.AnyAsync(a => a.ExternalId == externalId, cancellationToken);
 
