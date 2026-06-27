@@ -18,8 +18,11 @@ internal sealed class StravaAthleteRepository : IStravaAthleteRepository
         => await _dbContext.StravaAthletes.FirstOrDefaultAsync(a => a.UserId == userId, cancellationToken);
 
     public async Task<StravaAthlete?> GetByStravaIdAsync(long stravaId, CancellationToken cancellationToken = default)
-        => await _dbContext.StravaAthletes.FirstOrDefaultAsync(
-            a => a.StravaId == new Domain.ValueObjects.StravaAthleteId(stravaId), cancellationToken);
+    {
+        var athleteId = new Domain.ValueObjects.StravaAthleteId(stravaId);
+        return await _dbContext.StravaAthletes.FirstOrDefaultAsync(
+            a => a.StravaId == athleteId, cancellationToken);
+    }
 
     public async Task AddAsync(StravaAthlete athlete, CancellationToken cancellationToken = default)
     {
