@@ -4,6 +4,7 @@ using CyclingForge.Modules.Activities.Application.Queries.GetActivityDetails;
 using CyclingForge.Modules.Activities.Application.Queries.GetPowerCurve;
 using CyclingForge.Modules.Activities.Application.Queries.GetRealizedWeek;
 using CyclingForge.Shared.Abstractions.Auth;
+using CyclingForge.Shared.Abstractions.RealTime;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -18,11 +19,13 @@ public sealed class ActivitiesController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUser;
+    private readonly ISyncNotifier _syncNotifier;
 
-    public ActivitiesController(IMediator mediator, ICurrentUserService currentUser)
+    public ActivitiesController(IMediator mediator, ICurrentUserService currentUser, ISyncNotifier syncNotifier)
     {
         _mediator = mediator;
         _currentUser = currentUser;
+        _syncNotifier = syncNotifier;
     }
 
     [HttpPost("sync")]
@@ -35,6 +38,9 @@ public sealed class ActivitiesController : ControllerBase
         // force=true rebuilds eFTP/TSS for existing activities (one-time backfill); implies a full sync.
         var command = new SyncActivitiesCommand(_currentUser.UserId, quickSync && !force, force);
         var syncedCount = await _mediator.Send(command, cancellationToken);
+
+        // Refresh this user's other open clients (web + mobile). Best-effort.
+        await _syncNotifier.NotifyAsync(_currentUser.UserId, SyncKind.Activity, syncedCount, cancellationToken);
         return Ok(new { syncedCount });
     }
 

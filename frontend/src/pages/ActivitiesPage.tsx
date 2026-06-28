@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageLoader, Spinner } from '../components/Spinner';
 import { useAuth } from '../context/AuthContext';
+import { useSync } from '../context/SyncContext';
 import { activitiesApi, metricsApi, type FtpChangeDto } from '../services/api';
 import type { ActivityDto } from '../types/activity';
 import { formatDate, formatTime } from '../utils/format';
@@ -11,6 +12,7 @@ const PER_PAGE = 30;
 
 export const ActivitiesPage = () => {
   useAuth();
+  const { syncVersion } = useSync();
   const { t, i18n } = useTranslation('activities');
   const [activities, setActivities] = useState<ActivityDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,7 @@ export const ActivitiesPage = () => {
     };
 
     fetchInitial();
-  }, []);
+  }, [syncVersion]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;

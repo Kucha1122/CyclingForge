@@ -21,8 +21,15 @@ export type MainTabParamList = {
   ProfileTab: undefined;
 };
 
+// Home stack wraps the top-tab hub (Overview + Analysis).
 export type HomeStackParamList = {
-  Dashboard: undefined;
+  HomeHub: NavigatorScreenParams<HomeTabParamList>;
+};
+
+// Home top tabs — flat screens only, no nested navigators.
+export type HomeTabParamList = {
+  Overview: undefined;
+  Analysis: undefined;
 };
 
 // Activities stack wraps the top-tab hub + pushed detail screen.
@@ -59,6 +66,17 @@ export type SleepStackParamList = {
 export type ProfileStackParamList = {
   Profile: undefined;
 };
+
+// Overview and Analysis are top-tab screens in the Home hub.
+export type OverviewScreenProps = CompositeScreenProps<
+  MaterialTopTabScreenProps<HomeTabParamList, 'Overview'>,
+  NativeStackScreenProps<HomeStackParamList>
+>;
+
+export type AnalysisScreenProps = CompositeScreenProps<
+  MaterialTopTabScreenProps<HomeTabParamList, 'Analysis'>,
+  NativeStackScreenProps<HomeStackParamList>
+>;
 
 export type ActivityDetailsScreenProps = CompositeScreenProps<
   NativeStackScreenProps<ActivitiesStackParamList, 'ActivityDetails'>,

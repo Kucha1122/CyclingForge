@@ -1,6 +1,7 @@
 using CyclingForge.Modules.Activities.Application.Commands.SyncActivities;
 using CyclingForge.Modules.Strava.Application.Commands.SyncSingleActivity;
 using CyclingForge.Modules.Strava.Application.Services;
+using CyclingForge.Shared.Abstractions.RealTime;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -48,7 +49,11 @@ internal sealed class StravaWebhookProcessor : BackgroundService
 
                 if (userId.HasValue)
                 {
-                    await mediator.Send(new SyncActivitiesCommand(userId.Value, QuickSync: true), stoppingToken);
+                    var syncedCount = await mediator.Send(new SyncActivitiesCommand(userId.Value, QuickSync: true), stoppingToken);
+
+                    // Signal the user's connected clients (web + mobile) to refresh. Best-effort.
+                    var notifier = scope.ServiceProvider.GetRequiredService<ISyncNotifier>();
+                    await notifier.NotifyAsync(userId.Value, SyncKind.Activity, syncedCount, stoppingToken);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

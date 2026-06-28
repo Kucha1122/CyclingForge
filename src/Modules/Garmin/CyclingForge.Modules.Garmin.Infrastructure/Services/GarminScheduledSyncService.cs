@@ -2,6 +2,7 @@ using CyclingForge.Modules.Garmin.Application.Commands.SyncGarminData;
 using CyclingForge.Modules.Garmin.Application.Defaults;
 using CyclingForge.Modules.Garmin.Domain.Entities;
 using CyclingForge.Modules.Garmin.Domain.Repositories;
+using CyclingForge.Shared.Abstractions.RealTime;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -53,6 +54,7 @@ internal sealed class GarminScheduledSyncService : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var repository = scope.ServiceProvider.GetRequiredService<IGarminSyncPreferenceRepository>();
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        var notifier = scope.ServiceProvider.GetRequiredService<ISyncNotifier>();
 
         var preferences = await repository.GetAllEnabledAsync(cancellationToken);
         var nowUtc = DateTime.UtcNow;
@@ -72,6 +74,9 @@ internal sealed class GarminScheduledSyncService : BackgroundService
                 _logger.LogInformation(
                     "Garmin scheduled sync completed for user {UserId} (slot {OccurrenceUtc:o}).",
                     preference.UserId, occurrenceUtc);
+
+                // Signal the user's connected clients (web + mobile) to refresh. Best-effort.
+                await notifier.NotifyAsync(preference.UserId, SyncKind.Garmin, cancellationToken: cancellationToken);
             }
             catch (Exception ex)
             {

@@ -2,9 +2,9 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from '../config';
 import type {
-  AthleteProfileDto, AthleteZonesDto,
+  AthleteProfileDto, AthleteZonesDto, ActivitySyncFilterDto,
   ActivityDto, ActivityDetailsDto, RealizedWeekDto,
-  GarminStatusDto, SleepDataDto, WellnessDataDto, HrvDataDto,
+  GarminStatusDto, SleepDataDto, WellnessDataDto, HrvDataDto, GarminSyncPreferenceDto,
   WorkoutDto, WorkoutSearchResultDto, CreateWorkoutRequest,
   BulkImportZwoResult, ParseZwoResultDto,
   TrainingPreferenceDto, SaveTrainingPreferenceRequest,
@@ -53,6 +53,10 @@ export const stravaApi = {
     api.get<ActivityDto[]>('/strava/activities', { params: { page, perPage } }),
   getActivityCounts: () => api.get<ActivityCountsDto>('/strava/activities/counts'),
   getActivityDetails: (id: string) => api.get<StravaActivityDetailsDto>(`/strava/activities/${id}`),
+  getSyncFilters: () => api.get<ActivitySyncFilterDto[]>('/strava/sync-filters'),
+  addSyncFilter: (activityType: string, excludedDevicePattern: string) =>
+    api.post('/strava/sync-filters', { activityType, excludedDevicePattern }),
+  deleteSyncFilter: (filterId: string) => api.delete(`/strava/sync-filters/${filterId}`),
 };
 
 export const activitiesApi = {
@@ -84,11 +88,20 @@ export const usersApi = {
     ftp: number | null; weightKg: number | null;
     lthr?: number | null; maxHeartRate?: number | null;
     restingHeartRate?: number | null; gender?: string | null;
+    eftpMinDurationSeconds?: number | null; enableRpeFeedback?: boolean | null;
   }) => api.put(`/users/${userId}/profile`, profile),
 };
 
 export const garminApi = {
   getStatus: () => api.get<GarminStatusDto>('/garmin/status'),
+  connect: (email: string, password: string) =>
+    api.post<{ sessionId?: string }>('/garmin/connect', { email, password }),
+  connectMfa: (sessionId: string, mfaCode: string) =>
+    api.post('/garmin/connect/mfa', { sessionId, mfaCode }),
+  disconnect: () => api.delete('/garmin/disconnect'),
+  getSyncPreferences: () => api.get<GarminSyncPreferenceDto>('/garmin/sync-preferences'),
+  saveSyncPreferences: (data: GarminSyncPreferenceDto) =>
+    api.put('/garmin/sync-preferences', data),
   sync: (daysBack = 7) => api.post('/garmin/sync', null, { params: { daysBack } }),
   getSleepData: (startDate: string, endDate: string) =>
     api.get<SleepDataDto[]>('/garmin/sleep', { params: { startDate, endDate } }),

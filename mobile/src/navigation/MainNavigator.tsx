@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useThemeStore } from '../stores/themeStore';
-import { DashboardScreen } from '../screens/DashboardScreen';
+import { OverviewScreen } from '../screens/OverviewScreen';
+import { AnalysisScreen } from '../screens/AnalysisScreen';
 import { ActivitiesScreen } from '../screens/ActivitiesScreen';
 import { ActivityDetailsScreen } from '../screens/ActivityDetailsScreen';
 import { TodayWorkoutScreen } from '../screens/TodayWorkoutScreen';
@@ -19,13 +20,14 @@ import { WorkoutCreatorScreen } from '../screens/WorkoutCreatorScreen';
 import { SleepScreen } from '../screens/SleepScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import type {
-  MainTabParamList, HomeStackParamList,
+  MainTabParamList, HomeStackParamList, HomeTabParamList,
   ActivitiesStackParamList, ActivitiesTabParamList, TrainingStackParamList, TrainingTabParamList,
   SleepStackParamList, ProfileStackParamList,
 } from './types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
+const HomeTopTab = createMaterialTopTabNavigator<HomeTabParamList>();
 const ActivitiesStack = createNativeStackNavigator<ActivitiesStackParamList>();
 const ActivitiesTopTab = createMaterialTopTabNavigator<ActivitiesTabParamList>();
 const TrainingStack = createNativeStackNavigator<TrainingStackParamList>();
@@ -33,10 +35,34 @@ const TrainingTopTab = createMaterialTopTabNavigator<TrainingTabParamList>();
 const SleepStack = createNativeStackNavigator<SleepStackParamList>();
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
+/** Home swipeable top tabs — the wellness overview + the training analysis. */
+function HomeTopTabs() {
+  const { t } = useTranslation('nav');
+  const isDark = useThemeStore((s) => s.theme) === 'dark';
+  const bg = isDark ? '#0f172a' : '#f8fafc';
+  return (
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: bg }}>
+      <HomeTopTab.Navigator
+        screenOptions={{
+          tabBarActiveTintColor: '#3b82f6',
+          tabBarInactiveTintColor: isDark ? '#94a3b8' : '#64748b',
+          tabBarIndicatorStyle: { backgroundColor: '#3b82f6', height: 2.5 },
+          tabBarLabelStyle: { fontSize: 13, fontWeight: '600', textTransform: 'none' },
+          tabBarStyle: { backgroundColor: bg, elevation: 0, shadowOpacity: 0 },
+          tabBarScrollEnabled: false,
+        }}
+      >
+        <HomeTopTab.Screen name="Overview" component={OverviewScreen} options={{ tabBarLabel: t('overview') }} />
+        <HomeTopTab.Screen name="Analysis" component={AnalysisScreen} options={{ tabBarLabel: t('analysis') }} />
+      </HomeTopTab.Navigator>
+    </SafeAreaView>
+  );
+}
+
 function HomeNavigator() {
   return (
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
-      <HomeStack.Screen name="Dashboard" component={DashboardScreen} />
+      <HomeStack.Screen name="HomeHub" component={HomeTopTabs} />
     </HomeStack.Navigator>
   );
 }

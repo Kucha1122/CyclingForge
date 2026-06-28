@@ -10,6 +10,7 @@ using CyclingForge.Modules.Garmin.Application.Queries.GetHrvData;
 using CyclingForge.Modules.Garmin.Application.Queries.GetSleepData;
 using CyclingForge.Modules.Garmin.Application.Queries.GetWellnessData;
 using CyclingForge.Shared.Abstractions.Auth;
+using CyclingForge.Shared.Abstractions.RealTime;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -24,11 +25,13 @@ public sealed class GarminController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUser;
+    private readonly ISyncNotifier _syncNotifier;
 
-    public GarminController(IMediator mediator, ICurrentUserService currentUser)
+    public GarminController(IMediator mediator, ICurrentUserService currentUser, ISyncNotifier syncNotifier)
     {
         _mediator = mediator;
         _currentUser = currentUser;
+        _syncNotifier = syncNotifier;
     }
 
     [HttpPost("connect")]
@@ -89,6 +92,9 @@ public sealed class GarminController : ControllerBase
     {
         var command = new SyncGarminDataCommand(_currentUser.UserId, daysBack);
         await _mediator.Send(command, cancellationToken);
+
+        // Refresh this user's other open clients (web + mobile). Best-effort.
+        await _syncNotifier.NotifyAsync(_currentUser.UserId, SyncKind.Garmin, cancellationToken: cancellationToken);
         return Ok();
     }
 
