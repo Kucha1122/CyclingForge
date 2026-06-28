@@ -28,9 +28,9 @@ export async function startSyncHub(onSync: (event: SyncCompletedEvent) => void):
   connection = new HubConnectionBuilder()
     .withUrl(`${API_BASE_URL}/hubs/sync`, {
       accessTokenFactory: () => SecureStore.getItem('token') ?? '',
-      // RN only supports the WebSocket transport reliably; skip negotiate to avoid SSE/long-polling.
-      transport: HttpTransportType.WebSockets,
-      skipNegotiation: true,
+      // Prefer WebSockets but allow LongPolling fallback (RN has no EventSource for SSE).
+      // Negotiation runs so the transport can degrade gracefully if WS is blocked upstream.
+      transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
     })
     .withAutomaticReconnect()
     .configureLogging(LogLevel.Warning)
