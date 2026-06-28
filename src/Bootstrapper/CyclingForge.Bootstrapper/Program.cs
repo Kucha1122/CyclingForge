@@ -30,6 +30,10 @@ builder.Services.RegisterModules(modules, builder.Configuration);
 
 builder.Services.AddMemoryCache();
 
+// Real-time sync notifications (web + mobile auto-refresh after a sync completes).
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<CyclingForge.Shared.Abstractions.RealTime.ISyncNotifier, CyclingForge.Bootstrapper.RealTime.SignalRSyncNotifier>();
+
 // Configure eFTP estimation thresholds (can be overridden via configuration section "FtpEstimation").
 builder.Services.Configure<FtpEstimationOptions>(builder.Configuration.GetSection("FtpEstimation"));
 
@@ -123,6 +127,7 @@ app.UseCors("AllowedOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<CyclingForge.Bootstrapper.RealTime.SyncHub>("/api/hubs/sync");
 app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
 
 app.Run();
