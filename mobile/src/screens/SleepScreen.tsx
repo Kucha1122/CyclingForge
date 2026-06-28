@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSyncStore } from '../stores/syncStore';
 import { View, Text, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -65,6 +66,7 @@ export function SleepScreen() {
   const [sleepData, setSleepData] = useState<SleepDataDto[]>([]);
   const [hrvData, setHrvData] = useState<HrvDataDto[]>([]);
   const [range, setRange] = useState<DateRange>(30);
+  const syncVersion = useSyncStore((s) => s.syncVersion);
 
   const fetchSleep = useCallback(async (days: number) => {
     const end = new Date();
@@ -86,7 +88,7 @@ export function SleepScreen() {
     } catch { /* ignore */ }
   }, [fetchSleep]);
 
-  useEffect(() => { load(range).finally(() => setLoading(false)); }, [load, range]);
+  useEffect(() => { load(range).finally(() => setLoading(false)); }, [load, range, syncVersion]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

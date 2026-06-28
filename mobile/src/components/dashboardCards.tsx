@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Dimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import type { SleepDataDto, WellnessDataDto, HrvDataDto } from '@cyclingforge/shared';
+import type { SleepDataDto, WellnessDataDto, HrvDataDto, PmcSummary, DailyTssPoint } from '@cyclingforge/shared';
 import { computeIntensityDistribution } from '@cyclingforge/shared';
 import { formatNumber } from '../utils/format';
 import { ZoneBar } from './charts';
@@ -117,6 +117,103 @@ export function WellnessRow({ wellness, hrv }: { wellness: WellnessDataDto; hrv:
           <View key={s.label} className="w-1/3 items-center mb-3">
             <Text className="text-xs text-slate-500 dark:text-slate-400">{s.label}</Text>
             <Text className="text-lg font-bold text-slate-900 dark:text-white">{s.value}</Text>
+          </View>
+        ))}
+      </View>
+    </Card>
+  );
+}
+
+type Severity = 'ok' | 'caution' | 'danger';
+interface RiskSignal { key: string; label: string; value: string; hint: string; severity: Severity; }
+
+// slate / amber / red badge colors per severity (hex + style; avoids dynamic NativeWind classes).
+const SEVERITY_COLORS: Record<Severity, { bg: string; text: string }> = {
+  ok: { bg: '#dcfce7', text: '#166534' },
+  caution: { bg: '#fef9c3', text: '#854d0e' },
+  danger: { bg: '#fee2e2', text: '#b91c1c' },
+};
+
+function rmean(xs: number[]): number { return xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0; }
+function rstd(xs: number[]): number {
+  if (xs.length < 2) return 0;
+  const m = rmean(xs);
+  return Math.sqrt(rmean(xs.map((x) => (x - m) ** 2)));
+}
+
+/**
+ * Overtraining-risk signals (ACWR, ramp rate, Foster monotony/strain, deep-fatigue
+ * streak) — a 1:1 port of the web TrainingRiskCard. `dailyTss` should be the last
+ * ~7 days of TSS (zero days included) for the monotony/strain computation.
+ */
+export function TrainingRiskCard({ pmc, dailyTss }: { pmc: PmcSummary; dailyTss: DailyTssPoint[] }) {
+  const { t } = useTranslation('analysis');
+  const signals: RiskSignal[] = [];
+
+  if (pmc.currentCTL > 0) {
+    const acwr = pmc.currentATL / pmc.currentCTL;
+    let sev: Severity = 'ok';
+    if (acwr > 1.5 || acwr < 0.8) sev = 'danger';
+    else if (acwr > 1.3) sev = 'caution';
+    signals.push({ key: 'acwr', label: t('riskAcwr'), value: acwr.toFixed(2),
+      hint: acwr > 1.5 ? t('riskAcwrHigh') : acwr < 0.8 ? t('riskAcwrLow') : t('riskAcwrOk'), severity: sev });
+  }
+
+  if (pmc.rampRateCtlPerWeek != null) {
+    const rr = pmc.rampRateCtlPerWeek;
+    const sev: Severity = rr > 7 ? 'danger' : rr > 5 ? 'caution' : 'ok';
+    signals.push({ key: 'ramp', label: t('riskRampRate'), value: `${rr >= 0 ? '+' : ''}${rr.toFixed(1)}`,
+      hint: rr > 7 ? t('riskRampRateHigh') : t('riskRampRateOk'), severity: sev });
+  }
+
+  const loads = dailyTss.map((d) => d.tss);
+  if (loads.length >= 3) {
+    const sd = rstd(loads);
+    const monotony = sd > 0 ? rmean(loads) / sd : 0;
+    const weeklyLoad = loads.reduce((s, x) => s + x, 0);
+    const strain = weeklyLoad * monotony;
+    signals.push({ key: 'monotony', label: t('riskMonotony'), value: monotony.toFixed(2),
+      hint: monotony > 2 ? t('riskMonotonyHigh') : t('riskMonotonyOk'),
+      severity: monotony > 2 ? 'danger' : monotony > 1.5 ? 'caution' : 'ok' });
+    signals.push({ key: 'strain', label: t('riskStrain'), value: String(Math.round(strain)),
+      hint: t('riskStrainHint'), severity: strain > 2 * weeklyLoad ? 'caution' : 'ok' });
+  }
+
+  const history = pmc.history ?? [];
+  let streak = 0;
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i].tsb < -35) streak++; else break;
+  }
+  if (history.length > 0) {
+    const sev: Severity = streak >= 5 ? 'danger' : streak >= 2 ? 'caution' : 'ok';
+    signals.push({ key: 'lowTsb', label: t('riskLowTsbStreak'), value: t('riskDaysValue', { count: streak }),
+      hint: streak >= 2 ? t('riskLowTsbHigh') : t('riskLowTsbOk'), severity: sev });
+  }
+
+  if (signals.length === 0) return null;
+  const overall: Severity = signals.some((s) => s.severity === 'danger') ? 'danger'
+    : signals.some((s) => s.severity === 'caution') ? 'caution' : 'ok';
+  const overallLabel = overall === 'danger' ? t('riskOverallDanger') : overall === 'caution' ? t('riskOverallCaution') : t('riskOverallOk');
+
+  return (
+    <Card
+      title={t('riskTitle')}
+      right={
+        <View className="px-2.5 py-0.5 rounded-full" style={{ backgroundColor: SEVERITY_COLORS[overall].bg }}>
+          <Text className="text-xs font-semibold" style={{ color: SEVERITY_COLORS[overall].text }}>{overallLabel}</Text>
+        </View>
+      }
+    >
+      <View>
+        {signals.map((s) => (
+          <View key={s.key} className="bg-slate-100 dark:bg-slate-700/50 rounded-lg p-2.5 mb-2">
+            <View className="flex-row items-start justify-between">
+              <Text className="text-xs font-medium text-slate-600 dark:text-slate-300 flex-1 mr-2">{s.label}</Text>
+              <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: SEVERITY_COLORS[s.severity].bg }}>
+                <Text className="text-[11px] font-bold" style={{ color: SEVERITY_COLORS[s.severity].text }}>{s.value}</Text>
+              </View>
+            </View>
+            <Text className="text-[10px] text-slate-400 mt-1">{s.hint}</Text>
           </View>
         ))}
       </View>

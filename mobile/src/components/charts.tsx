@@ -1,7 +1,10 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Polyline, Polygon, Line, Rect, Circle, G, Text as SvgText } from 'react-native-svg';
+import type { HrvDataDto } from '@cyclingforge/shared';
+import { formatDate } from '../utils/format';
 
 // Lightweight SVG charts mirroring the web frontend's Recharts visuals.
 // Dependency-free (only react-native-svg) for guaranteed Expo Go support.
@@ -28,8 +31,8 @@ interface Series {
 
 /** Multi-line chart with numeric Y axis (e.g. CTL + ATL). */
 export function LineChartMulti({
-  series, width, height = 190, isDark,
-}: { series: Series[]; width: number; height?: number; isDark: boolean }) {
+  series, width, height = 190, isDark, cursorIndex = null,
+}: { series: Series[]; width: number; height?: number; isDark: boolean; cursorIndex?: number | null }) {
   const padTop = 8;
   const innerW = width - AXIS_W - 6;
   const innerH = height - padTop - AXIS_H;
@@ -39,12 +42,10 @@ export function LineChartMulti({
   const n = Math.max(...series.map((s) => s.values.length), 1);
   const ticks = [0, 0.25, 0.5, 0.75, 1];
 
+  const xFor = (i: number) => x0 + (n <= 1 ? 0 : (i / (n - 1)) * innerW);
+  const yFor = (v: number) => padTop + innerH - (v / maxV) * innerH;
   const toPoints = (vals: number[]) =>
-    vals.map((v, i) => {
-      const x = x0 + (n <= 1 ? 0 : (i / (n - 1)) * innerW);
-      const y = padTop + innerH - (v / maxV) * innerH;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' ');
+    vals.map((v, i) => `${xFor(i).toFixed(1)},${yFor(v).toFixed(1)}`).join(' ');
 
   return (
     <Svg width={width} height={height}>
@@ -61,6 +62,14 @@ export function LineChartMulti({
       {series.map((s, idx) => (
         <Polyline key={idx} points={toPoints(s.values)} fill="none" stroke={s.color} strokeWidth={2} />
       ))}
+      {cursorIndex != null && cursorIndex >= 0 && (
+        <G>
+          <Line x1={xFor(cursorIndex)} y1={padTop} x2={xFor(cursorIndex)} y2={padTop + innerH} stroke={axisColor(isDark)} strokeWidth={1} />
+          {series.map((s, idx) => s.values[cursorIndex] == null ? null : (
+            <Circle key={idx} cx={xFor(cursorIndex)} cy={yFor(s.values[cursorIndex])} r={3.5} fill={s.color} stroke="#fff" strokeWidth={1} />
+          ))}
+        </G>
+      )}
     </Svg>
   );
 }
@@ -84,8 +93,8 @@ function isTransition(tsb: number): boolean {
  * while inside the transition zone, green once it crosses out of it.
  */
 export function TsbZoneChart({
-  values, width, height = 170, isDark,
-}: { values: number[]; width: number; height?: number; isDark: boolean }) {
+  values, width, height = 170, isDark, cursorIndex = null,
+}: { values: number[]; width: number; height?: number; isDark: boolean; cursorIndex?: number | null }) {
   const padTop = 6;
   const innerW = width - AXIS_W - 6;
   const innerH = height - padTop - AXIS_H;
@@ -147,7 +156,94 @@ export function TsbZoneChart({
       {lineSegs.map((s, i) => (
         <Line key={i} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={s.transition ? TRANSITION_GRAY : PRODUCTIVE_GREEN} strokeWidth={2.5} strokeLinecap="round" />
       ))}
+      {cursorIndex != null && cursorIndex >= 0 && cursorIndex < values.length && (
+        <G>
+          <Line x1={xFor(cursorIndex)} y1={padTop} x2={xFor(cursorIndex)} y2={padTop + innerH} stroke={axisColor(isDark)} strokeWidth={1} />
+          <Circle cx={xFor(cursorIndex)} cy={yFor(values[cursorIndex])} r={3.5} fill={isTransition(values[cursorIndex]) ? TRANSITION_GRAY : PRODUCTIVE_GREEN} stroke="#fff" strokeWidth={1} />
+        </G>
+      )}
     </Svg>
+  );
+}
+
+const TSB_ZONE_LABEL_KEYS = (tsb: number): string => {
+  if (tsb < -35) return 'tsbZoneRisky';
+  if (tsb < -10) return 'tsbZoneOptimal';
+  if (tsb < 5) return 'tsbZoneTransition';
+  if (tsb < 25) return 'tsbZoneFresh';
+  return 'tsbZoneVeryFresh';
+};
+
+/**
+ * Combined PMC visual: the CTL+ATL load chart stacked over the TSB-zone chart,
+ * sharing ONE scrub cursor and ONE tooltip — mirroring the web PMCChart where
+ * the cursor line tracks across both panels and a single tooltip reads out
+ * date + CTL/ATL/TSB + zone label for that day.
+ */
+export function PmcCharts({
+  dates, ctl, atl, tsb, width, isDark,
+}: { dates: string[]; ctl: number[]; atl: number[]; tsb: number[]; width: number; isDark: boolean }) {
+  const { t } = useTranslation('charts');
+  const [active, setActive] = React.useState<number | null>(null);
+  const n = dates.length;
+  const x0 = AXIS_W;
+  const innerW = width - AXIS_W - 6;
+  const ctlColor = isDark ? '#60a5fa' : '#2563eb';
+  const atlColor = isDark ? '#fbbf24' : '#d97706';
+
+  const onTouch = (locationX: number) => {
+    if (n < 2) return;
+    const frac = (locationX - x0) / innerW;
+    const idx = Math.round(frac * (n - 1));
+    setActive(Math.max(0, Math.min(n - 1, idx)));
+  };
+  const pan = Gesture.Pan().runOnJS(true).minDistance(0)
+    .onBegin((e) => onTouch(e.x)).onUpdate((e) => onTouch(e.x)).onFinalize(() => setActive(null));
+
+  const cursorX = active != null ? x0 + (n <= 1 ? 0 : (active / (n - 1)) * innerW) : 0;
+  const tipW = 150;
+  const tipLeft = active != null ? Math.max(0, Math.min(width - tipW, cursorX - tipW / 2)) : 0;
+
+  return (
+    <GestureDetector gesture={pan}>
+    <View style={{ width }}>
+      <Text className="text-sm text-slate-500 dark:text-slate-400 mb-1">{t('trainingLoadTitle')}</Text>
+      <LineChartMulti width={width}
+        series={[{ values: ctl, color: ctlColor }, { values: atl, color: atlColor }]} isDark={isDark} cursorIndex={active} />
+      <ChartLegend items={[{ label: t('ctl'), color: ctlColor }, { label: t('atl'), color: atlColor }]} />
+      <Text className="text-sm text-slate-500 dark:text-slate-400 mb-1 mt-4">{t('tsb')}</Text>
+      <TsbZoneChart width={width} values={tsb} isDark={isDark} cursorIndex={active} />
+      {active != null && (
+        <View style={{ position: 'absolute', top: 0, left: tipLeft, width: tipW }} className="bg-slate-900/90 rounded-lg px-2 py-1.5">
+          <Text className="text-[10px] text-slate-300 mb-0.5">{formatDate(dates[active], { weekday: 'short', day: 'numeric', month: 'short' })}</Text>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-1">
+              <View style={{ width: 7, height: 7, borderRadius: 2, backgroundColor: ctlColor }} />
+              <Text className="text-[10px] text-slate-300">{t('ctl')}</Text>
+            </View>
+            <Text className="text-[10px] font-semibold text-white">{ctl[active]?.toFixed(1) ?? '–'}</Text>
+          </View>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-1">
+              <View style={{ width: 7, height: 7, borderRadius: 2, backgroundColor: atlColor }} />
+              <Text className="text-[10px] text-slate-300">{t('atl')}</Text>
+            </View>
+            <Text className="text-[10px] font-semibold text-white">{atl[active]?.toFixed(1) ?? '–'}</Text>
+          </View>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-1">
+              <View style={{ width: 7, height: 7, borderRadius: 2, backgroundColor: '#10b981' }} />
+              <Text className="text-[10px] text-slate-300">{t('tsb')}</Text>
+            </View>
+            <Text className="text-[10px] font-semibold text-white">{tsb[active]?.toFixed(1) ?? '–'}</Text>
+          </View>
+          {tsb[active] != null && (
+            <Text className="text-[9px] text-slate-400 mt-1 pt-1 border-t border-slate-700">{t(TSB_ZONE_LABEL_KEYS(tsb[active]))}</Text>
+          )}
+        </View>
+      )}
+    </View>
+    </GestureDetector>
   );
 }
 
@@ -507,6 +603,243 @@ export function InteractiveStreamChart({
               </View>
             );
           })}
+        </View>
+      )}
+    </View>
+    </GestureDetector>
+  );
+}
+
+const HRV_WINDOW_DAYS = 56;
+const HRV_BASELINE_DAYS = 28;
+const HRV_BAND_FRACTION = 0.1; // ±10% normal band around the rolling baseline
+
+/**
+ * Nightly HRV with a trailing 28-day rolling baseline and a ±10% normal band,
+ * mirroring the web HrvTrendChart. Touch/drag scrubs a tooltip reading the
+ * nightly value, baseline and band at the nearest night.
+ */
+export function HrvTrendChartSvg({
+  data, width, height = 240, isDark,
+}: { data: HrvDataDto[]; width: number; height?: number; isDark: boolean }) {
+  const { t } = useTranslation('analysis');
+  const [active, setActive] = React.useState<number | null>(null);
+
+  const chart = React.useMemo(() => {
+    const sorted = [...data]
+      .filter((d) => d.lastNightAvgMs != null)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-HRV_WINDOW_DAYS);
+    return sorted.map((d, idx) => {
+      const slice = sorted.slice(Math.max(0, idx - HRV_BASELINE_DAYS + 1), idx + 1);
+      const baseline = slice.reduce((s, x) => s + (x.lastNightAvgMs ?? 0), 0) / slice.length;
+      return {
+        date: d.date,
+        hrv: d.lastNightAvgMs as number,
+        baseline: Math.round(baseline),
+        bandLo: Math.round(baseline * (1 - HRV_BAND_FRACTION)),
+        bandHi: Math.round(baseline * (1 + HRV_BAND_FRACTION)),
+      };
+    });
+  }, [data]);
+
+  const padTop = 8;
+  const innerW = width - AXIS_W - 6;
+  const innerH = height - padTop - AXIS_H;
+  const x0 = AXIS_W;
+  const n = chart.length;
+  if (n < 2) return null;
+
+  const allVals = chart.flatMap((c) => [c.hrv, c.bandLo, c.bandHi]);
+  const lo = Math.max(0, Math.min(...allVals) - 5);
+  const hi = Math.max(...allVals) + 5;
+  const span = hi - lo || 1;
+  const xFor = (i: number) => x0 + (n <= 1 ? 0 : (i / (n - 1)) * innerW);
+  const yFor = (v: number) => padTop + innerH - ((v - lo) / span) * innerH;
+
+  const bandBot = chart.map((c, i) => ({ i, c })).reverse().map(({ i, c }) => `${xFor(i).toFixed(1)},${yFor(c.bandLo).toFixed(1)}`);
+  const bandPoly = [...chart.map((c, i) => `${xFor(i).toFixed(1)},${yFor(c.bandHi).toFixed(1)}`), ...bandBot].join(' ');
+  const baselinePts = chart.map((c, i) => `${xFor(i).toFixed(1)},${yFor(c.baseline).toFixed(1)}`).join(' ');
+  const hrvPts = chart.map((c, i) => `${xFor(i).toFixed(1)},${yFor(c.hrv).toFixed(1)}`).join(' ');
+
+  const onTouch = (locationX: number) => {
+    const frac = (locationX - x0) / innerW;
+    const idx = Math.round(frac * (n - 1));
+    setActive(Math.max(0, Math.min(n - 1, idx)));
+  };
+  const pan = Gesture.Pan().runOnJS(true).minDistance(0)
+    .onBegin((e) => onTouch(e.x)).onUpdate((e) => onTouch(e.x)).onFinalize(() => setActive(null));
+
+  const yTicks = [0, 0.5, 1];
+  const cursorX = active != null ? xFor(active) : 0;
+  const tipW = 150;
+  const tipLeft = active != null ? Math.max(0, Math.min(width - tipW, cursorX - tipW / 2)) : 0;
+  const labelIdx: number[] = [];
+  const step = Math.max(1, Math.floor(n / 4));
+  for (let i = 0; i < n; i += step) labelIdx.push(i);
+
+  return (
+    <GestureDetector gesture={pan}>
+    <View style={{ width, height }}>
+      <Svg width={width} height={height}>
+        {yTicks.map((f) => {
+          const y = padTop + innerH * f;
+          return (
+            <G key={f}>
+              <Line x1={x0} y1={y} x2={x0 + innerW} y2={y} stroke={gridColor(isDark)} strokeWidth={1} strokeDasharray="3 3" />
+              <SvgText x={x0 - 4} y={y + 4} fontSize={9} fill={axisColor(isDark)} textAnchor="end">{Math.round(hi - span * f)}</SvgText>
+            </G>
+          );
+        })}
+        <Polygon points={bandPoly} fill="#3b82f6" fillOpacity={0.12} />
+        <Polyline points={baselinePts} fill="none" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="5 3" />
+        <Polyline points={hrvPts} fill="none" stroke="#3b82f6" strokeWidth={2} />
+        {chart.map((c, i) => <Circle key={i} cx={xFor(i)} cy={yFor(c.hrv)} r={1.8} fill="#3b82f6" />)}
+        {labelIdx.map((i) => (
+          <SvgText key={i} x={xFor(i)} y={height - 3} fontSize={9} fill={axisColor(isDark)} textAnchor="middle">
+            {formatDate(chart[i].date, { month: 'short', day: 'numeric' })}
+          </SvgText>
+        ))}
+        {active != null && (
+          <G>
+            <Line x1={cursorX} y1={padTop} x2={cursorX} y2={padTop + innerH} stroke={axisColor(isDark)} strokeWidth={1} />
+            <Circle cx={cursorX} cy={yFor(chart[active].hrv)} r={3.5} fill="#3b82f6" stroke="#fff" strokeWidth={1} />
+          </G>
+        )}
+      </Svg>
+      {active != null && (
+        <View style={{ position: 'absolute', top: 2, left: tipLeft, width: tipW }} className="bg-slate-900/90 rounded-lg px-2 py-1.5">
+          <Text className="text-[10px] text-slate-300 mb-0.5">{formatDate(chart[active].date, { month: 'short', day: 'numeric' })}</Text>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-[10px] text-slate-300">{t('hrvNightly')}</Text>
+            <Text className="text-[10px] font-semibold text-white">{chart[active].hrv} ms</Text>
+          </View>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-[10px] text-slate-300">{t('hrvBaseline')}</Text>
+            <Text className="text-[10px] font-semibold text-white">{chart[active].baseline} ms</Text>
+          </View>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-[10px] text-slate-300">{t('hrvNormalBand')}</Text>
+            <Text className="text-[10px] font-semibold text-white">{chart[active].bandLo}–{chart[active].bandHi}</Text>
+          </View>
+        </View>
+      )}
+    </View>
+    </GestureDetector>
+  );
+}
+
+export interface PowerCurvePoint {
+  duration: number;
+  measured?: number | null;
+  model?: number | null;
+}
+
+function formatPcDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}min`;
+  return `${Math.round(seconds / 3600)}h`;
+}
+
+/**
+ * Power curve over a log time axis: measured mean-maximal points plus the
+ * modeled Critical Power overlay and a CP reference line, with a scrub tooltip.
+ * Mirrors the web PowerCurveChart. `unit` only affects tooltip formatting.
+ */
+export function InteractivePowerCurveChart({
+  data, cp, width, height = 260, isDark, unit = 'w',
+}: { data: PowerCurvePoint[]; cp?: number | null; width: number; height?: number; isDark: boolean; unit?: 'w' | 'wkg' }) {
+  const { t } = useTranslation('analysis');
+  const [active, setActive] = React.useState<number | null>(null);
+  const measuredColor = '#3b82f6';
+  const modelColor = '#22c55e';
+  const cpColor = '#f59e0b';
+
+  const padTop = 8;
+  const innerW = width - AXIS_W - 6;
+  const innerH = height - padTop - AXIS_H;
+  const x0 = AXIS_W;
+  const rows = data.filter((d) => d.duration > 0);
+  if (rows.length < 2) return null;
+
+  const logs = rows.map((r) => Math.log10(r.duration));
+  const minL = Math.min(...logs), maxL = Math.max(...logs), spanL = maxL - minL || 1;
+  const allVals = rows.flatMap((r) => [r.measured, r.model].filter((v): v is number => v != null));
+  const maxV = niceMax(Math.max(1, ...allVals, cp ?? 0), unit === 'wkg' ? 5 : 100);
+
+  const xFor = (sec: number) => x0 + ((Math.log10(sec) - minL) / spanL) * innerW;
+  const yFor = (v: number) => padTop + innerH - (v / maxV) * innerH;
+  const fmt = (v: number) => (unit === 'wkg' ? v.toFixed(2) : Math.round(v).toString());
+
+  const measuredPts = rows.filter((r) => r.measured != null).map((r) => `${xFor(r.duration).toFixed(1)},${yFor(r.measured as number).toFixed(1)}`).join(' ');
+  const modelPts = rows.filter((r) => r.model != null).map((r) => `${xFor(r.duration).toFixed(1)},${yFor(r.model as number).toFixed(1)}`).join(' ');
+
+  const xLabels = [
+    { sec: 1, label: '1s' }, { sec: 5, label: '5s' }, { sec: 60, label: '1m' },
+    { sec: 300, label: '5m' }, { sec: 1200, label: '20m' }, { sec: 3600, label: '1h' },
+  ].filter((l) => l.sec >= Math.pow(10, minL) && l.sec <= Math.pow(10, maxL));
+
+  const onTouch = (locationX: number) => {
+    const frac = (locationX - x0) / innerW;
+    const targetLog = minL + frac * spanL;
+    let best = 0, bestD = Infinity;
+    rows.forEach((r, i) => {
+      const d = Math.abs(Math.log10(r.duration) - targetLog);
+      if (d < bestD) { bestD = d; best = i; }
+    });
+    setActive(best);
+  };
+  const pan = Gesture.Pan().runOnJS(true).minDistance(0)
+    .onBegin((e) => onTouch(e.x)).onUpdate((e) => onTouch(e.x)).onFinalize(() => setActive(null));
+
+  const cursorX = active != null ? xFor(rows[active].duration) : 0;
+  const tipW = 140;
+  const tipLeft = active != null ? Math.max(0, Math.min(width - tipW, cursorX - tipW / 2)) : 0;
+
+  return (
+    <GestureDetector gesture={pan}>
+    <View style={{ width, height }}>
+      <Svg width={width} height={height}>
+        {[0, 0.25, 0.5, 0.75, 1].map((f) => {
+          const y = padTop + innerH * f;
+          return (
+            <G key={f}>
+              <Line x1={x0} y1={y} x2={x0 + innerW} y2={y} stroke={gridColor(isDark)} strokeWidth={1} strokeDasharray="3 3" />
+              <SvgText x={x0 - 4} y={y + 4} fontSize={9} fill={axisColor(isDark)} textAnchor="end">{fmt(maxV * (1 - f))}</SvgText>
+            </G>
+          );
+        })}
+        {xLabels.map((l) => (
+          <SvgText key={l.sec} x={xFor(l.sec)} y={height - 3} fontSize={9} fill={axisColor(isDark)} textAnchor="middle">{l.label}</SvgText>
+        ))}
+        {cp != null && (
+          <G>
+            <Line x1={x0} y1={yFor(cp)} x2={x0 + innerW} y2={yFor(cp)} stroke={cpColor} strokeWidth={1} strokeDasharray="4 4" />
+            <SvgText x={x0 + innerW} y={yFor(cp) - 3} fontSize={9} fill={cpColor} textAnchor="end">CP</SvgText>
+          </G>
+        )}
+        {modelPts ? <Polyline points={modelPts} fill="none" stroke={modelColor} strokeWidth={1.5} strokeDasharray="5 3" /> : null}
+        {measuredPts ? <Polyline points={measuredPts} fill="none" stroke={measuredColor} strokeWidth={2} /> : null}
+        {rows.filter((r) => r.measured != null).map((r, i) => <Circle key={i} cx={xFor(r.duration)} cy={yFor(r.measured as number)} r={2.5} fill={measuredColor} />)}
+        {active != null && (
+          <Line x1={cursorX} y1={padTop} x2={cursorX} y2={padTop + innerH} stroke={axisColor(isDark)} strokeWidth={1} />
+        )}
+      </Svg>
+      {active != null && (
+        <View style={{ position: 'absolute', top: 2, left: tipLeft, width: tipW }} className="bg-slate-900/90 rounded-lg px-2 py-1.5">
+          <Text className="text-[10px] text-slate-300 mb-0.5">{formatPcDuration(rows[active].duration)}</Text>
+          {rows[active].measured != null && (
+            <View className="flex-row items-center justify-between">
+              <Text className="text-[10px] text-slate-300">{t('powerCurveMeasured')}</Text>
+              <Text className="text-[10px] font-semibold text-white">{fmt(rows[active].measured as number)}</Text>
+            </View>
+          )}
+          {rows[active].model != null && (
+            <View className="flex-row items-center justify-between">
+              <Text className="text-[10px] text-slate-300">{t('powerCurveModeled')}</Text>
+              <Text className="text-[10px] font-semibold text-white">{fmt(rows[active].model as number)}</Text>
+            </View>
+          )}
         </View>
       )}
     </View>

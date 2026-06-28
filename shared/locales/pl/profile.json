@@ -91,5 +91,9 @@
   "garminAutoSyncDisabled": "Wył.",
   "garminAutoSyncNoTimes": "Brak godzin — dodaj poniżej.",
   "garminAutoSyncAdd": "Dodaj",
-  "garminAutoSyncRemove": "Usuń godzinę"
+  "garminAutoSyncRemove": "Usuń godzinę",
+  "syncNow": "Synchronizuj teraz",
+  "syncing": "Synchronizowanie…",
+  "noFilters": "Brak wykluczeń.",
+  "timePlaceholder": "GG:MM"
 }

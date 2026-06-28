@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSyncStore } from '../stores/syncStore';
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator, Dimensions, Modal, TextInput, LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -236,6 +237,7 @@ export function TodayWorkoutScreen() {
   const [actualTss, setActualTss] = useState<number | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [howOpen, setHowOpen] = useState(false);
+  const syncVersion = useSyncStore((s) => s.syncVersion);
 
   const fetchData = useCallback(async () => {
     const [recoR, readyR] = await Promise.allSettled([recommendationsApi.getToday(), recommendationsApi.getReadiness()]);
@@ -247,7 +249,7 @@ export function TodayWorkoutScreen() {
     if (readyR.status === 'fulfilled') setReadiness(readyR.value.data);
   }, []);
 
-  useEffect(() => { fetchData().finally(() => setLoading(false)); }, [fetchData]);
+  useEffect(() => { fetchData().finally(() => setLoading(false)); }, [fetchData, syncVersion]);
 
   useEffect(() => {
     if (!userId) return;

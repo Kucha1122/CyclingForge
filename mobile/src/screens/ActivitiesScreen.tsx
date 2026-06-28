@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSyncStore } from '../stores/syncStore';
 import { View, Text, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { ActivityDto, FtpChangeDto } from '@cyclingforge/shared';
@@ -139,6 +140,7 @@ export function ActivitiesScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [filter, setFilter] = useState<Filter>('all');
+  const syncVersion = useSyncStore((s) => s.syncVersion);
 
   const fetchInitial = useCallback(async () => {
     const [actR, pmcR] = await Promise.allSettled([
@@ -153,7 +155,7 @@ export function ActivitiesScreen({ navigation }: Props) {
     if (pmcR.status === 'fulfilled') setFtpChanges(pmcR.value.data.ftpChanges ?? null);
   }, []);
 
-  useEffect(() => { fetchInitial().finally(() => setLoading(false)); }, [fetchInitial]);
+  useEffect(() => { fetchInitial().finally(() => setLoading(false)); }, [fetchInitial, syncVersion]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
