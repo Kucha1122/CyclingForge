@@ -2,6 +2,7 @@ import {
   HubConnection,
   HubConnectionBuilder,
   HubConnectionState,
+  HttpTransportType,
   LogLevel,
 } from '@microsoft/signalr';
 
@@ -23,8 +24,12 @@ export async function startSyncHub(onSync: (event: SyncCompletedEvent) => void):
 
   connection = new HubConnectionBuilder()
     // Same-origin path proxied to the backend (Vite forwards /api in dev).
+    // Skip negotiation and connect straight over WebSockets so the JWT rides as the
+    // access_token query param (the backend reads it for /api/hubs/*), matching mobile.
     .withUrl('/api/hubs/sync', {
       accessTokenFactory: () => localStorage.getItem('token') ?? '',
+      transport: HttpTransportType.WebSockets,
+      skipNegotiation: true,
     })
     .withAutomaticReconnect()
     .configureLogging(LogLevel.Warning)

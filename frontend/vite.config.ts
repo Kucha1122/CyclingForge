@@ -16,6 +16,7 @@ export default defineConfig({
         target: 'https://localhost:5043',
         changeOrigin: true,
         secure: false,
+        ws: true,
       },
     },
   },
