@@ -5,8 +5,8 @@ import {
   HttpTransportType,
   LogLevel,
 } from '@microsoft/signalr';
-import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from '../config';
+import { useAuthStore } from '../stores/authStore';
 
 /** Payload pushed by the backend's SyncHub when a sync completes. */
 export interface SyncCompletedEvent {
@@ -27,7 +27,7 @@ export async function startSyncHub(onSync: (event: SyncCompletedEvent) => void):
 
   connection = new HubConnectionBuilder()
     .withUrl(`${API_BASE_URL}/hubs/sync`, {
-      accessTokenFactory: () => SecureStore.getItem('token') ?? '',
+      accessTokenFactory: () => useAuthStore.getState().token ?? '',
       // Skip negotiation and connect straight over WebSockets: the JWT then rides as the
       // access_token query param (which the backend reads for /api/hubs/*). This avoids the
       // negotiate POST, whose header-based auth was returning 401 in React Native.

@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { UserProfile, AthleteProfileDto, AthleteZonesDto, ActivitySyncFilterDto, GarminStatusDto, GarminSyncPreferenceDto } from '@cyclingforge/shared';
 import { useAuthStore } from '../stores/authStore';
 import { useThemeStore } from '../stores/themeStore';
-import { usersApi, stravaApi, garminApi } from '../services/api';
+import { usersApi, stravaApi, garminApi, authApi } from '../services/api';
 import { formatDate } from '../utils/format';
 import { HR_ZONE_COLORS } from '../components/dashboardCards';
 import i18n from '../i18n';
@@ -91,6 +91,15 @@ export function ProfileScreen() {
   const tCommon = useTranslation('common').t;
   const tNav = useTranslation('nav').t;
   const { userId, logout } = useAuthStore();
+
+  const handleLogout = async () => {
+    const refreshToken = useAuthStore.getState().refreshToken;
+    if (refreshToken) {
+      // Revoke server-side; ignore failures (token may already be invalid).
+      try { await authApi.logout(refreshToken); } catch { /* ignore */ }
+    }
+    logout();
+  };
   const { theme, toggleTheme } = useThemeStore();
 
   const [loading, setLoading] = useState(true);
@@ -588,7 +597,7 @@ export function ProfileScreen() {
           </TouchableOpacity>
         </Card>
 
-        <TouchableOpacity className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-4 mb-8 items-center" onPress={logout}>
+        <TouchableOpacity className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-4 mb-8 items-center" onPress={handleLogout}>
           <Text className="text-red-600 dark:text-red-400 font-semibold">{tCommon('logout')}</Text>
         </TouchableOpacity>
       </ScrollView>

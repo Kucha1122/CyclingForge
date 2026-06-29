@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Switch } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuthStore } from '../stores/authStore';
@@ -13,6 +13,7 @@ export function LoginScreen({ navigation }: Props) {
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,8 +22,8 @@ export function LoginScreen({ navigation }: Props) {
     setLoading(true);
     setError('');
     try {
-      const { data } = await authApi.login(email, password);
-      login(data);
+      const { data } = await authApi.login(email, password, rememberMe);
+      login(data, rememberMe);
     } catch {
       setError(t('loginFailed'));
     } finally {
@@ -74,6 +75,13 @@ export function LoginScreen({ navigation }: Props) {
           placeholderTextColor="#94a3b8"
           secureTextEntry
         />
+
+        <View className="flex-row items-center justify-between mb-6">
+          <Text className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            {t('rememberMe')}
+          </Text>
+          <Switch value={rememberMe} onValueChange={setRememberMe} />
+        </View>
 
         <TouchableOpacity
           className="bg-blue-600 rounded-lg py-3.5 items-center"

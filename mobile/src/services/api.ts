@@ -1,7 +1,8 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from '../config';
+import { useAuthStore } from '../stores/authStore';
 import type {
+  AuthResultDto,
   AthleteProfileDto, AthleteZonesDto, ActivitySyncFilterDto,
   ActivityDto, ActivityDetailsDto, RealizedWeekDto,
   GarminStatusDto, SleepDataDto, WellnessDataDto, HrvDataDto, GarminSyncPreferenceDto,
@@ -13,35 +14,75 @@ import type {
   ActivityCountsDto, PowerCurveDto, StravaActivityDetailsDto, FtpChangeDto,
 } from '@cyclingforge/shared';
 
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    _retry?: boolean;
+  }
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
 api.interceptors.request.use((config) => {
-  const token = SecureStore.getItem('token');
+  const token = useAuthStore.getState().token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
+// Single-flight silent refresh: concurrent 401s share one /users/refresh call.
+let refreshPromise: Promise<string> | null = null;
+
+async function refreshAccessToken(): Promise<string> {
+  const refreshToken = useAuthStore.getState().refreshToken;
+  if (!refreshToken) throw new Error('No refresh token');
+  // Bare axios (not `api`) so the refresh request isn't itself intercepted/retried.
+  const { data } = await axios.post<AuthResultDto>(`${API_BASE_URL}/users/refresh`, { refreshToken });
+  useAuthStore.getState().setTokens(data.token, data.refreshToken);
+  return data.token;
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      SecureStore.deleteItemAsync('token');
-      SecureStore.deleteItemAsync('userId');
-      SecureStore.deleteItemAsync('email');
+  async (error) => {
+    const status = error.response?.status;
+    const original = error.config;
+    const url: string = original?.url ?? '';
+    const isAuthEndpoint = url.includes('/users/refresh') || url.includes('/users/login');
+
+    if (status === 401 && original && !original._retry && !isAuthEndpoint) {
+      original._retry = true;
+      try {
+        if (!refreshPromise) {
+          refreshPromise = refreshAccessToken().finally(() => { refreshPromise = null; });
+        }
+        const newToken = await refreshPromise;
+        original.headers = original.headers ?? {};
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return api(original);
+      } catch {
+        // Refresh failed → end the session so the UI returns to the login screen.
+        useAuthStore.getState().logout();
+        return Promise.reject(error);
+      }
+    }
+
+    if (status === 401) {
+      useAuthStore.getState().logout();
     }
     return Promise.reject(error);
   }
 );
 
 export const authApi = {
-  login: (email: string, password: string) =>
-    api.post<{ token: string; userId: string; email: string }>('/users/login', { email, password }),
+  login: (email: string, password: string, rememberMe: boolean) =>
+    api.post<AuthResultDto>('/users/login', { email, password, rememberMe }),
   register: (data: { email: string; password: string; firstName: string; lastName: string }) =>
     api.post('/users/register', data),
+  logout: (refreshToken: string) =>
+    api.post('/users/logout', { refreshToken }),
 };
 
 export const stravaApi = {

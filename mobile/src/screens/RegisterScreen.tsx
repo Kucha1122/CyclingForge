@@ -24,8 +24,8 @@ export function RegisterScreen({ navigation }: Props) {
     setError('');
     try {
       await authApi.register({ firstName, lastName, email, password });
-      const { data } = await authApi.login(email, password);
-      login(data);
+      const { data } = await authApi.login(email, password, true);
+      login(data, true);
     } catch {
       setError(t('registerFailed'));
     } finally {
