@@ -57,7 +57,9 @@ export function OverviewScreen() {
     const sleepFrom = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
     const hrvFrom = new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10);
     const [pmcR, todayR, zonesR, garminR, sleepR, wellnessR, hrvR] = await Promise.allSettled([
-      metricsApi.getPmcSummary(),
+      // Use the same 365-day history window as the web dashboard so CTL/ATL seeding
+      // — and therefore the current TSB/form value — match across platforms.
+      metricsApi.getPmcSummary(undefined, undefined, 365),
       recommendationsApi.getToday(),
       activitiesApi.getRealizedWeek(),
       garminApi.getStatus(),

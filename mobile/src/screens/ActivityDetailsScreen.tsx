@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -46,11 +46,23 @@ function zoneDur(sec: number): string {
   return `${s % 60}s`;
 }
 
-function StatCard({ label, value, unit, sub, accent }: { label: string; value: string | number; unit?: string; sub?: string; accent?: string }) {
+function StatCard({ label, value, unit, sub, accent, info }: { label: string; value: string | number; unit?: string; sub?: string; accent?: string; info?: string }) {
   return (
     <View className="w-1/2 p-1">
       <View className="bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm">
-        <Text className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{label}</Text>
+        <View className="flex-row items-center gap-1">
+          <Text className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{label}</Text>
+          {info ? (
+            <TouchableOpacity
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={() => Alert.alert(label, info)}
+            >
+              <View className="h-3.5 w-3.5 rounded-full bg-slate-300 dark:bg-slate-600 items-center justify-center">
+                <Text className="text-[9px] font-bold text-white">i</Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
+        </View>
         <View className="flex-row items-baseline gap-1">
           <Text className={`text-xl font-bold ${accent ? '' : 'text-slate-900 dark:text-white'}`} style={accent ? { color: accent } : undefined}>{value}</Text>
           {unit ? <Text className="text-xs text-slate-400">{unit}</Text> : null}
@@ -183,13 +195,13 @@ export function ActivityDetailsScreen({ route }: Props) {
           <SectionHeading>{t('sectionPowerData')}</SectionHeading>
           <View className="flex-row flex-wrap -m-1">
             <StatCard label={t('avgPower')} value={Math.round(a.averagePower)} unit="W" accent="#2563eb" />
-            {a.normalizedPower != null && <StatCard label={t('normalizedPower')} value={Math.round(a.normalizedPower)} unit="W" sub="NP" accent="#1d4ed8" />}
+            {a.normalizedPower != null && <StatCard label={t('normalizedPower')} value={Math.round(a.normalizedPower)} unit="W" sub="NP" accent="#1d4ed8" info={tc('glossaryNp')} />}
             {a.maxPower != null && <StatCard label={t('maxPower')} value={Math.round(a.maxPower)} unit="W" accent="#9333ea" />}
-            {a.intensityFactor != null && <StatCard label={t('intensityFactor')} value={a.intensityFactor.toFixed(2)} sub="IF" accent="#ea580c" />}
-            {a.variabilityIndex != null && <StatCard label={t('variabilityIndex')} value={a.variabilityIndex.toFixed(2)} sub="VI" accent="#0d9488" />}
-            {a.trainingStressScore != null && <StatCard label={t('trainingLoad')} value={Math.round(a.trainingStressScore)} sub="TSS" accent="#dc2626" />}
+            {a.intensityFactor != null && <StatCard label={t('intensityFactor')} value={a.intensityFactor.toFixed(2)} sub="IF" accent="#ea580c" info={tc('glossaryIf')} />}
+            {a.variabilityIndex != null && <StatCard label={t('variabilityIndex')} value={a.variabilityIndex.toFixed(2)} sub="VI" accent="#0d9488" info={tc('glossaryVi')} />}
+            {a.trainingStressScore != null && <StatCard label={t('trainingLoad')} value={Math.round(a.trainingStressScore)} sub="TSS" accent="#dc2626" info={tc('glossaryTss')} />}
             {a.ftpUsed != null && <StatCard label={t('ftpUsed')} value={a.ftpUsed} unit="W" />}
-            {decoupling != null && <StatCard label={tc('decoupling')} value={decoupling.toFixed(1)} unit="%" accent={decoupling <= 5 ? '#16a34a' : '#ea580c'} />}
+            {decoupling != null && <StatCard label={tc('decoupling')} value={decoupling.toFixed(1)} unit="%" accent={decoupling <= 5 ? '#16a34a' : '#ea580c'} info={tc('glossaryDecoupling')} />}
           </View>
         </>
       )}

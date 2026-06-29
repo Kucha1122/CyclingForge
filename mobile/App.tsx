@@ -3,6 +3,7 @@ import './src/i18n';
 import React, { useEffect } from 'react';
 import { StatusBar, AppState } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useColorScheme } from 'nativewind';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -44,6 +45,13 @@ export default function App() {
   const isDark = theme === 'dark';
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { t } = useTranslation('common');
+
+  // Drive NativeWind's `dark:` variant from the in-app theme toggle (otherwise it
+  // follows the OS appearance and the toggle wouldn't switch Tailwind classes).
+  const { setColorScheme } = useColorScheme();
+  useEffect(() => {
+    setColorScheme(theme);
+  }, [theme, setColorScheme]);
 
   useEffect(() => {
     hydrateAuth();

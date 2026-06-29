@@ -474,27 +474,33 @@ export function SleepNightCard({ sleep, hrv, width, isDark }: { sleep: SleepData
       {/* HRV */}
       {hasHrv && (
         <View className="flex-row pt-3 mt-3 border-t border-slate-100 dark:border-slate-700">
-          {hrv!.lastNightAvgMs != null && (
+          <View className="flex-1">
+            {hrv!.lastNightAvgMs != null && (
+              <>
+                <Text className="text-[11px] text-slate-400" numberOfLines={1}>{t('hrvAvg')}</Text>
+                <Text className="text-lg font-bold text-emerald-500">
+                  {hrv!.lastNightAvgMs}<Text className="text-xs font-normal text-slate-400"> ms</Text>
+                </Text>
+              </>
+            )}
+          </View>
+          <View className="flex-1">
+            {hrv!.lastNight5MinHighMs != null && (
+              <>
+                <Text className="text-[11px] text-slate-400" numberOfLines={1}>{t('hrv5MinHigh')}</Text>
+                <Text className="text-lg font-bold text-slate-900 dark:text-white">
+                  {hrv!.lastNight5MinHighMs}<Text className="text-xs font-normal text-slate-400"> ms</Text>
+                </Text>
+              </>
+            )}
+          </View>
+          {hrv!.status ? (
             <View className="flex-1">
-              <Text className="text-[11px] text-slate-400">{t('hrvAvg')}</Text>
-              <Text className="text-lg font-bold text-emerald-500">
-                {hrv!.lastNightAvgMs}<Text className="text-xs font-normal text-slate-400"> ms</Text>
-              </Text>
-            </View>
-          )}
-          {hrv!.lastNight5MinHighMs != null && (
-            <View className="flex-1">
-              <Text className="text-[11px] text-slate-400">{t('hrv5MinHigh')}</Text>
-              <Text className="text-lg font-bold text-slate-900 dark:text-white">
-                {hrv!.lastNight5MinHighMs}<Text className="text-xs font-normal text-slate-400"> ms</Text>
-              </Text>
-            </View>
-          )}
-          {hrv!.status && (
-            <View className="items-end">
-              <Text className="text-[11px] text-slate-400">{t('hrvStatus')}</Text>
+              <Text className="text-[11px] text-slate-400" numberOfLines={1}>{t('hrvStatus')}</Text>
               <Text className="text-sm font-semibold text-slate-900 dark:text-white capitalize">{hrv!.status.toLowerCase()}</Text>
             </View>
+          ) : (
+            <View className="flex-1" />
           )}
         </View>
       )}
@@ -502,22 +508,27 @@ export function SleepNightCard({ sleep, hrv, width, isDark }: { sleep: SleepData
       {/* Vitals */}
       {(sleep.averageSpO2 != null || sleep.averageRespirationRate != null) && (
         <View className="flex-row pt-3 mt-3 border-t border-slate-100 dark:border-slate-700">
-          {sleep.averageSpO2 != null && (
-            <View className="flex-1">
-              <Text className="text-[11px] text-slate-400">SpO2</Text>
-              <Text className="text-base font-bold text-sky-400">
-                {sleep.averageSpO2.toFixed(1)}<Text className="text-xs font-normal text-slate-400">%</Text>
-              </Text>
-            </View>
-          )}
-          {sleep.averageRespirationRate != null && (
-            <View className="flex-1">
-              <Text className="text-[11px] text-slate-400">{t('respiration')}</Text>
-              <Text className="text-base font-bold text-slate-900 dark:text-white">
-                {sleep.averageRespirationRate.toFixed(1)}<Text className="text-xs font-normal text-slate-400"> br/min</Text>
-              </Text>
-            </View>
-          )}
+          <View className="flex-1">
+            {sleep.averageSpO2 != null && (
+              <>
+                <Text className="text-[11px] text-slate-400" numberOfLines={1}>SpO2</Text>
+                <Text className="text-base font-bold text-sky-400">
+                  {sleep.averageSpO2.toFixed(1)}<Text className="text-xs font-normal text-slate-400">%</Text>
+                </Text>
+              </>
+            )}
+          </View>
+          <View className="flex-1">
+            {sleep.averageRespirationRate != null && (
+              <>
+                <Text className="text-[11px] text-slate-400" numberOfLines={1}>{t('respiration')}</Text>
+                <Text className="text-base font-bold text-slate-900 dark:text-white">
+                  {sleep.averageRespirationRate.toFixed(1)}<Text className="text-xs font-normal text-slate-400"> br/min</Text>
+                </Text>
+              </>
+            )}
+          </View>
+          <View className="flex-1" />
         </View>
       )}
     </View>
