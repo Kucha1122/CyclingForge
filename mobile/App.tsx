@@ -11,6 +11,9 @@ import { useThemeStore } from './src/stores/themeStore';
 import { useSyncStore } from './src/stores/syncStore';
 import { startSyncHub, stopSyncHub, isSyncHubConnected, type SyncCompletedEvent } from './src/services/syncHub';
 import { SyncToast } from './src/components/SyncToast';
+import { UpdateBanner } from './src/components/UpdateBanner';
+import { fetchLatest, isUpdateAvailable } from './src/services/appUpdate';
+import { useUpdateStore } from './src/stores/updateStore';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
 const LightTheme = {
@@ -56,6 +59,17 @@ export default function App() {
     hydrateTheme();
   }, [hydrateAuth, hydrateTheme]);
 
+  // On launch, check whether a newer signed APK has been published. If so, flag the
+  // bottom <UpdateBanner/> so the user can install it in place. No-op on iOS.
+  useEffect(() => {
+    void (async () => {
+      const manifest = await fetchLatest();
+      if (manifest && isUpdateAvailable(manifest)) {
+        useUpdateStore.getState().setAvailable(manifest);
+      }
+    })();
+  }, []);
+
   // Real-time refresh: while authenticated, keep a SignalR connection open. On a "SyncCompleted"
   // event bump syncVersion (so screens refetch) and show an in-app toast. On returning to the
   // foreground, reconnect if needed and refetch once to catch syncs missed while backgrounded.
@@ -98,6 +112,7 @@ export default function App() {
           <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
           <RootNavigator />
           <SyncToast />
+          <UpdateBanner />
         </NavigationContainer>
       </SafeAreaProvider>
     </GestureHandlerRootView>

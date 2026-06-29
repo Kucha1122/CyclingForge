@@ -21,6 +21,7 @@ import { TodayWorkoutPage } from './pages/TodayWorkoutPage';
 import { RealizedWeekPage } from './pages/RealizedWeekPage';
 import { FullPlanPage } from './pages/FullPlanPage';
 import { TrainingSetupPage } from './pages/TrainingSetupPage';
+import { DownloadMobileAppPage } from './pages/DownloadMobileAppPage';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/strava/callback" element={<StravaCallbackPage />} />
+            <Route path="/download" element={<DownloadMobileAppPage />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
                 <Route path="/dashboard" element={<DashboardPage />} />

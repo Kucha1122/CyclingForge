@@ -1,0 +1,111 @@
+name: Build & Publish Mobile APK
+
+# Builds a signed standalone Android APK and publishes it (plus a version manifest) to the
+# backend's mobile-dist PVC, where the in-app updater and the web QR page pick it up.
+# Triggered manually or by pushing a `mobile-v*` tag — decoupled from the main deploy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "Release notes shown in the app/banner"
+        required: false
+        default: ""
+  push:
+    tags:
+      - "mobile-v*"
+
+env:
+  # Public URL the phone downloads the APK from (same host as the web app, /api proxied).
+  APK_PUBLIC_URL: https://k3s-server.tail11891a.ts.net/api/mobile/download
+
+jobs:
+  build:
+    # GitHub-hosted runner — keeps the heavy Gradle build off the self-hosted k3s box.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Set version code + name from run number
+        working-directory: mobile
+        run: |
+          node -e '
+            const fs = require("fs");
+            const p = "app.json";
+            const j = JSON.parse(fs.readFileSync(p, "utf8"));
+            j.expo.android = j.expo.android || {};
+            j.expo.android.versionCode = Number(process.env.GITHUB_RUN_NUMBER);
+            j.expo.version = `1.0.${process.env.GITHUB_RUN_NUMBER}`;
+            fs.writeFileSync(p, JSON.stringify(j, null, 2));
+            console.log("versionCode", j.expo.android.versionCode, "version", j.expo.version);
+          '
+
+      - name: Decode signing keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore"
+
+      - name: Prebuild Android project
+        working-directory: mobile
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Assemble signed release APK
+        working-directory: mobile/android
+        run: |
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/release.keystore" \
+            -Pandroid.injected.signing.store.password="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -Pandroid.injected.signing.key.alias="${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
+
+      - name: Stage APK + manifest
+        run: |
+          mkdir -p dist
+          cp mobile/android/app/build/outputs/apk/release/app-release.apk dist/app-release.apk
+          node -e '
+            const fs = require("fs");
+            const manifest = {
+              version: `1.0.${process.env.GITHUB_RUN_NUMBER}`,
+              versionCode: Number(process.env.GITHUB_RUN_NUMBER),
+              apkUrl: process.env.APK_PUBLIC_URL,
+              notes: process.env.RELEASE_NOTES || "",
+              releasedAt: new Date().toISOString(),
+            };
+            fs.writeFileSync("dist/latest.json", JSON.stringify(manifest, null, 2));
+            console.log(manifest);
+          '
+        env:
+          RELEASE_NOTES: ${{ github.event.inputs.notes }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mobile-dist
+          path: dist/
+
+  publish:
+    # Self-hosted runner has kubectl access to the k3s cluster; just copies the files in.
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: mobile-dist
+          path: dist
+
+      - name: Copy APK + manifest into backend PVC
+        run: |
+          POD=$(sudo kubectl -n cyclingforge get pod -l app=cyclingforge-backend -o jsonpath='{.items[0].metadata.name}')
+          echo "Publishing to pod $POD"
+          sudo kubectl -n cyclingforge cp dist/app-release.apk "$POD:/app/mobile-dist/app-release.apk"
+          sudo kubectl -n cyclingforge cp dist/latest.json "$POD:/app/mobile-dist/latest.json"

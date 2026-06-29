@@ -12,6 +12,8 @@
     },
     "android": {
       "package": "com.cyclingforge.app",
+      "versionCode": 1,
+      "permissions": ["REQUEST_INSTALL_PACKAGES"],
       "adaptiveIcon": {
         "backgroundColor": "#1e3a5a",
         "foregroundImage": "./assets/android-icon-foreground.png",

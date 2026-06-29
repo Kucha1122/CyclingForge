@@ -83,6 +83,11 @@ export const LoginPage = () => {
               {t('signUp')}
             </Link>
           </p>
+          <p className="mt-2 text-center text-secondary">
+            <Link to="/download" className="font-medium text-accent transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 rounded">
+              {t('downloadAppTitle', { ns: 'common' })}
+            </Link>
+          </p>
         </form>
       </div>
     </div>

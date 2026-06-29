@@ -231,4 +231,17 @@ export const recommendationsApi = {
     api.put<{ success: boolean; warnings: string[] }>(`/recommendations/${id}/plan-adjust`, { action, targetDate }),
 };
 
+export interface MobileVersionDto {
+  version: string;
+  versionCode: number;
+  apkUrl: string;
+  notes?: string;
+  releasedAt?: string;
+}
+
+export const mobileApi = {
+  // silentError: the page handles the "not published yet" 404 itself.
+  getVersion: () => api.get<MobileVersionDto>('/mobile/version', { silentError: true }),
+};
+
 export default api;
