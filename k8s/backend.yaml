@@ -4,6 +4,7 @@ metadata:
   name: mobile-dist-pvc
   namespace: cyclingforge
 spec:
+  storageClassName: local-path
   accessModes:
     - ReadWriteOnce
   resources:
