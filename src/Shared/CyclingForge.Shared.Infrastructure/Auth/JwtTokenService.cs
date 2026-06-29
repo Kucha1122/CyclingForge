@@ -18,9 +18,10 @@ public sealed class JwtTokenService
         _clock = clock;
     }
 
-    public string GenerateToken(Guid userId, string email)
+    public JwtResult GenerateToken(Guid userId, string email)
     {
         var now = _clock.CurrentDate();
+        var expiresAt = now.AddMinutes(_options.ExpiryMinutes);
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -37,9 +38,11 @@ public sealed class JwtTokenService
             audience: _options.Audience,
             claims: claims,
             notBefore: now,
-            expires: now.AddMinutes(_options.ExpiryMinutes),
+            expires: expiresAt,
             signingCredentials: credentials);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return new JwtResult(new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
     }
 }
+
+public sealed record JwtResult(string Token, DateTime ExpiresAtUtc);

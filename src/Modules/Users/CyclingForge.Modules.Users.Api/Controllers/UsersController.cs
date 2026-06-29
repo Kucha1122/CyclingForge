@@ -1,4 +1,6 @@
 using CyclingForge.Modules.Users.Application.Commands.Login;
+using CyclingForge.Modules.Users.Application.Commands.Logout;
+using CyclingForge.Modules.Users.Application.Commands.RefreshToken;
 using CyclingForge.Modules.Users.Application.Commands.Register;
 using CyclingForge.Modules.Users.Application.Commands.UpdateProfile;
 using CyclingForge.Modules.Users.Application.DTOs;
@@ -41,9 +43,30 @@ public sealed class UsersController : ControllerBase
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken)
     {
-        var command = new LoginCommand(request.Email, request.Password);
+        var command = new LoginCommand(request.Email, request.Password, request.RememberMe);
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
+    }
+
+    [HttpPost("refresh")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthResultDto>> Refresh(
+        [FromBody] RefreshTokenRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new RefreshTokenCommand(request.RefreshToken), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Logout(
+        [FromBody] RefreshTokenRequest request,
+        CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new LogoutCommand(request.RefreshToken), cancellationToken);
+        return NoContent();
     }
 
     [Authorize]
