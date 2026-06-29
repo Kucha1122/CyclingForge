@@ -99,7 +99,9 @@ export function SleepScreen() {
   const onSync = useCallback(async () => {
     setSyncing(true);
     try {
-      await garminApi.sync(range);
+      // Sync only the recent window (default daysBack) — older days don't change and
+      // re-pulling the whole chart range would fan out into dozens of Garmin calls.
+      await garminApi.sync();
       await fetchSleep(range);
     } catch { /* ignore */ } finally {
       setSyncing(false);
