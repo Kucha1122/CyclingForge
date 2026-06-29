@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -10,15 +11,19 @@ export const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation('auth');
+  const [submitting, setSubmitting] = useState(false);
 
   const onSubmit = async (data: LoginRequest) => {
     const rememberMe = data.rememberMe ?? true;
+    setSubmitting(true);
     try {
       const response = await api.post<AuthResultDto>('/users/login', { ...data, rememberMe });
       login(response.data, rememberMe);
       navigate('/dashboard');
     } catch {
-      // ignore
+      // surfaced by the global axios interceptor
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -63,10 +68,14 @@ export const LoginPage = () => {
             </label>
           </div>
           <button
-            className="mt-6 w-full rounded-lg bg-accent py-3 font-bold text-accent-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-3 font-bold text-accent-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
             type="submit"
+            disabled={submitting}
           >
-            {t('login')}
+            {submitting && (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent-foreground border-t-transparent" aria-hidden="true" />
+            )}
+            {submitting ? t('signingIn') : t('login')}
           </button>
           <p className="mt-4 text-center text-secondary">
             {t('dontHaveAccount')}{" "}

@@ -1,20 +1,28 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import type { RegisterRequest } from '../types/auth';
 
+type RegisterForm = RegisterRequest & { confirmPassword: string };
+
 export const RegisterPage = () => {
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterRequest>();
+  const { register, handleSubmit, getValues, formState: { errors } } = useForm<RegisterForm>();
   const navigate = useNavigate();
   const { t } = useTranslation('auth');
+  const [submitting, setSubmitting] = useState(false);
 
-  const onSubmit = async (data: RegisterRequest) => {
+  const onSubmit = async (data: RegisterForm) => {
+    setSubmitting(true);
     try {
-      await api.post('/users/register', data);
+      const { confirmPassword: _confirmPassword, ...payload } = data;
+      await api.post('/users/register', payload);
       navigate('/login');
     } catch {
-      // ignore
+      // surfaced by the global axios interceptor
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -66,12 +74,26 @@ export const RegisterPage = () => {
               />
               {errors.password && <span className="text-sm text-state-danger-text">{t('passwordRequired')}</span>}
             </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-primary">{t('confirmPassword')}</label>
+              <input
+                type="password"
+                className="rounded-lg border border-border-default bg-surface px-4 py-2 text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                placeholder={t('placeholderPassword')}
+                {...register("confirmPassword", {
+                  required: t('confirmPasswordRequired'),
+                  validate: (value) => value === getValues('password') || t('passwordsDoNotMatch'),
+                })}
+              />
+              {errors.confirmPassword && <span className="text-sm text-state-danger-text">{errors.confirmPassword.message}</span>}
+            </div>
           </div>
           <button
-            className="mt-6 w-full rounded-lg bg-accent py-3 font-bold text-accent-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+            className="mt-6 w-full rounded-lg bg-accent py-3 font-bold text-accent-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
             type="submit"
+            disabled={submitting}
           >
-            {t('signUp')}
+            {submitting ? t('signingUp') : t('signUp')}
           </button>
           <p className="mt-4 text-center text-secondary">
             {t('alreadyHaveAccount')}{" "}

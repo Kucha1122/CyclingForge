@@ -15,11 +15,16 @@ export function RegisterScreen({ navigation }: Props) {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleRegister = async () => {
     if (!firstName || !lastName || !email || !password) return;
+    if (password !== confirmPassword) {
+      setError(t('passwordsDoNotMatch'));
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -77,9 +82,17 @@ export function RegisterScreen({ navigation }: Props) {
 
         <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('password')}</Text>
         <TextInput
-          className="border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 mb-6 text-slate-900 dark:text-white bg-white dark:bg-slate-800"
+          className="border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 mb-4 text-slate-900 dark:text-white bg-white dark:bg-slate-800"
           value={password}
           onChangeText={setPassword}
+          secureTextEntry
+        />
+
+        <Text className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('confirmPassword')}</Text>
+        <TextInput
+          className="border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 mb-6 text-slate-900 dark:text-white bg-white dark:bg-slate-800"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
           secureTextEntry
         />
 
