@@ -12,9 +12,12 @@ import type {
 } from '@cyclingforge/shared';
 import type { UserProfile, PmcSummary, PmcActivitySummaryDto, FtpChangeDto, DailyTssPoint, WeeklySummary, MonthlySummary } from '@cyclingforge/shared';
 
+import { tokenStorage } from './tokenStorage';
+
 declare module 'axios' {
   export interface AxiosRequestConfig {
     silentError?: boolean;
+    _retry?: boolean;
   }
 }
 
@@ -23,12 +26,29 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = tokenStorage.getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+// Single-flight silent refresh: concurrent 401s share one /users/refresh call.
+let refreshPromise: Promise<string> | null = null;
+
+async function refreshAccessToken(): Promise<string> {
+  const refreshToken = tokenStorage.getRefreshToken();
+  if (!refreshToken) throw new Error('No refresh token');
+  // Bare axios (not `api`) so this request isn't itself intercepted/retried.
+  const { data } = await axios.post('/api/users/refresh', { refreshToken });
+  tokenStorage.updateTokens(data.token, data.refreshToken);
+  return data.token as string;
+}
+
+function forceLogout() {
+  tokenStorage.clear();
+  if (window.location.pathname !== '/login') window.location.href = '/login';
+}
 
 function resolveErrorMessage(status: number | undefined): string {
   if (status === 404) return i18n.t('errors:activityNotFound');
@@ -40,12 +60,32 @@ function resolveErrorMessage(status: number | undefined): string {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const status = error.response?.status;
+    const original = error.config;
+    const url: string = original?.url ?? '';
+    const isAuthEndpoint = url.includes('/users/refresh') || url.includes('/users/login');
+
+    // Access token expired → try a silent refresh once, then replay the request.
+    if (status === 401 && original && !original._retry && !isAuthEndpoint) {
+      original._retry = true;
+      try {
+        if (!refreshPromise) {
+          refreshPromise = refreshAccessToken().finally(() => { refreshPromise = null; });
+        }
+        const newToken = await refreshPromise;
+        original.headers = original.headers ?? {};
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return api(original);
+      } catch {
+        forceLogout();
+        return Promise.reject(error);
+      }
+    }
+
     if (status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Refresh already attempted/failed or this is the refresh call itself.
+      forceLogout();
       return Promise.reject(error);
     }
 

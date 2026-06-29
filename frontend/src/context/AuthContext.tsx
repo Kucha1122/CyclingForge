@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { AuthResultDto } from '../types/auth';
+import { tokenStorage } from '../services/tokenStorage';
+import api from '../services/api';
 
 interface AuthContextType {
   user: AuthResultDto | null;
-  login: (token: string, userData: AuthResultDto) => void;
+  login: (result: AuthResultDto, rememberMe: boolean) => void;
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
@@ -12,10 +14,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function getInitialUser(): AuthResultDto | null {
-  const token = localStorage.getItem('token');
-  const userData = localStorage.getItem('user');
-  if (token && userData) return JSON.parse(userData) as AuthResultDto;
-  return null;
+  return tokenStorage.getToken() ? tokenStorage.getUser() : null;
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -27,15 +26,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => clearTimeout(t);
   }, []);
 
-  const login = (token: string, userData: AuthResultDto) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
+  const login = (result: AuthResultDto, rememberMe: boolean) => {
+    tokenStorage.setSession(result, rememberMe);
+    setUser(result);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    const refreshToken = tokenStorage.getRefreshToken();
+    if (refreshToken) {
+      // Revoke server-side; ignore failures (token may already be invalid).
+      api.post('/users/logout', { refreshToken }, { silentError: true }).catch(() => {});
+    }
+    tokenStorage.clear();
     setUser(null);
   };
 

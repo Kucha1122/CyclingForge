@@ -12,9 +12,10 @@ export const LoginPage = () => {
   const { t } = useTranslation('auth');
 
   const onSubmit = async (data: LoginRequest) => {
+    const rememberMe = data.rememberMe ?? true;
     try {
-      const response = await api.post<AuthResultDto>('/users/login', data);
-      login(response.data.token, response.data);
+      const response = await api.post<AuthResultDto>('/users/login', { ...data, rememberMe });
+      login(response.data, rememberMe);
       navigate('/dashboard');
     } catch {
       // ignore
@@ -51,6 +52,15 @@ export const LoginPage = () => {
               />
               {errors.password && <span className="text-sm text-state-danger-text">{t('passwordRequired')}</span>}
             </div>
+            <label className="flex items-center gap-2 text-sm text-primary">
+              <input
+                type="checkbox"
+                defaultChecked
+                className="h-4 w-4 rounded border-border-default text-accent focus:ring-accent"
+                {...register("rememberMe")}
+              />
+              {t('rememberMe')}
+            </label>
           </div>
           <button
             className="mt-6 w-full rounded-lg bg-accent py-3 font-bold text-accent-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
