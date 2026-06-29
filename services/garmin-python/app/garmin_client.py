@@ -13,11 +13,14 @@ in each request.  Login itself is two-step when the account has 2FA:
 """
 from __future__ import annotations
 
+import os
+import sys
 import threading
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date as Date
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable, TypeVar
 
 from garminconnect import (
     Garmin,
@@ -192,6 +195,46 @@ def _call(fn, *args) -> Any:
         raise GarminUpstreamError(str(exc)) from exc
 
 
+# How many days to fetch in parallel. Kept low to avoid Garmin rate-limiting (429).
+_SYNC_CONCURRENCY = max(1, int(os.getenv("GARMIN_SYNC_CONCURRENCY", "5")))
+
+_T = TypeVar("_T")
+
+
+def _date_range(start: Date, end: Date) -> list[Date]:
+    days: list[Date] = []
+    current = start
+    while current <= end:
+        days.append(current)
+        current = current.fromordinal(current.toordinal() + 1)
+    return days
+
+
+def _fetch_days_parallel(days: list[Date], per_day: Callable[[Date], _T | None]) -> list[_T]:
+    """Run `per_day` for each date concurrently (bounded), preserving date order.
+
+    Auth/upstream errors propagate (so the caller maps them to 401/502). Any other
+    per-day failure is logged and skipped so one bad day doesn't sink the whole range.
+    """
+    if not days:
+        return []
+
+    def _safe(day: Date) -> _T | None:
+        try:
+            return per_day(day)
+        except (GarminAuthError, GarminUpstreamError):
+            raise
+        except Exception as exc:  # noqa: BLE001 - never let one day break the batch
+            print(f"[garmin] skipping {day.isoformat()}: {exc!r}", file=sys.stderr, flush=True)
+            return None
+
+    workers = min(_SYNC_CONCURRENCY, len(days))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        results = list(pool.map(_safe, days))  # map preserves input order
+
+    return [r for r in results if r is not None]
+
+
 def _ms_to_datetime(value: Any) -> datetime | None:
     """UTC-aware datetime (for internal use only)."""
     if value is None:
@@ -223,15 +266,12 @@ def _dig(data: Any, *path: str) -> Any:
 
 def get_sleep_range(token: str, start: Date, end: Date) -> list[schemas.SleepResponse]:
     garmin = _client_from_token(token)
-    out: list[schemas.SleepResponse] = []
-    current = start
-    while current <= end:
-        raw = _call(garmin.get_sleep_data, current.isoformat())
-        entry = _map_sleep(current, raw)
-        if entry is not None:
-            out.append(entry)
-        current = current.fromordinal(current.toordinal() + 1)
-    return out
+
+    def _one(day: Date) -> schemas.SleepResponse | None:
+        raw = _call(garmin.get_sleep_data, day.isoformat())
+        return _map_sleep(day, raw)
+
+    return _fetch_days_parallel(_date_range(start, end), _one)
 
 
 def _parse_gmt_str(s: str) -> int:
@@ -370,7 +410,15 @@ def _map_sleep(day: Date, raw: Any) -> schemas.SleepResponse | None:
 
 
 def get_wellness(token: str, day: Date) -> schemas.WellnessResponse:
+    return _wellness_for(_client_from_token(token), day)
+
+
+def get_wellness_range(token: str, start: Date, end: Date) -> list[schemas.WellnessResponse]:
     garmin = _client_from_token(token)
+    return _fetch_days_parallel(_date_range(start, end), lambda day: _wellness_for(garmin, day))
+
+
+def _wellness_for(garmin: Garmin, day: Date) -> schemas.WellnessResponse:
     cdate = day.isoformat()
 
     summary = _call(garmin.get_user_summary, cdate) or {}
@@ -394,7 +442,15 @@ def get_wellness(token: str, day: Date) -> schemas.WellnessResponse:
 
 
 def get_hrv(token: str, day: Date) -> schemas.HrvResponse:
+    return _hrv_for(_client_from_token(token), day)
+
+
+def get_hrv_range(token: str, start: Date, end: Date) -> list[schemas.HrvResponse]:
     garmin = _client_from_token(token)
+    return _fetch_days_parallel(_date_range(start, end), lambda day: _hrv_for(garmin, day))
+
+
+def _hrv_for(garmin: Garmin, day: Date) -> schemas.HrvResponse:
     raw = _call(garmin.get_hrv_data, day.isoformat()) or {}
     summary = _dig(raw, "hrvSummary") or {}
     return schemas.HrvResponse(

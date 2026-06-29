@@ -63,9 +63,21 @@ def wellness(request: schemas.DateRequest) -> schemas.WellnessResponse:
     return _guard(lambda: garmin_client.get_wellness(request.token, request.date))
 
 
+@app.post("/wellness/range", response_model=list[schemas.WellnessResponse])
+def wellness_range(request: schemas.RangeRequest) -> list[schemas.WellnessResponse]:
+    return _guard(lambda: garmin_client.get_wellness_range(
+        request.token, request.start_date, request.end_date))
+
+
 @app.post("/hrv", response_model=schemas.HrvResponse)
 def hrv(request: schemas.DateRequest) -> schemas.HrvResponse:
     return _guard(lambda: garmin_client.get_hrv(request.token, request.date))
+
+
+@app.post("/hrv/range", response_model=list[schemas.HrvResponse])
+def hrv_range(request: schemas.RangeRequest) -> list[schemas.HrvResponse]:
+    return _guard(lambda: garmin_client.get_hrv_range(
+        request.token, request.start_date, request.end_date))
 
 
 def _guard(fn):

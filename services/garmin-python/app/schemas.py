@@ -32,6 +32,13 @@ class SleepRequest(_CamelModel):
     end_date: Date
 
 
+class RangeRequest(_CamelModel):
+    """Date-range request shared by /sleep, /wellness/range and /hrv/range."""
+    token: str
+    start_date: Date
+    end_date: Date
+
+
 class DateRequest(_CamelModel):
     token: str
     date: Date
