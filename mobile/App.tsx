@@ -1,8 +1,7 @@
 import './global.css';
-import './src/i18n';
 import React, { useEffect } from 'react';
 import { StatusBar, AppState } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import i18n from './src/i18n';
 import { useColorScheme } from 'nativewind';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
@@ -44,7 +43,6 @@ export default function App() {
   const theme = useThemeStore((s) => s.theme);
   const isDark = theme === 'dark';
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const { t } = useTranslation('common');
 
   // Drive NativeWind's `dark:` variant from the in-app theme toggle (otherwise it
   // follows the OS appearance and the toggle wouldn't switch Tailwind classes).
@@ -70,11 +68,11 @@ export default function App() {
       if (event.kind === 'activity') {
         showToast(
           event.count && event.count > 0
-            ? t('toastNewActivityCount', { count: event.count })
-            : t('toastNewActivity'),
+            ? i18n.t('toastNewActivityCount', { count: event.count })
+            : i18n.t('toastNewActivity'),
         );
       } else if (event.kind === 'garmin') {
-        showToast(t('toastGarminSynced'));
+        showToast(i18n.t('toastGarminSynced'));
       }
     };
 
@@ -91,7 +89,7 @@ export default function App() {
       subscription.remove();
       void stopSyncHub();
     };
-  }, [isAuthenticated, t]);
+  }, [isAuthenticated]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

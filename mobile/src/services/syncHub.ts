@@ -15,17 +15,21 @@ export interface SyncCompletedEvent {
 }
 
 let connection: HubConnection | null = null;
+// Tracks an in-flight start() so stopSyncHub can wait for it to settle. Calling stop()
+// while start() is still pending throws "Failed to start the HttpConnection before stop()
+// was called" — serializing the two avoids that race (e.g. on rapid auth/effect churn).
+let starting: Promise<void> | null = null;
 
 /**
  * Opens (or reuses) the SignalR connection to the backend SyncHub and invokes `onSync` for every
- * "SyncCompleted" event. Authenticates with the JWT from SecureStore and reconnects automatically.
+ * "SyncCompleted" event. Authenticates with the JWT from the auth store and reconnects automatically.
  * React Native has no native WebSocket header support, so the JWT goes via the access_token query
  * param (the backend reads it for /api/hubs/* requests).
  */
 export async function startSyncHub(onSync: (event: SyncCompletedEvent) => void): Promise<void> {
-  if (connection) return;
+  if (connection || starting) return;
 
-  connection = new HubConnectionBuilder()
+  const conn = new HubConnectionBuilder()
     .withUrl(`${API_BASE_URL}/hubs/sync`, {
       accessTokenFactory: () => useAuthStore.getState().token ?? '',
       // Skip negotiation and connect straight over WebSockets: the JWT then rides as the
@@ -38,14 +42,21 @@ export async function startSyncHub(onSync: (event: SyncCompletedEvent) => void):
     .configureLogging(LogLevel.Warning)
     .build();
 
-  connection.on('SyncCompleted', (event: SyncCompletedEvent) => onSync(event));
+  conn.on('SyncCompleted', (event: SyncCompletedEvent) => onSync(event));
 
-  try {
-    await connection.start();
-  } catch (err) {
-    // Real-time is best-effort; pull-to-refresh and foreground refetch still work.
-    console.warn('SyncHub connection failed', err);
-  }
+  starting = conn.start()
+    .then(() => {
+      connection = conn;
+    })
+    .catch((err) => {
+      // Real-time is best-effort; pull-to-refresh and foreground refetch still work.
+      console.warn('SyncHub connection failed', err);
+    })
+    .finally(() => {
+      starting = null;
+    });
+
+  await starting;
 }
 
 /** True when the hub is currently connected. */
@@ -53,8 +64,11 @@ export function isSyncHubConnected(): boolean {
   return connection?.state === HubConnectionState.Connected;
 }
 
-/** Closes the SignalR connection (e.g. on logout). */
+/** Closes the SignalR connection (e.g. on logout). Waits for any in-flight start first. */
 export async function stopSyncHub(): Promise<void> {
+  if (starting) {
+    try { await starting; } catch { /* ignore */ }
+  }
   if (!connection) return;
   const conn = connection;
   connection = null;

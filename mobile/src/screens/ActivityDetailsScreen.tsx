@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Dimensions, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Dimensions, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -47,27 +47,45 @@ function zoneDur(sec: number): string {
 }
 
 function StatCard({ label, value, unit, sub, accent, info }: { label: string; value: string | number; unit?: string; sub?: string; accent?: string; info?: string }) {
+  const [showInfo, setShowInfo] = useState(false);
   return (
     <View className="w-1/2 p-1">
-      <View className="bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm">
-        <View className="flex-row items-center gap-1">
-          <Text className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{label}</Text>
-          {info ? (
-            <TouchableOpacity
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              onPress={() => Alert.alert(label, info)}
-            >
-              <View className="h-3.5 w-3.5 rounded-full bg-slate-300 dark:bg-slate-600 items-center justify-center">
-                <Text className="text-[9px] font-bold text-white">i</Text>
-              </View>
-            </TouchableOpacity>
-          ) : null}
-        </View>
+      <View className="relative bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm">
+        {/* pr-5 keeps the label clear of the top-right info badge */}
+        <Text className="text-[10px] font-medium uppercase tracking-wide text-slate-400 pr-5">{label}</Text>
         <View className="flex-row items-baseline gap-1">
           <Text className={`text-xl font-bold ${accent ? '' : 'text-slate-900 dark:text-white'}`} style={accent ? { color: accent } : undefined}>{value}</Text>
           {unit ? <Text className="text-xs text-slate-400">{unit}</Text> : null}
         </View>
         {sub ? <Text className="text-[10px] text-slate-400">{sub}</Text> : null}
+
+        {info ? (
+          <>
+            <TouchableOpacity
+              className="absolute top-2 right-2"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={() => setShowInfo(true)}
+            >
+              <View className="h-4 w-4 rounded-full bg-slate-200 dark:bg-slate-600 items-center justify-center">
+                <Text className="text-[10px] font-bold text-slate-500 dark:text-slate-300">i</Text>
+              </View>
+            </TouchableOpacity>
+
+            <Modal visible={showInfo} transparent animationType="fade" onRequestClose={() => setShowInfo(false)}>
+              <Pressable className="flex-1 bg-black/50 items-center justify-center px-8" onPress={() => setShowInfo(false)}>
+                <Pressable className="w-full max-w-sm bg-white dark:bg-slate-800 rounded-2xl p-5" onPress={() => {}}>
+                  <View className="flex-row items-start justify-between mb-2">
+                    <Text className="flex-1 text-base font-bold text-slate-900 dark:text-white pr-3">{label}</Text>
+                    <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => setShowInfo(false)}>
+                      <Text className="text-lg text-slate-400">✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text className="text-sm leading-5 text-slate-600 dark:text-slate-300">{info}</Text>
+                </Pressable>
+              </Pressable>
+            </Modal>
+          </>
+        ) : null}
       </View>
     </View>
   );
