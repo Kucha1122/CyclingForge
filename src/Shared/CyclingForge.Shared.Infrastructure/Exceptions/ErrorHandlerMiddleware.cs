@@ -33,6 +33,7 @@ public sealed class ErrorHandlerMiddleware : IMiddleware
         var (statusCode, message) = exception switch
         {
             NotFoundException => (HttpStatusCode.NotFound, exception.Message),
+            UnauthorizedException => (HttpStatusCode.Unauthorized, exception.Message),
             CyclingForgeException => (HttpStatusCode.BadRequest, exception.Message),
             _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred.")
         };

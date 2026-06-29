@@ -1,5 +1,5 @@
-using CyclingForge.Modules.Users.Application.Commands.Login;
 using CyclingForge.Modules.Users.Application.Commands.Register;
+using CyclingForge.Modules.Users.Application.Services;
 using CyclingForge.Modules.Users.Domain.Repositories;
 using CyclingForge.Modules.Users.Infrastructure.Database;
 using CyclingForge.Modules.Users.Infrastructure.Repositories;
@@ -23,6 +23,7 @@ public static class Extensions
             configuration.GetConnectionString("UsersDb")!);
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IUserFtpChangeRepository, UserFtpChangeRepository>();
         services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<ITokenProvider, JwtTokenProvider>();

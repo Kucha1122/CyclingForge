@@ -7,6 +7,7 @@ internal sealed class UsersDbContext : DbContext
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<UserFtpChange> UserFtpChanges => Set<UserFtpChange>();
+    public DbSet<UserRefreshToken> RefreshTokens => Set<UserRefreshToken>();
 
     public UsersDbContext(DbContextOptions<UsersDbContext> options)
         : base(options)
