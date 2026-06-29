@@ -85,12 +85,12 @@ internal sealed class SyncGarminDataCommandHandler : IRequestHandler<SyncGarminD
     private async Task SyncWellnessDataAsync(
         GarminToken token, Guid userId, DateOnly startDate, DateOnly endDate, DateTime now, CancellationToken ct)
     {
-        for (var date = startDate; date <= endDate; date = date.AddDays(1))
-        {
-            var wellness = await _garminApiService.GetDailyWellnessAsync(
-                token.Token, date, ct);
-            if (wellness is null) continue;
+        var wellnessEntries = await _garminApiService.GetWellnessDataAsync(
+            token.Token, startDate, endDate, ct);
 
+        foreach (var wellness in wellnessEntries)
+        {
+            var date = wellness.Date;
             var existing = await _wellnessRepository.GetByUserIdAndDateAsync(userId, date, ct);
             if (existing is not null)
             {
@@ -117,11 +117,11 @@ internal sealed class SyncGarminDataCommandHandler : IRequestHandler<SyncGarminD
     private async Task SyncHrvDataAsync(
         GarminToken token, Guid userId, DateOnly startDate, DateOnly endDate, DateTime now, CancellationToken ct)
     {
-        for (var date = startDate; date <= endDate; date = date.AddDays(1))
-        {
-            var hrv = await _garminApiService.GetHrvDataAsync(token.Token, date, ct);
-            if (hrv is null) continue;
+        var hrvEntries = await _garminApiService.GetHrvDataAsync(token.Token, startDate, endDate, ct);
 
+        foreach (var hrv in hrvEntries)
+        {
+            var date = hrv.Date;
             var existing = await _hrvRepository.GetByUserIdAndDateAsync(userId, date, ct);
             if (existing is not null)
             {

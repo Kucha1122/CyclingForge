@@ -15,8 +15,8 @@ public interface IGarminApiService
     Task<string> ConnectMfaAsync(string sessionId, string mfaCode, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<GarminSleepResponse>> GetSleepDataAsync(string garthToken, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
-    Task<GarminWellnessResponse?> GetDailyWellnessAsync(string garthToken, DateOnly date, CancellationToken cancellationToken = default);
-    Task<GarminHrvResponse?> GetHrvDataAsync(string garthToken, DateOnly date, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<GarminWellnessResponse>> GetWellnessDataAsync(string garthToken, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<GarminHrvResponse>> GetHrvDataAsync(string garthToken, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default);
 }
 
 public sealed record GarminConnectResult(bool NeedsMfa, string? Token, string? SessionId)

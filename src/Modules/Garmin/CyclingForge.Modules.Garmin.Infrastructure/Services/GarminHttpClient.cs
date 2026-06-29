@@ -69,28 +69,28 @@ internal sealed class GarminHttpClient
         return await response.Content.ReadFromJsonAsync<List<SleepDto>>(cancellationToken);
     }
 
-    public async Task<WellnessDto?> GetWellnessAsync(
-        string token, string date, CancellationToken cancellationToken)
+    public async Task<List<WellnessDto>?> GetWellnessRangeAsync(
+        string token, string startDate, string endDate, CancellationToken cancellationToken)
     {
         var response = await _httpClient.PostAsJsonAsync(
-            "/wellness", new DateRequest(token, date), cancellationToken);
+            "/wellness/range", new RangeRequest(token, startDate, endDate), cancellationToken);
 
         EnsureNotExpired(response);
         if (!response.IsSuccessStatusCode) return null;
 
-        return await response.Content.ReadFromJsonAsync<WellnessDto>(cancellationToken);
+        return await response.Content.ReadFromJsonAsync<List<WellnessDto>>(cancellationToken);
     }
 
-    public async Task<HrvDto?> GetHrvAsync(
-        string token, string date, CancellationToken cancellationToken)
+    public async Task<List<HrvDto>?> GetHrvRangeAsync(
+        string token, string startDate, string endDate, CancellationToken cancellationToken)
     {
         var response = await _httpClient.PostAsJsonAsync(
-            "/hrv", new DateRequest(token, date), cancellationToken);
+            "/hrv/range", new RangeRequest(token, startDate, endDate), cancellationToken);
 
         EnsureNotExpired(response);
         if (!response.IsSuccessStatusCode) return null;
 
-        return await response.Content.ReadFromJsonAsync<HrvDto>(cancellationToken);
+        return await response.Content.ReadFromJsonAsync<List<HrvDto>>(cancellationToken);
     }
 
     private static void EnsureNotExpired(HttpResponseMessage response)
@@ -109,6 +109,7 @@ internal sealed record GarminLoginResult(bool IsMfaRequired, string? Token, stri
 internal sealed record LoginRequest(string Email, string Password);
 internal sealed record MfaRequest(string SessionId, string MfaCode);
 internal sealed record SleepRequest(string Token, string StartDate, string EndDate);
+internal sealed record RangeRequest(string Token, string StartDate, string EndDate);
 internal sealed record DateRequest(string Token, string Date);
 
 internal sealed class LoginResponse

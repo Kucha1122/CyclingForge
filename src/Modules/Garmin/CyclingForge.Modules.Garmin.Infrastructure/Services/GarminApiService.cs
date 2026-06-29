@@ -56,37 +56,51 @@ internal sealed class GarminApiService : IGarminApiService
         }).ToList();
     }
 
-    public async Task<GarminWellnessResponse?> GetDailyWellnessAsync(
-        string garthToken, DateOnly date, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<GarminWellnessResponse>> GetWellnessDataAsync(
+        string garthToken, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.GetWellnessAsync(
-            garthToken, date.ToString("yyyy-MM-dd"), cancellationToken);
+        var entries = await _httpClient.GetWellnessRangeAsync(
+            garthToken,
+            startDate.ToString("yyyy-MM-dd"),
+            endDate.ToString("yyyy-MM-dd"),
+            cancellationToken);
 
-        if (response is null) return null;
+        if (entries is null) return [];
 
-        return new GarminWellnessResponse(
-            date,
-            response.Vo2Max,
-            response.TrainingReadinessScore,
-            response.TrainingReadinessLevel,
-            response.BodyBatteryMin,
-            response.BodyBatteryMax,
-            response.AverageStressLevel,
-            response.StepsCount);
+        return entries.Select(response =>
+        {
+            DateOnly.TryParse(response.Date, out var date);
+            return new GarminWellnessResponse(
+                date,
+                response.Vo2Max,
+                response.TrainingReadinessScore,
+                response.TrainingReadinessLevel,
+                response.BodyBatteryMin,
+                response.BodyBatteryMax,
+                response.AverageStressLevel,
+                response.StepsCount);
+        }).ToList();
     }
 
-    public async Task<GarminHrvResponse?> GetHrvDataAsync(
-        string garthToken, DateOnly date, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<GarminHrvResponse>> GetHrvDataAsync(
+        string garthToken, DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.GetHrvAsync(
-            garthToken, date.ToString("yyyy-MM-dd"), cancellationToken);
+        var entries = await _httpClient.GetHrvRangeAsync(
+            garthToken,
+            startDate.ToString("yyyy-MM-dd"),
+            endDate.ToString("yyyy-MM-dd"),
+            cancellationToken);
 
-        if (response is null) return null;
+        if (entries is null) return [];
 
-        return new GarminHrvResponse(
-            date,
-            response.LastNightAvgMs,
-            response.LastNight5MinHighMs,
-            response.Status);
+        return entries.Select(response =>
+        {
+            DateOnly.TryParse(response.Date, out var date);
+            return new GarminHrvResponse(
+                date,
+                response.LastNightAvgMs,
+                response.LastNight5MinHighMs,
+                response.Status);
+        }).ToList();
     }
 }
