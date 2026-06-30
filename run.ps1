@@ -14,9 +14,17 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$projectRoot\
 
 # Uruchom serwis Garmin (Python) w nowym oknie
 Write-Host "Uruchamiam serwis Garmin (Python)..." -ForegroundColor Green
-if (-not (Test-Path $venvUvicorn)) {
-    $garminCmd = "cd '$garminDir'; py -3.12 -m venv .venv; .venv\Scripts\pip.exe install -r requirements.txt; .venv\Scripts\uvicorn.exe app.main:app --reload --port 8000"
-    Write-Host "  [!] Brak venv - instaluje zaleznosci (jednorazowo)..." -ForegroundColor Yellow
+# Odtworz venv przy braku LUB gdy requirements.txt jest nowszy niz znacznik instalacji
+# (inaczej nowo dodane zaleznosci nie zostana doinstalowane i serwis wywali ImportError).
+$reqFile = "$garminDir\requirements.txt"
+$installStamp = "$garminDir\.venv\.requirements.installed"
+$needsInstall = (-not (Test-Path $venvUvicorn)) -or `
+    (-not (Test-Path $installStamp)) -or `
+    ((Get-Item $reqFile).LastWriteTimeUtc -gt (Get-Item $installStamp).LastWriteTimeUtc)
+
+if ($needsInstall) {
+    Write-Host "  [!] Instaluje/aktualizuje zaleznosci garmina..." -ForegroundColor Yellow
+    $garminCmd = "cd '$garminDir'; if (-not (Test-Path .venv\Scripts\uvicorn.exe)) { py -3.12 -m venv .venv }; .venv\Scripts\pip.exe install -r requirements.txt; Set-Content -Path '$installStamp' -Value (Get-Date -Format o); .venv\Scripts\uvicorn.exe app.main:app --reload --port 8000"
 } else {
     $garminCmd = "cd '$garminDir'; .venv\Scripts\uvicorn.exe app.main:app --reload --port 8000"
 }
