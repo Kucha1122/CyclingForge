@@ -7,6 +7,7 @@ import type { UserProfile, AthleteProfileDto, AthleteZonesDto, ActivitySyncFilte
 import { useAuthStore } from '../stores/authStore';
 import { useThemeStore } from '../stores/themeStore';
 import { usersApi, stravaApi, garminApi, authApi } from '../services/api';
+import * as Application from 'expo-application';
 import { formatDate } from '../utils/format';
 import { HR_ZONE_COLORS } from '../components/dashboardCards';
 import i18n from '../i18n';
@@ -597,9 +598,13 @@ export function ProfileScreen() {
           </TouchableOpacity>
         </Card>
 
-        <TouchableOpacity className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-4 mb-8 items-center" onPress={handleLogout}>
+        <TouchableOpacity className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-4 mb-4 items-center" onPress={handleLogout}>
           <Text className="text-red-600 dark:text-red-400 font-semibold">{tCommon('logout')}</Text>
         </TouchableOpacity>
+
+        <Text className="text-center text-xs text-slate-400 dark:text-slate-500 mb-8">
+          v{Application.nativeApplicationVersion ?? '1.0.0'}
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );

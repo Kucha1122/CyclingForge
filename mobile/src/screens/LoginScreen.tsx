@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuthStore } from '../stores/authStore';
 import { authApi } from '../services/api';
+import { Logo } from '../components/Logo';
 import type { AuthStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
@@ -37,9 +38,9 @@ export function LoginScreen({ navigation }: Props) {
       className="flex-1 bg-white dark:bg-slate-900"
     >
       <View className="flex-1 justify-center px-8">
-        <Text className="text-3xl font-bold text-center text-slate-900 dark:text-white mb-2">
-          CyclingForge
-        </Text>
+        <View className="items-center mb-3">
+          <Logo markSize={48} tagline />
+        </View>
         <Text className="text-base text-center text-slate-500 dark:text-slate-400 mb-10">
           {t('enterDetailsLogin')}
         </Text>

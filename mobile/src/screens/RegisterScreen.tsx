@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuthStore } from '../stores/authStore';
 import { authApi } from '../services/api';
+import { Logo } from '../components/Logo';
 import type { AuthStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
@@ -44,7 +45,10 @@ export function RegisterScreen({ navigation }: Props) {
       className="flex-1 bg-white dark:bg-slate-900"
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} className="px-8">
-        <Text className="text-3xl font-bold text-center text-slate-900 dark:text-white mb-8">
+        <View className="items-center mb-6">
+          <Logo markSize={44} tagline />
+        </View>
+        <Text className="text-2xl font-bold text-center text-slate-900 dark:text-white mb-8">
           {t('signUp')}
         </Text>
 

@@ -17,6 +17,12 @@ import { useUpdateStore } from './src/stores/updateStore';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { installGlobalErrorLogging } from './src/services/clientLogger';
+import {
+  useFonts,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
+import { SpaceMono_400Regular } from '@expo-google-fonts/space-mono';
 
 installGlobalErrorLogging();
 
@@ -57,6 +63,9 @@ export default function App() {
   useEffect(() => {
     setColorScheme(theme);
   }, [theme, setColorScheme]);
+
+  // Brand wordmark font (used by the <Logo/> lockup).
+  const [fontsLoaded] = useFonts({ SpaceGrotesk_500Medium, SpaceGrotesk_700Bold, SpaceMono_400Regular });
 
   useEffect(() => {
     hydrateAuth();
@@ -108,6 +117,8 @@ export default function App() {
       void stopSyncHub();
     };
   }, [isAuthenticated]);
+
+  if (!fontsLoaded) return null;
 
   return (
     <ErrorBoundary>

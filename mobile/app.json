@@ -15,7 +15,7 @@
       "versionCode": 1,
       "permissions": ["REQUEST_INSTALL_PACKAGES"],
       "adaptiveIcon": {
-        "backgroundColor": "#1e3a5a",
+        "backgroundColor": "#0C0E16",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
