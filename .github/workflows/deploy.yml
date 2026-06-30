@@ -48,6 +48,13 @@ jobs:
           sudo kubectl apply -f k8s/backend.yaml
           sudo kubectl apply -f k8s/frontend.yaml
           sudo kubectl apply -f k8s/garmin.yaml
+          # Observability stack (Loki, Alloy, Prometheus, Grafana).
+          sudo kubectl apply -f k8s/monitoring/namespace.yaml
+          sudo kubectl create secret generic grafana-admin -n monitoring \
+            --from-literal=admin-user=admin \
+            --from-literal=admin-password='${{ secrets.GRAFANA_ADMIN_PASSWORD }}' \
+            --dry-run=client -o yaml | sudo kubectl apply -f -
+          sudo kubectl apply -f k8s/monitoring/
           sudo kubectl -n cyclingforge set image deployment/cyclingforge-backend backend=$BACKEND_IMAGE:${{ github.sha }}
           sudo kubectl -n cyclingforge set image deployment/cyclingforge-frontend frontend=$FRONTEND_IMAGE:${{ github.sha }}
           sudo kubectl -n cyclingforge set image deployment/cyclingforge-garmin garmin=$GARMIN_IMAGE:${{ github.sha }}
