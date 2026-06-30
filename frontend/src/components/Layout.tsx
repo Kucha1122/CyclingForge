@@ -2,6 +2,7 @@ import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { Logo } from './Logo';
 import i18n from '../i18n';
 
 const NAV_ITEMS: { key: string; href: string; icon: string }[] = [
@@ -55,12 +56,13 @@ export const Layout = () => {
       {/* Sidebar */}
       <div className="w-64 bg-surface shadow-lg">
         <div className="flex h-full flex-col">
-          {/* Logo/Brand */}
+          {/* Logo/Brand — header background follows the theme (paper on light, ink
+              on dark), mirroring the brand "Logo · Light / Dark" panels. */}
           <div
             className="flex h-16 items-center justify-center border-b border-border-default"
-            style={{ background: 'var(--sidebar-header)' }}
+            style={{ background: theme === 'dark' ? '#0C0E16' : '#F2F3F8' }}
           >
-            <h1 className="text-xl font-bold text-accent-foreground">{t('brand')}</h1>
+            <Logo variant="auto" markSize={34} tagline />
           </div>
 
           {/* Navigation */}

@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { Logo } from '../components/Logo';
 import type { LoginRequest, AuthResultDto } from '../types/auth';
 
 export const LoginPage = () => {
@@ -30,6 +31,9 @@ export const LoginPage = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-page">
       <div className="w-full max-w-md rounded-xl bg-surface p-8 shadow-lg ring-1 ring-border-default">
+        <div className="mb-6 flex justify-center">
+          <Logo markSize={48} tagline />
+        </div>
         <h2 className="text-center text-2xl font-bold text-primary">
           {t('login')}
         </h2>

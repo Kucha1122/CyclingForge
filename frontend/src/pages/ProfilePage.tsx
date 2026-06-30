@@ -7,7 +7,7 @@ import { useToast } from '../context/ToastContext';
 import { usersApi, stravaApi, garminApi, type UserProfile } from '../services/api';
 import type { AthleteProfileDto, AthleteZonesDto, ActivitySyncFilterDto } from '../types/strava';
 import type { GarminStatusDto } from '../types/garmin';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { formatDate } from '../utils/format';
 
 export const ProfilePage = () => {
@@ -307,6 +307,18 @@ export const ProfilePage = () => {
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Mobile App Card */}
+          <div className="rounded-xl bg-surface p-6 shadow-sm ring-1 ring-border-default">
+            <h2 className="mb-2 text-xl font-semibold text-primary">{tCommon('downloadAppTitle')}</h2>
+            <p className="mb-4 text-sm text-secondary">{tCommon('downloadAppAndroidOnly')}</p>
+            <Link
+              to="/download"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:opacity-90"
+            >
+              {tCommon('downloadAppButton')}
+            </Link>
           </div>
 
           {/* Strava Connection Card */}

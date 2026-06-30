@@ -3,6 +3,10 @@
 /* Class-based dark mode (toggle via .dark on root) */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Brand fonts — used only for the logo wordmark/tagline, not global UI. */
+.font-display { font-family: 'Space Grotesk', sans-serif; }
+.font-brand-mono { font-family: 'Space Mono', monospace; }
+
 /* Semantic design tokens – light theme */
 :root {
   --bg-page: #f9fafb;
