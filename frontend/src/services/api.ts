@@ -1,6 +1,7 @@
 import axios from 'axios';
 import i18n from '../i18n';
 import { emitToast } from '../context/toastBus';
+import { clientLogger } from './clientLogger';
 import type { AthleteProfileDto, AthleteZonesDto, ActivitySyncFilterDto } from '@cyclingforge/shared';
 import type { ActivityDto, ActivityDetailsDto, RealizedWeekDto, ActivityCountsDto, StravaActivityDetailsDto, PowerCurveDto } from '@cyclingforge/shared';
 import type { GarminStatusDto, SleepDataDto, WellnessDataDto, HrvDataDto, GarminSyncPreferenceDto } from '@cyclingforge/shared';
@@ -87,6 +88,15 @@ api.interceptors.response.use(
       // Refresh already attempted/failed or this is the refresh call itself.
       forceLogout();
       return Promise.reject(error);
+    }
+
+    // Report server (5xx) and network failures to Loki. Skip 4xx (expected/handled)
+    // and cancellations to avoid noise.
+    if (!axios.isCancel(error) && (status === undefined || status >= 500)) {
+      clientLogger.error(
+        status ? `API ${status} ${original?.method?.toUpperCase() ?? ''} ${url}` : `Network error ${url}`,
+        { context: 'api', stack: error.stack },
+      );
     }
 
     const silent = error.config?.silentError;
