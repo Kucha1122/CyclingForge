@@ -80,16 +80,18 @@ data:
     }
 
     // Promote the JSON level field to a label when present (Serilog @l / level).
+    // "@l" must be JMES-quoted (\"@l\") since @ is a JMESPath special character.
     loki.process "parse" {
       stage.json {
         expressions = {
           level = "level",
-          lvl   = "@l",
+          lvl   = "\"@l\"",
         }
       }
       stage.labels {
         values = {
           level = "",
+          lvl   = "",
         }
       }
       forward_to = [loki.write.default.receiver]
