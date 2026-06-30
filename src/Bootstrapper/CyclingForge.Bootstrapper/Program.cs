@@ -8,8 +8,34 @@ using CyclingForge.Shared.Infrastructure;
 using CyclingForge.Shared.Infrastructure.Exceptions;
 using CyclingForge.Shared.Infrastructure.Modules;
 using CyclingForge.Bootstrapper.Composition;
+using CyclingForge.Bootstrapper.ClientLogs;
+using Prometheus;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Structured logging. In production (k8s) we emit compact JSON to stdout so Alloy
+// can parse fields (level, timestamp, message, properties) and ship them to Loki.
+// Locally (dotnet run / Development) JSON is unreadable noise, so we keep the
+// classic human-readable console template there instead.
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext();
+
+    if (context.HostingEnvironment.IsDevelopment())
+    {
+        configuration.WriteTo.Console(
+            outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}");
+    }
+    else
+    {
+        configuration.WriteTo.Console(new CompactJsonFormatter());
+    }
+});
 
 // Ensure module assemblies are loaded so LoadModules() and controller discovery can find them
 var moduleAssemblyNames = new[]
@@ -124,10 +150,20 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 app.UseCors("AllowedOrigins");
+
+// Capture per-request HTTP metrics (count, duration, in-flight) for Prometheus.
+app.UseHttpMetrics();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<CyclingForge.Bootstrapper.RealTime.SyncHub>("/api/hubs/sync");
 app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
+
+// Client-side log ingestion (web + mobile) → ILogger → stdout → Loki.
+app.MapClientLogs();
+
+// Prometheus scrape endpoint (scraped via pod annotations in k8s/backend.yaml).
+app.MapMetrics();
 
 app.Run();

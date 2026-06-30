@@ -23,7 +23,15 @@ public sealed class ErrorHandlerMiddleware : IMiddleware
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
+            using (_logger.BeginScope(new Dictionary<string, object?>
+            {
+                ["traceId"] = context.TraceIdentifier,
+                ["requestPath"] = context.Request.Path.Value,
+                ["requestMethod"] = context.Request.Method,
+            }))
+            {
+                _logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
+            }
             await HandleExceptionAsync(context, exception);
         }
     }
