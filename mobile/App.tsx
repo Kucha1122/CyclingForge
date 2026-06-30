@@ -15,6 +15,10 @@ import { UpdateBanner } from './src/components/UpdateBanner';
 import { fetchLatest, isUpdateAvailable } from './src/services/appUpdate';
 import { useUpdateStore } from './src/stores/updateStore';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { installGlobalErrorLogging } from './src/services/clientLogger';
+
+installGlobalErrorLogging();
 
 const LightTheme = {
   ...DefaultTheme,
@@ -106,15 +110,17 @@ export default function App() {
   }, [isAuthenticated]);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <NavigationContainer theme={isDark ? CyclingDarkTheme : LightTheme}>
-          <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-          <RootNavigator />
-          <SyncToast />
-          <UpdateBanner />
-        </NavigationContainer>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <NavigationContainer theme={isDark ? CyclingDarkTheme : LightTheme}>
+            <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+            <RootNavigator />
+            <SyncToast />
+            <UpdateBanner />
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }

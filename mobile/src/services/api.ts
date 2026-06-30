@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import { useAuthStore } from '../stores/authStore';
+import { clientLogger } from './clientLogger';
 import type {
   AuthResultDto,
   AthleteProfileDto, AthleteZonesDto, ActivitySyncFilterDto,
@@ -72,6 +73,15 @@ api.interceptors.response.use(
     if (status === 401) {
       useAuthStore.getState().logout();
     }
+
+    // Report server (5xx) and network failures to Loki. Skip 4xx and cancellations.
+    if (!axios.isCancel(error) && (status === undefined || status >= 500)) {
+      clientLogger.error(
+        status ? `API ${status} ${original?.method?.toUpperCase() ?? ''} ${url}` : `Network error ${url}`,
+        { context: 'api', stack: error.stack },
+      );
+    }
+
     return Promise.reject(error);
   }
 );
