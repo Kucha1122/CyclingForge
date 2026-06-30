@@ -2,3 +2,5 @@ fastapi==0.115.6
 uvicorn[standard]==0.34.0
 garminconnect==0.2.25
 pydantic==2.10.4
+python-json-logger==2.0.7
+prometheus-fastapi-instrumentator==7.0.0

@@ -13,10 +13,17 @@ All data endpoints take the garth token in the body; nothing is persisted here.
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from . import garmin_client, schemas
+from .logging_config import configure_logging
+
+configure_logging()
 
 app = FastAPI(title="CyclingForge Garmin Service", version="1.0.0")
+
+# Expose request count/latency metrics at /metrics (scraped via k8s pod annotations).
+Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 
 @app.get("/health")
